@@ -1,0 +1,47 @@
+name: CI -- Test & Check
+
+on:
+  pull_request:
+
+concurrency:
+  # For pull_request events only, cancel previous runs for the same pull request
+  group: build-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.number || github.job_id }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: [self-hosted, linux, x64, nitrosys]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.14"
+
+      - name: Run checks
+        run: task check
+        shell: bash
+
+      - name: Run tests
+        run: task test
+        shell: bash
+
+  result:
+    name: Result
+    if: ${{ always() }}
+    runs-on: [self-hosted, linux, x64]
+    needs: [check]
+    steps:
+      - name: Check results
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+        run: exit 1
