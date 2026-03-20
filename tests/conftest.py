@@ -1,6 +1,9 @@
 # Copyright (c) 2005-2025 Nitro Software Inc. All Rights Reserved
+# pylint: disable=redefined-outer-name
 
 """Pytest fixtures for testing"""
+
+from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
