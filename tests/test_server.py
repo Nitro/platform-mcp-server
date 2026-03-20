@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from platform_mcp_server import server
-from platform_mcp_server.config.settings import Settings
-from platform_mcp_server.server import mcp, welcome_message
+from app import server
+from app.config.settings import Settings
+from app.server import mcp, welcome_message
 
 if TYPE_CHECKING:
     from pathlib import Path

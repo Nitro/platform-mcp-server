@@ -5,7 +5,7 @@
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from platform_mcp_server.config.settings import Settings
+from app.config.settings import Settings
 
 if TYPE_CHECKING:
     import pytest

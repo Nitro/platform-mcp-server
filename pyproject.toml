@@ -40,10 +40,10 @@ build = [
 ]
 
 [project.scripts]
-nitro-mcp = "platform_mcp_server.server:main"
+nitro-mcp = "app.server:main"
 
 [tool.pyright]
-include = ["platform_mcp_server", "tests"]
+include = ["app", "tests"]
 typeCheckingMode = "strict"
 pythonVersion = "3.14"
 reportUnusedExpression = "error"
@@ -119,7 +119,7 @@ ignore = [
 parametrize-names-type = "csv"
 
 [tool.ruff.lint.isort]
-known-first-party = ["platform_mcp_server"]
+known-first-party = ["app"]
 
 [tool.ruff.format]
 preview = true
@@ -139,7 +139,7 @@ exclude_lines = [
 
 [tool.coverage.run]
 branch = true
-source = ["platform_mcp_server"]
+source = ["app"]
 
 [tool.setuptools_scm]
 local_scheme = "no-local-version"

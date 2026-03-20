@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from platform_mcp_server.config.settings import Settings
+from app.config.settings import Settings
 
 if TYPE_CHECKING:
     from pathlib import Path

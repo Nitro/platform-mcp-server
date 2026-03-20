@@ -2,6 +2,6 @@
 
 """Configuration module for Nitro MCP Server"""
 
-from platform_mcp_server.config.settings import Settings, settings
+from app.config.settings import Settings, settings
 
 __all__ = ["Settings", "settings"]
