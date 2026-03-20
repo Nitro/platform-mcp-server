@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from platform_mcp_server import server
 from platform_mcp_server.config.settings import Settings
 from platform_mcp_server.server import mcp, welcome_message
 
@@ -22,8 +23,6 @@ def test_welcome_message_contains_version(
     mock_settings: Settings, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test that welcome message contains version info"""
-    from platform_mcp_server import server
-
     monkeypatch.setattr(server, "settings", mock_settings)
 
     message = welcome_message()
@@ -35,8 +34,6 @@ def test_welcome_message_contains_workspace(
     mock_settings: Settings, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test that welcome message contains workspace path"""
-    from platform_mcp_server import server
-
     monkeypatch.setattr(server, "settings", mock_settings)
 
     message = welcome_message()
@@ -51,8 +48,6 @@ def test_welcome_message_is_markdown() -> None:
 
 def test_main_requires_auth_token(temp_workspace: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that main() raises error when auth token is not set"""
-    from platform_mcp_server import server
-
     # Create settings without auth_token
     monkeypatch.delenv("NITRO_AUTH_TOKEN", raising=False)
     monkeypatch.setenv("NITRO_MCP_WORKSPACE", str(temp_workspace))
