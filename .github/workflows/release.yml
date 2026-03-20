@@ -1,0 +1,66 @@
+name: Release - Build Binaries
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-binaries:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            arch: arm64
+            platform: macos-arm64
+          - os: macos-latest
+            arch: x86_64
+            platform: macos-x86_64
+          - os: ubuntu-latest
+            arch: x86_64
+            platform: linux-x86_64
+          - os: windows-latest
+            arch: x86_64
+            platform: windows-x86_64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: uv sync --all-groups
+        shell: bash
+
+      - name: Build binary with PyInstaller
+        run: uv run pyinstaller --onefile --name nitro-mcp-${{ matrix.platform }} platform_mcp_server/server.py
+        shell: bash
+
+      - name: Generate checksum (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cd dist
+          shasum -a 256 nitro-mcp-${{ matrix.platform }} > nitro-mcp-${{ matrix.platform }}.sha256
+        shell: bash
+
+      - name: Generate checksum (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cd dist
+          Get-FileHash nitro-mcp-${{ matrix.platform }}.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash | Out-File nitro-mcp-${{ matrix.platform }}.exe.sha256
+        shell: pwsh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nitro-mcp-${{ matrix.platform }}
+          path: |
+            dist/nitro-mcp-${{ matrix.platform }}*
+
+  # Note: Binaries are uploaded as workflow artifacts
+  # To create an actual GitHub Release, manually download artifacts
+  # and create a release via GitHub UI when ready to publish
