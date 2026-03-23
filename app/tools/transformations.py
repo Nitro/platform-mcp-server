@@ -2,7 +2,6 @@
 
 """PDF transformation tools for MCP server"""
 
-from pathlib import Path  # noqa: TC003
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
@@ -17,12 +16,13 @@ if TYPE_CHECKING:
 class MergeRequest(BaseModel):
     """Request to merge multiple files into one"""
 
-    input_paths: list[Path] = Field(
+    input_filenames: list[str] = Field(
         min_length=2,
-        description="Absolute paths of the files to merge. Must be at least 2 files.",
+        description="Filenames to merge from workspace. Must be at least 2 files.",
     )
-    output_path: Path = Field(
-        description="Absolute path for the merged output file, including filename and extension.",
+    output_filename: str = Field(
+        default="merged.pdf",
+        description="Output filename for the merged file.",
     )
 
 
@@ -41,7 +41,7 @@ def merge_files(merge_request: MergeRequest) -> MergeResult:
     Merge multiple PDF files from the workspace into one PDF.
 
     Args:
-        merge_request: Request containing input paths and output path
+        merge_request: Request containing input filenames and output filename
 
     Returns:
         MergeResult with details about the merge operation
@@ -50,13 +50,17 @@ def merge_files(merge_request: MergeRequest) -> MergeResult:
         FileNotFoundError: If any input file doesn't exist
         RuntimeError: If merge operation fails
     """
+    files_folder = settings.files_folder
+
     # Read all files
     file_contents: list[bytes] = []
     total_size = 0
 
-    for file_path in merge_request.input_paths:
+    for filename in merge_request.input_filenames:
+        file_path = files_folder / filename
+
         if not file_path.exists():
-            msg = f"File not found: {file_path}"
+            msg = f"File not found: {filename}"
             raise FileNotFoundError(msg)
 
         content = file_path.read_bytes()
@@ -68,12 +72,13 @@ def merge_files(merge_request: MergeRequest) -> MergeResult:
     merged_bytes = handler.merge_pdfs(file_contents)
 
     # Save merged file
-    merge_request.output_path.write_bytes(merged_bytes)
+    output_path = files_folder / merge_request.output_filename
+    output_path.write_bytes(merged_bytes)
 
     return MergeResult(
-        output_filename=merge_request.output_path.name,
-        input_files=[p.name for p in merge_request.input_paths],
-        input_count=len(merge_request.input_paths),
+        output_filename=merge_request.output_filename,
+        input_files=merge_request.input_filenames,
+        input_count=len(merge_request.input_filenames),
         total_input_size_bytes=total_size,
         output_size_bytes=len(merged_bytes),
     )
