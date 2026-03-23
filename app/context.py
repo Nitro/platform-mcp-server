@@ -31,13 +31,11 @@ def _get_app_context(ctx: CoreContext) -> AppContext:
 @overload
 def get_dep(ctx: CoreContext, thing: Literal["files-folder"]) -> Path:
     """Get the files folder path from the context"""
-    ...
 
 
 @overload
 def get_dep(ctx: CoreContext, thing: Literal["platform-handler"]) -> PlatformHandler:
     """Get the platform handler from the context"""
-    ...
 
 
 def get_dep(
@@ -46,6 +44,4 @@ def get_dep(
     """Get a dependency from the context by name."""
     if thing == "files-folder":
         return _get_app_context(ctx).files_folder
-    if thing == "platform-handler":
-        return _get_app_context(ctx).platform_handler
-    return None
+    return _get_app_context(ctx).platform_handler
