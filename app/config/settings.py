@@ -37,7 +37,7 @@ class Settings(BaseSettings):
         validation_alias="MCP_SERVER_VERSION",
     )
 
-    def model_post_init(self, _context: object, /) -> None:
+    def model_post_init(self, _: object, /) -> None:
         """Ensure files folder exists"""
         self.files_folder.mkdir(parents=True, exist_ok=True)
 

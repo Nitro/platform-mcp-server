@@ -2,29 +2,45 @@
 
 """MCP server for Nitro Document Intelligence Platform"""
 
+import contextlib
+from typing import TYPE_CHECKING
+
 from mcp.server.fastmcp import FastMCP
 
+from app.client import PlatformHandler
 from app.config import settings
-from app.tools import register_file_management_tools, register_transformation_tools
+from app.context import AppContext
+from app.tools import register as register_tools
 
-mcp = FastMCP("Nitro MCP")
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+
+
+@contextlib.asynccontextmanager
+async def lifespan(_: FastMCP) -> AsyncGenerator[AppContext]:
+    """Lifespan handler for MCP server"""
+    yield AppContext(
+        platform_handler=PlatformHandler.create(settings.api_url, settings.auth_token),
+        files_folder=settings.files_folder,
+    )
+
+
+mcp = FastMCP("Nitro MCP", lifespan=lifespan)
 
 # Register tools
-register_file_management_tools(mcp)
-register_transformation_tools(mcp)
+register_tools(mcp)
 
 
 @mcp.resource("nitro://welcome")
 def welcome_message() -> str:
     """Welcome message with server info"""
-    return f"""# Nitro MCP
-
-Version: {settings.version}
-Workspace folder: {settings.files_folder}
-
-PDF processing tools powered by Nitro's Document Intelligence Platform.
-Tools will be added in upcoming releases.
-"""
+    return (
+        f"# Nitro MCP\n\n"
+        f"Version: {settings.version}\n"
+        f"Workspace folder: {settings.files_folder}\n\n"
+        "PDF processing tools powered by Nitro's Document Intelligence Platform.\n"
+        "Tools will be added in upcoming releases.\n"
+    )
 
 
 def main() -> None:

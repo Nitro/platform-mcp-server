@@ -34,6 +34,7 @@ dev = [
     "pytest-socket>=0.7.0",
     "pytest-mock>=3.15.0",
     "pytest-httpx>=0.36.0",
+    "anyio[trio]>=4.12.1",
 ]
 build = [
     "pyinstaller>=6.0.0",
@@ -113,6 +114,9 @@ ignore = [
     "E501",    # Allow long lines in test docstrings / mock data
     "S105",    # Hardcoded passwords/tokens in tests
     "S106",    # Hardcoded secrets/tokens in tests
+]
+"app/**/*.py" = [
+    "TC002",   # MCP Context/Session types must be available at runtime for FastMCP introspection
 ]
 
 [tool.ruff.lint.flake8-pytest-style]

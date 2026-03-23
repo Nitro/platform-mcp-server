@@ -10,7 +10,7 @@ from collections.abc import Sequence  # noqa: TC003
 from enum import StrEnum
 from typing import Any, Literal
 
-import httpx  # noqa: TC002
+import httpx
 
 from app.client.enums import ContentType  # noqa: TC001
 
