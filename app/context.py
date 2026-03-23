@@ -31,13 +31,13 @@ def _get_app_context(ctx: CoreContext) -> AppContext:
 @overload
 def get_dep(ctx: CoreContext, thing: Literal["files-folder"]) -> Path:
     """Get the files folder path from the context"""
-    return _get_app_context(ctx).files_folder
+    ...
 
 
 @overload
 def get_dep(ctx: CoreContext, thing: Literal["platform-handler"]) -> PlatformHandler:
     """Get the platform handler from the context"""
-    return _get_app_context(ctx).platform_handler
+    ...
 
 
 def get_dep(
