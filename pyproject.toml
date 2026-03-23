@@ -23,25 +23,27 @@ build-backend = "setuptools.build_meta"
 
 [dependency-groups]
 dev = [
-    "pytest>=7.2.0",
+    "pytest>=9.0.0",
     "pre-commit>=2.20.0",
     "pyright>=1.1.390",
     "pytest-cov>=4.0.0",
     "ruff>=0.11.5",
+    "pylint>=3.3.8",
+    "pylint-pydantic>=0.3.2",
     "pytest-asyncio>=1.1.0",
     "pytest-socket>=0.7.0",
     "pytest-mock>=3.15.0",
-    "pytest-httpx>=0.35.0",
+    "pytest-httpx>=0.36.0",
 ]
 build = [
     "pyinstaller>=6.0.0",
 ]
 
 [project.scripts]
-nitro-mcp = "platform_mcp_server.server:main"
+nitro-mcp = "app.server:main"
 
 [tool.pyright]
-include = ["platform_mcp_server", "tests"]
+include = ["app", "tests"]
 typeCheckingMode = "strict"
 pythonVersion = "3.14"
 reportUnusedExpression = "error"
@@ -117,7 +119,7 @@ ignore = [
 parametrize-names-type = "csv"
 
 [tool.ruff.lint.isort]
-known-first-party = ["platform_mcp_server"]
+known-first-party = ["app"]
 
 [tool.ruff.format]
 preview = true
@@ -137,7 +139,10 @@ exclude_lines = [
 
 [tool.coverage.run]
 branch = true
-source = ["platform_mcp_server"]
+source = ["app"]
 
 [tool.setuptools_scm]
 local_scheme = "no-local-version"
+
+[tool.pylint.main]
+load-plugins = ["pylint_pydantic"]

@@ -4,9 +4,13 @@
 
 from mcp.server.fastmcp import FastMCP
 
-from platform_mcp_server.config.settings import settings
+from app.config import settings
+from app.tools import register_file_management_tools
 
 mcp = FastMCP("Nitro MCP")
+
+# Register tools
+register_file_management_tools(mcp)
 
 
 @mcp.resource("nitro://welcome")

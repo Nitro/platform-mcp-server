@@ -1,12 +1,15 @@
 # Copyright (c) 2005-2025 Nitro Software Inc. All Rights Reserved
+# pylint: disable=redefined-outer-name
 
 """Pytest fixtures for testing"""
+
+from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
 import pytest
 
-from platform_mcp_server.config.settings import Settings
+from app.config.settings import Settings
 
 if TYPE_CHECKING:
     from pathlib import Path
