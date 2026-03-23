@@ -11,7 +11,7 @@ from app.client import PlatformHandler
 @pytest.fixture(name="platform_handler")
 def _platform_handler() -> PlatformHandler:
     """Create PlatformHandler instance for testing"""
-    return PlatformHandler(
+    return PlatformHandler.create(
         base_url="https://test-api.example.com",
         auth_token="test-token-123",
         timeout=120.0,
@@ -156,7 +156,7 @@ def test_merge_pdfs_job_timeout(httpx_mock: HTTPXMock) -> None:
         )
 
     # Create handler with very short timeout
-    short_timeout_handler = PlatformHandler(
+    short_timeout_handler = PlatformHandler.create(
         base_url="https://test-api.example.com",
         auth_token="test-token",
         timeout=0.1,  # 100ms timeout

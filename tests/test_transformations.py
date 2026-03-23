@@ -32,7 +32,7 @@ def test_merge_files_success(
     mock_client = Mock()
     mock_client.merge_pdfs.return_value = b"merged-pdf-content"
 
-    with patch("app.tools.transformations.PlatformHandler", return_value=mock_client):
+    with patch("app.tools.transformations.PlatformHandler.create", return_value=mock_client):
         result = merge_files(["file1.pdf", "file2.pdf"], "output.pdf")
 
     # Verify result
@@ -63,7 +63,7 @@ def test_merge_files_adds_pdf_extension(
     mock_client = Mock()
     mock_client.merge_pdfs.return_value = b"merged"
 
-    with patch("app.tools.transformations.PlatformHandler", return_value=mock_client):
+    with patch("app.tools.transformations.PlatformHandler.create", return_value=mock_client):
         result = merge_files(["file1.pdf", "file2.pdf"], "output")
 
     # Verify .pdf extension was added
@@ -118,7 +118,7 @@ def test_merge_files_multiple_files(
     mock_client = Mock()
     mock_client.merge_pdfs.return_value = b"merged-result"
 
-    with patch("app.tools.transformations.PlatformHandler", return_value=mock_client):
+    with patch("app.tools.transformations.PlatformHandler.create", return_value=mock_client):
         result = merge_files(["doc1.pdf", "doc2.pdf", "doc3.pdf"], "combined.pdf")
 
     assert result.input_count == 3
@@ -142,7 +142,7 @@ def test_merge_files_client_error(
     mock_client.merge_pdfs.side_effect = RuntimeError("API error")
 
     with (
-        patch("app.tools.transformations.PlatformHandler", return_value=mock_client),
+        patch("app.tools.transformations.PlatformHandler.create", return_value=mock_client),
         pytest.raises(RuntimeError, match="API error"),
     ):
         merge_files(["file1.pdf", "file2.pdf"])
@@ -162,7 +162,7 @@ def test_merge_files_default_output_name(
     mock_client = Mock()
     mock_client.merge_pdfs.return_value = b"merged"
 
-    with patch("app.tools.transformations.PlatformHandler", return_value=mock_client):
+    with patch("app.tools.transformations.PlatformHandler.create", return_value=mock_client):
         result = merge_files(["file1.pdf", "file2.pdf"])
 
     # Default output name should be "merged.pdf"

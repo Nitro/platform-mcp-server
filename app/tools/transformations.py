@@ -68,7 +68,7 @@ def merge_files(
         total_size += len(content)
 
     # Merge PDFs using platform handler
-    handler = PlatformHandler(settings.api_url, settings.auth_token)
+    handler = PlatformHandler.create(settings.api_url, settings.auth_token)
     merged_bytes = handler.merge_pdfs(file_contents, filenames)
 
     # Ensure output filename has .pdf extension

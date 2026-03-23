@@ -11,32 +11,36 @@ from app.client.platform_api import AcceptFormat, BytesFile, PlatformApiClient
 class PlatformHandler:  # pylint: disable=too-few-public-methods
     """High-level handler for platform document operations"""
 
-    def __init__(
-        self,
-        base_url: str,
-        auth_token: str,
-        timeout: float = 120.0,
-        httpx_client: httpx.Client | None = None,
-    ) -> None:
+    def __init__(self, platform_client: PlatformApiClient) -> None:
         """
-        Initialize Platform Handler.
+        Initialize Platform Handler with injected dependencies.
+
+        Args:
+            platform_client: Platform API client for making requests
+        """
+        self._platform_client = platform_client
+
+    @classmethod
+    def create(cls, base_url: str, auth_token: str, timeout: float = 120.0) -> PlatformHandler:
+        """
+        Factory method to create handler with all dependencies.
 
         Args:
             base_url: Platform API base URL
             auth_token: Bearer token for authentication
             timeout: Timeout for job completion in seconds (default 120s)
-            httpx_client: Optional httpx.Client for dependency injection (for testing)
-        """
-        if httpx_client is None:
-            headers = {"Authorization": f"Bearer {auth_token}"}
-            httpx_client = httpx.Client(headers=headers, timeout=60.0)
 
-        self._httpx_client = httpx_client
-        self._platform_client = PlatformApiClient(
-            _httpx_client=self._httpx_client,
+        Returns:
+            PlatformHandler instance with configured dependencies
+        """
+        headers = {"Authorization": f"Bearer {auth_token}"}
+        httpx_client = httpx.Client(headers=headers, timeout=60.0)
+        platform_client = PlatformApiClient(
+            _httpx_client=httpx_client,
             _platform_url=base_url,
             _job_wait_timeout=timeout,
         )
+        return cls(platform_client)
 
     def merge_pdfs(self, file_contents: list[bytes], filenames: list[str] | None = None) -> bytes:
         """
