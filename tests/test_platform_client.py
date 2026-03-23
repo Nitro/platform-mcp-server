@@ -51,7 +51,7 @@ def test_merge_pdfs_success(platform_handler: PlatformHandler, httpx_mock: HTTPX
     # Test merge
     pdf1 = b"pdf1"
     pdf2 = b"pdf2"
-    result = platform_handler.merge_pdfs([pdf1, pdf2], ["file1.pdf", "file2.pdf"])
+    result = platform_handler.merge_pdfs([pdf1, pdf2])
 
     assert result == b"merged-pdf-content"
 
@@ -60,42 +60,6 @@ def test_merge_pdfs_empty_list(platform_handler: PlatformHandler) -> None:
     """Test merge with empty file list raises ValueError"""
     with pytest.raises(ValueError, match="At least one PDF file is required"):
         platform_handler.merge_pdfs([])
-
-
-def test_merge_pdfs_auto_filenames(
-    platform_handler: PlatformHandler, httpx_mock: HTTPXMock
-) -> None:
-    """Test merge with auto-generated filenames"""
-    # Mock responses
-    httpx_mock.add_response(
-        method="POST",
-        url="https://test-api.example.com/transformations",
-        status_code=202,
-        headers={
-            "Location": "https://test-api.example.com/jobs/123",
-            "Retry-After": "1.0",
-        },
-    )
-
-    httpx_mock.add_response(
-        method="GET",
-        url="https://test-api.example.com/jobs/123",
-        status_code=302,
-        headers={"Location": "https://test-api.example.com/results/123"},
-        json={"status": "completed"},
-    )
-
-    httpx_mock.add_response(
-        method="GET",
-        url="https://test-api.example.com/results/123",
-        status_code=200,
-        content=b"merged-pdf",
-    )
-
-    # Test with auto-generated filenames
-    result = platform_handler.merge_pdfs([b"pdf1", b"pdf2"])
-
-    assert result == b"merged-pdf"
 
 
 def test_merge_pdfs_failure(platform_handler: PlatformHandler, httpx_mock: HTTPXMock) -> None:

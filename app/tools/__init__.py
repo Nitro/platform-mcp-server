@@ -7,11 +7,16 @@ from app.tools.file_management import (
     FileListResult,
     register_file_management_tools,
 )
-from app.tools.transformations import MergeResult, register_transformation_tools
+from app.tools.transformations import (
+    MergeRequest,
+    MergeResult,
+    register_transformation_tools,
+)
 
 __all__ = [
     "FileInfo",
     "FileListResult",
+    "MergeRequest",
     "MergeResult",
     "register_file_management_tools",
     "register_transformation_tools",

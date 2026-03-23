@@ -2,6 +2,7 @@
 
 """PDF transformation tools for MCP server"""
 
+from pathlib import Path  # noqa: TC003
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
@@ -11,6 +12,18 @@ from app.config import settings
 
 if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
+
+
+class MergeRequest(BaseModel):
+    """Request to merge multiple files into one"""
+
+    input_paths: list[Path] = Field(
+        min_length=2,
+        description="Absolute paths of the files to merge. Must be at least 2 files.",
+    )
+    output_path: Path = Field(
+        description="Absolute path for the merged output file, including filename and extension.",
+    )
 
 
 class MergeResult(BaseModel):
@@ -23,44 +36,27 @@ class MergeResult(BaseModel):
     output_size_bytes: int = Field(description="Size of merged output file in bytes")
 
 
-def merge_files(
-    filenames: list[str],
-    output_name: str = "merged.pdf",
-) -> MergeResult:
+def merge_files(merge_request: MergeRequest) -> MergeResult:
     """
     Merge multiple PDF files from the workspace into one PDF.
 
     Args:
-        filenames: List of PDF filenames to merge (in order)
-        output_name: Name for the merged PDF file
+        merge_request: Request containing input paths and output path
 
     Returns:
         MergeResult with details about the merge operation
 
     Raises:
-        ValueError: If filenames list is invalid
         FileNotFoundError: If any input file doesn't exist
         RuntimeError: If merge operation fails
     """
-    if not filenames:
-        msg = "At least one filename is required for merging"
-        raise ValueError(msg)
-
-    if len(filenames) < 2:
-        msg = "At least two files are required for merging"
-        raise ValueError(msg)
-
-    files_folder = settings.files_folder
-
     # Read all files
     file_contents: list[bytes] = []
     total_size = 0
 
-    for filename in filenames:
-        file_path = files_folder / filename
-
+    for file_path in merge_request.input_paths:
         if not file_path.exists():
-            msg = f"File not found: {filename}"
+            msg = f"File not found: {file_path}"
             raise FileNotFoundError(msg)
 
         content = file_path.read_bytes()
@@ -69,20 +65,15 @@ def merge_files(
 
     # Merge PDFs using platform handler
     handler = PlatformHandler.create(settings.api_url, settings.auth_token)
-    merged_bytes = handler.merge_pdfs(file_contents, filenames)
-
-    # Ensure output filename has .pdf extension
-    if not output_name.lower().endswith(".pdf"):
-        output_name = f"{output_name}.pdf"
+    merged_bytes = handler.merge_pdfs(file_contents)
 
     # Save merged file
-    output_path = files_folder / output_name
-    output_path.write_bytes(merged_bytes)
+    merge_request.output_path.write_bytes(merged_bytes)
 
     return MergeResult(
-        output_filename=output_name,
-        input_files=filenames,
-        input_count=len(filenames),
+        output_filename=merge_request.output_path.name,
+        input_files=[p.name for p in merge_request.input_paths],
+        input_count=len(merge_request.input_paths),
         total_input_size_bytes=total_size,
         output_size_bytes=len(merged_bytes),
     )
