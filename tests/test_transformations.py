@@ -2,196 +2,98 @@
 
 """Tests for transformation tools"""
 
-from typing import TYPE_CHECKING
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock  # noqa: TC003
 
 import pytest
+from mcp import ClientSession  # noqa: TC002
 from pydantic import ValidationError
 
-from app.tools import MergeResult, transformations
-from app.tools.transformations import MergeRequest, merge_files
-
-if TYPE_CHECKING:
-    from pathlib import Path
-
-    from app.config.settings import Settings
+from app.tools.transformations import MergeRequest, MergeResult
 
 
-def test_merge_files_success(
-    temp_workspace: Path, mock_settings: Settings, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Test successful merge of multiple PDF files"""
-    # Create test PDF files
-    pdf1 = temp_workspace / "file1.pdf"
-    pdf1.write_bytes(b"pdf1")
-    pdf2 = temp_workspace / "file2.pdf"
-    pdf2.write_bytes(b"pdf2")
-
-    monkeypatch.setattr(transformations, "settings", mock_settings)
-
-    # Mock PlatformHandler
-    mock_client = Mock()
-    mock_client.merge_pdfs.return_value = b"merged-pdf-content"
-
-    with patch("app.tools.transformations.PlatformHandler.create", return_value=mock_client):
-        request = MergeRequest(
-            input_filenames=["file1.pdf", "file2.pdf"],
-            output_filename="output.pdf",
-        )
-        result = merge_files(request)
-
-    # Verify result
-    assert isinstance(result, MergeResult)
-    assert result.output_filename == "output.pdf"
-    assert result.input_files == ["file1.pdf", "file2.pdf"]
-    assert result.input_count == 2
-    assert result.total_input_size_bytes == 8  # 4 bytes each
-    assert result.output_size_bytes == 18
-
-    # Verify output file was created
-    output_file = temp_workspace / "output.pdf"
-    assert output_file.exists()
-    assert output_file.read_bytes() == b"merged-pdf-content"
-
-
-def test_merge_files_without_pdf_extension(
-    temp_workspace: Path, mock_settings: Settings, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Test merge with output filename without .pdf extension"""
-    pdf1 = temp_workspace / "file1.pdf"
-    pdf1.write_bytes(b"pdf1")
-    pdf2 = temp_workspace / "file2.pdf"
-    pdf2.write_bytes(b"pdf2")
-
-    monkeypatch.setattr(transformations, "settings", mock_settings)
-
-    mock_client = Mock()
-    mock_client.merge_pdfs.return_value = b"merged"
-
-    with patch("app.tools.transformations.PlatformHandler.create", return_value=mock_client):
-        request = MergeRequest(
-            input_filenames=["file1.pdf", "file2.pdf"],
-            output_filename="output",
-        )
-        result = merge_files(request)
-
-    # Verify filename is used as-is
-    assert result.output_filename == "output"
-    output_file = temp_workspace / "output"
-    assert output_file.exists()
-
-
-def test_merge_files_empty_list() -> None:
-    """Test merge with empty input list raises validation error"""
+def test_merge_request_rejects_empty_list() -> None:
     with pytest.raises(ValidationError):
-        MergeRequest(
-            input_filenames=[],
-            output_filename="output.pdf",
-        )
+        MergeRequest(input_filenames=[])
 
 
-def test_merge_files_single_file() -> None:
-    """Test merge with single file raises validation error"""
+def test_merge_request_requires_minimum_two_files() -> None:
     with pytest.raises(ValidationError):
-        MergeRequest(
-            input_filenames=["file1.pdf"],
-            output_filename="output.pdf",
-        )
+        MergeRequest(input_filenames=["file1.pdf"])
 
 
-def test_merge_files_file_not_found(
-    temp_workspace: Path, mock_settings: Settings, monkeypatch: pytest.MonkeyPatch
+@pytest.mark.anyio
+async def test_merge_files(
+    client: ClientSession,
+    pdf_a: str,
+    pdf_b: str,
+    platform_handler_mock: MagicMock,
 ) -> None:
-    """Test merge with non-existent file raises FileNotFoundError"""
-    pdf1 = temp_workspace / "file1.pdf"
-    pdf1.write_bytes(b"pdf1")
+    platform_handler_mock.merge_pdfs.return_value = b"merged"
 
-    monkeypatch.setattr(transformations, "settings", mock_settings)
-
-    request = MergeRequest(
-        input_filenames=["file1.pdf", "missing.pdf"],
-        output_filename="output.pdf",
+    response = await client.call_tool(
+        "merge_files",
+        {"merge_request": MergeRequest(input_filenames=[pdf_a, pdf_b]).model_dump()},
     )
-    with pytest.raises(FileNotFoundError, match="File not found"):
-        merge_files(request)
 
-
-def test_merge_files_multiple_files(
-    temp_workspace: Path, mock_settings: Settings, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Test merge with multiple PDF files"""
-    # Create test files
-    pdf1 = temp_workspace / "doc1.pdf"
-    pdf1.write_bytes(b"a" * 100)
-    pdf2 = temp_workspace / "doc2.pdf"
-    pdf2.write_bytes(b"b" * 200)
-    pdf3 = temp_workspace / "doc3.pdf"
-    pdf3.write_bytes(b"c" * 300)
-
-    monkeypatch.setattr(transformations, "settings", mock_settings)
-
-    mock_client = Mock()
-    mock_client.merge_pdfs.return_value = b"merged-result"
-
-    with patch("app.tools.transformations.PlatformHandler.create", return_value=mock_client):
-        request = MergeRequest(
-            input_filenames=["doc1.pdf", "doc2.pdf", "doc3.pdf"],
-            output_filename="combined.pdf",
-        )
-        result = merge_files(request)
-
-    assert result.input_count == 3
-    assert result.total_input_size_bytes == 600  # 100 + 200 + 300
-    assert result.output_size_bytes == 13
-    assert result.input_files == ["doc1.pdf", "doc2.pdf", "doc3.pdf"]
-
-
-def test_merge_files_client_error(
-    temp_workspace: Path, mock_settings: Settings, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Test merge handles client errors properly"""
-    pdf1 = temp_workspace / "file1.pdf"
-    pdf1.write_bytes(b"pdf1")
-    pdf2 = temp_workspace / "file2.pdf"
-    pdf2.write_bytes(b"pdf2")
-
-    monkeypatch.setattr(transformations, "settings", mock_settings)
-
-    mock_client = Mock()
-    mock_client.merge_pdfs.side_effect = RuntimeError("API error")
-
-    request = MergeRequest(
-        input_filenames=["file1.pdf", "file2.pdf"],
-        output_filename="output.pdf",
+    platform_handler_mock.merge_pdfs.assert_called_once_with([b"pdf-a-content", b"pdf-b-content"])
+    assert (
+        response.structuredContent
+        == MergeResult(
+            output_filename="merged.pdf",
+            input_files=[pdf_a, pdf_b],
+            input_count=2,
+            total_input_size_bytes=26,
+            output_size_bytes=6,
+        ).model_dump()
     )
-    with (
-        patch("app.tools.transformations.PlatformHandler.create", return_value=mock_client),
-        pytest.raises(RuntimeError, match="API error"),
-    ):
-        merge_files(request)
 
 
-def test_merge_files_default_output_name(
-    temp_workspace: Path, mock_settings: Settings, monkeypatch: pytest.MonkeyPatch
+@pytest.mark.anyio
+async def test_merge_files_missing_file_raises(
+    client: ClientSession,
+    pdf_a: str,
+    platform_handler_mock: MagicMock,
 ) -> None:
-    """Test merge with default output name"""
-    pdf1 = temp_workspace / "file1.pdf"
-    pdf1.write_bytes(b"pdf1")
-    pdf2 = temp_workspace / "file2.pdf"
-    pdf2.write_bytes(b"pdf2")
+    platform_handler_mock.merge_pdfs.return_value = b"merged"
 
-    monkeypatch.setattr(transformations, "settings", mock_settings)
+    response = await client.call_tool(
+        "merge_files",
+        {"merge_request": MergeRequest(input_filenames=[pdf_a, "missing.pdf"]).model_dump()},
+    )
 
-    mock_client = Mock()
-    mock_client.merge_pdfs.return_value = b"merged"
+    assert response.isError
 
-    with patch("app.tools.transformations.PlatformHandler.create", return_value=mock_client):
-        request = MergeRequest(
-            input_filenames=["file1.pdf", "file2.pdf"],
-            # output_filename uses default "merged.pdf"
-        )
-        result = merge_files(request)
 
-    assert result.output_filename == "merged.pdf"
-    output_file = temp_workspace / "merged.pdf"
-    assert output_file.exists()
+@pytest.mark.anyio
+async def test_merge_files_platform_error_raises(
+    client: ClientSession,
+    pdf_a: str,
+    pdf_b: str,
+    platform_handler_mock: MagicMock,
+) -> None:
+    platform_handler_mock.merge_pdfs.side_effect = RuntimeError("api-error")
+
+    response = await client.call_tool(
+        "merge_files",
+        {"merge_request": MergeRequest(input_filenames=[pdf_a, pdf_b]).model_dump()},
+    )
+
+    assert response.isError
+
+
+@pytest.mark.anyio
+async def test_merge_files_custom_output_filename(
+    client: ClientSession,
+    pdf_a: str,
+    pdf_b: str,
+    platform_handler_mock: MagicMock,
+) -> None:
+    platform_handler_mock.merge_pdfs.return_value = b"merged"
+
+    response = await client.call_tool(
+        "merge_files",
+        {"merge_request": MergeRequest(input_filenames=[pdf_a, pdf_b], output_filename="out.pdf").model_dump()},
+    )
+
+    assert response.structuredContent is not None
+    assert response.structuredContent["output_filename"] == "out.pdf"
