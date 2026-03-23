@@ -5,13 +5,13 @@
 import time
 from typing import TYPE_CHECKING
 
+import pytest
+
 from app.tools import FileListResult, file_management
 from app.tools.file_management import list_files
 
 if TYPE_CHECKING:
     from pathlib import Path
-
-    import pytest
 
     from app.config.settings import Settings
 
@@ -25,16 +25,8 @@ def test_list_files_workspace_does_not_exist(
 
     monkeypatch.setattr(file_management, "settings", mock_settings)
 
-    result = list_files()
-
-    expected = FileListResult(
-        files=[],
-        total_count=0,
-        file_type="pdf",
-        folder_path=str(non_existent_folder),
-        error=f"Workspace folder does not exist: {non_existent_folder}",
-    )
-    assert result == expected
+    with pytest.raises(FileNotFoundError, match="Workspace folder does not exist"):
+        list_files()
 
 
 def test_list_files_no_pdfs_found(mock_settings: Settings, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -68,7 +60,6 @@ def test_list_files_single_pdf(
     assert len(result.files) == 1
     assert result.files[0].name == "test_document.pdf"
     assert result.files[0].size_mb >= 0  # Empty file has size
-    assert result.error is None
 
 
 def test_list_files_multiple_pdfs_sorted_by_time(

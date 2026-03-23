@@ -27,7 +27,6 @@ class FileListResult(BaseModel):
     total_count: int = Field(description="Total number of files found")
     file_type: str = Field(description="Type of files listed (pdf, all)")
     folder_path: str = Field(description="Path to the workspace folder")
-    error: str | None = Field(default=None, description="Error message if operation failed")
 
 
 def list_files(file_type: str = "pdf") -> FileListResult:
@@ -39,17 +38,15 @@ def list_files(file_type: str = "pdf") -> FileListResult:
 
     Returns:
         FileListResult with list of files and metadata
+
+    Raises:
+        FileNotFoundError: If workspace folder does not exist
     """
     files_folder = settings.files_folder
 
     if not files_folder.exists():
-        return FileListResult(
-            files=[],
-            total_count=0,
-            file_type=file_type,
-            folder_path=str(files_folder),
-            error=f"Workspace folder does not exist: {files_folder}",
-        )
+        msg = f"Workspace folder does not exist: {files_folder}"
+        raise FileNotFoundError(msg)
 
     # Get files based on type
     if file_type.lower() == "pdf":
