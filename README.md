@@ -94,6 +94,14 @@ cd platform-mcp-server
 task install
 ```
 
+### Style Guide
+
+The project style guide lives in [doc-intelligence-api](https://github.com/Nitro/doc-intelligence-api). It is referenced by `CLAUDE.md` and **must be symlinked** into this repo so that Claude can read it:
+
+```bash
+ln -s ../doc-intelligence-api/style-guide.md style-guide.md
+```
+
 ### Running the Server (Development Mode)
 
 ```bash
