@@ -18,7 +18,7 @@ tasks:
         silent: true
       - uv run nitro-mcp
 
-  autoformat: uv run ruff check --fix
+  autoformat: uv run ruff check --fix {{.CLI_ARGS}}
 
   pre-commit:
     desc: Run all pre-commit hooks
@@ -35,7 +35,7 @@ tasks:
   check-lint:
     desc: Run pre-commit linting
     cmds:
-      - uv run pre-commit run ruff -a
+      - uv run pre-commit run ruff-check -a
 
   check-types:
     desc: Run static type checking with pyright
@@ -55,7 +55,7 @@ tasks:
     cmds:
       - cmd: echo "🚀 Running tests..."
         silent: true
-      - uv run -m pytest --cov --cov-config=pyproject.toml --cov-report=xml -s -vv -rA {{.CLI_ARGS}}
+      - uv run pytest --cov --cov-config=pyproject.toml --cov-report=xml -s -vv -rA {{.CLI_ARGS}}
 
   build:
     desc: Build distribution package
