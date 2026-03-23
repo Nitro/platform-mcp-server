@@ -161,6 +161,8 @@ class PlatformApiClient:
         # Handle method
         if method is not None:
             data["method"] = method
+        else:
+            assert path == "conversions", "Method is required for transformations and extractions"
 
         # Handle file upload (single file or multiple files)
         if isinstance(file_or_files, (URLFile, BytesFile)):
@@ -201,8 +203,7 @@ class PlatformApiClient:
         )
 
         # Check for errors in result fetch
-        if result_response.status_code in (406, 422):
-            raise InvalidRequestError(result_response.status_code, result_response.json())
+        self._check_error_response(result_response)
 
         elapsed = time.time() - start_time
         logger.info("Platform operation [%s/%s] completed in %.2fs", path, method, elapsed)

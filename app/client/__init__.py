@@ -4,7 +4,7 @@
 
 from app.client.enums import ContentType, FileFormat, RotationAmount
 from app.client.platform_api import AcceptFormat, BytesFile, PlatformApiClient, URLFile
-from app.client.platform_client import PlatformClientWrapper
+from app.client.platform_client import PlatformHandler
 
 __all__ = [
     "AcceptFormat",
@@ -12,7 +12,7 @@ __all__ = [
     "ContentType",
     "FileFormat",
     "PlatformApiClient",
-    "PlatformClientWrapper",
+    "PlatformHandler",
     "RotationAmount",
     "URLFile",
 ]

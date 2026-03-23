@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
 
-from app.client.platform_client import PlatformClientWrapper
+from app.client import PlatformHandler
 from app.config import settings
 
 if TYPE_CHECKING:
@@ -67,12 +67,9 @@ def merge_files(
         file_contents.append(content)
         total_size += len(content)
 
-    # Merge PDFs using platform client
-    client = PlatformClientWrapper(settings.api_url, settings.auth_token)
-    try:
-        merged_bytes = client.merge_pdfs(file_contents, filenames)
-    finally:
-        client.close()
+    # Merge PDFs using platform handler
+    handler = PlatformHandler(settings.api_url, settings.auth_token)
+    merged_bytes = handler.merge_pdfs(file_contents, filenames)
 
     # Ensure output filename has .pdf extension
     if not output_name.lower().endswith(".pdf"):

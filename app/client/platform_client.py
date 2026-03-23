@@ -1,6 +1,6 @@
 # Copyright (c) 2005-2025 Nitro Software Inc. All Rights Reserved
 
-"""High-level wrapper for Nitro Platform API client"""
+"""High-level handler for Nitro Platform API operations"""
 
 import httpx
 
@@ -8,22 +8,32 @@ from app.client.enums import ContentType
 from app.client.platform_api import AcceptFormat, BytesFile, PlatformApiClient
 
 
-class PlatformClientWrapper:
-    """High-level wrapper around PlatformApiClient for document operations"""
+class PlatformHandler:  # pylint: disable=too-few-public-methods
+    """High-level handler for platform document operations"""
 
-    def __init__(self, base_url: str, auth_token: str, timeout: float = 120.0) -> None:
+    def __init__(
+        self,
+        base_url: str,
+        auth_token: str,
+        timeout: float = 120.0,
+        httpx_client: httpx.Client | None = None,
+    ) -> None:
         """
-        Initialize Platform Client Wrapper.
+        Initialize Platform Handler.
 
         Args:
             base_url: Platform API base URL
             auth_token: Bearer token for authentication
             timeout: Timeout for job completion in seconds (default 120s)
+            httpx_client: Optional httpx.Client for dependency injection (for testing)
         """
-        headers = {"Authorization": f"Bearer {auth_token}"}
-        self.httpx_client = httpx.Client(headers=headers, timeout=60.0)
-        self.platform_client = PlatformApiClient(
-            _httpx_client=self.httpx_client,
+        if httpx_client is None:
+            headers = {"Authorization": f"Bearer {auth_token}"}
+            httpx_client = httpx.Client(headers=headers, timeout=60.0)
+
+        self._httpx_client = httpx_client
+        self._platform_client = PlatformApiClient(
+            _httpx_client=self._httpx_client,
             _platform_url=base_url,
             _job_wait_timeout=timeout,
         )
@@ -57,7 +67,7 @@ class PlatformClientWrapper:
             pdf_file = BytesFile(content_type=ContentType.PDF, content=content, name=filename)
             pdf_files.append(pdf_file)
 
-        response = self.platform_client.run(
+        response = self._platform_client.run(
             "transformations",
             pdf_files,
             method="merge",
@@ -70,7 +80,3 @@ class PlatformClientWrapper:
             raise RuntimeError(msg)
 
         return response.content
-
-    def close(self) -> None:
-        """Close the HTTP client connection"""
-        self.httpx_client.close()
