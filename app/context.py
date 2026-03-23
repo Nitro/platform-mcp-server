@@ -1,3 +1,5 @@
+"""App context and dependency injection for MCP tools."""
+
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal, overload
 
@@ -12,6 +14,8 @@ if TYPE_CHECKING:
 
 @dataclass(slots=True)
 class AppContext:
+    """Lifespan context injected into every tool call."""
+
     platform_handler: PlatformHandler
     files_folder: Path
 
@@ -39,6 +43,7 @@ def get_dep(ctx: CoreContext, thing: Literal["platform-handler"]) -> PlatformHan
 def get_dep(
     ctx: CoreContext, thing: Literal["files-folder", "platform-handler"]
 ) -> Path | PlatformHandler:
+    """Get a dependency from the context by name."""
     if thing == "files-folder":
         return _get_app_context(ctx).files_folder
     if thing == "platform-handler":

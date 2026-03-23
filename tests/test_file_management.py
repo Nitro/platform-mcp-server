@@ -15,6 +15,7 @@ from app.tools.file_management import FileListResult
 async def test_list_files_empty_workspace(
     client: ClientSession,
 ) -> None:
+    """Empty workspace returns no files."""
     response = await client.call_tool("list_files", {"file_type": "pdf"})
 
     result = FileListResult.model_validate(response.structuredContent)
@@ -27,6 +28,7 @@ async def test_list_files_returns_pdfs(
     client: ClientSession,
     pdf_a: str,
 ) -> None:
+    """Only PDF files are returned when file_type is pdf."""
     response = await client.call_tool("list_files", {"file_type": "pdf"})
 
     result = FileListResult.model_validate(response.structuredContent)
@@ -40,6 +42,7 @@ async def test_list_files_all_types(
     pdf_a: str,
     temp_workspace: Path,
 ) -> None:
+    """All file types are returned when file_type is all."""
     (temp_workspace / "b.txt").touch()
 
     response = await client.call_tool("list_files", {"file_type": "all"})
@@ -55,6 +58,7 @@ async def test_list_files_sorted_newest_first(
     pdf_a: str,
     temp_workspace: Path,
 ) -> None:
+    """Files are sorted newest first."""
     time.sleep(0.01)
     (temp_workspace / "b.pdf").write_bytes(b"pdf-b-content")
 

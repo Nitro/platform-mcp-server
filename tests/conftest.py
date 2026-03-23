@@ -2,6 +2,8 @@
 
 """Pytest fixtures for testing"""
 
+# pylint: disable=redefined-outer-name,protected-access
+
 import contextlib
 from typing import TYPE_CHECKING
 
@@ -26,6 +28,7 @@ if TYPE_CHECKING:
 
 @pytest.fixture
 def temp_workspace(tmp_path: Path) -> Path:
+    """Temporary workspace folder."""
     workspace = tmp_path / "test_workspace"
     workspace.mkdir()
     return workspace
@@ -33,18 +36,21 @@ def temp_workspace(tmp_path: Path) -> Path:
 
 @pytest.fixture(name="pdf_a")
 def _pdf_a(temp_workspace: Path) -> str:
+    """PDF file a.pdf in the workspace."""
     (temp_workspace / "a.pdf").write_bytes(b"pdf-a-content")
     return "a.pdf"
 
 
 @pytest.fixture(name="pdf_b")
 def _pdf_b(temp_workspace: Path) -> str:
+    """PDF file b.pdf in the workspace."""
     (temp_workspace / "b.pdf").write_bytes(b"pdf-b-content")
     return "b.pdf"
 
 
 @pytest.fixture
 def mock_settings(temp_workspace: Path, monkeypatch: pytest.MonkeyPatch) -> Settings:
+    """Settings backed by a temporary workspace."""
     monkeypatch.setenv("NITRO_AUTH_TOKEN", "test-token-123")
     monkeypatch.setenv("PLATFORM_API_URL", "https://test-api.example.com")
     monkeypatch.setenv("NITRO_MCP_WORKSPACE", str(temp_workspace))
@@ -62,7 +68,9 @@ def _app_context(platform_handler_mock: MagicMock, temp_workspace: Path) -> AppC
     return AppContext(platform_handler=platform_handler_mock, files_folder=temp_workspace)
 
 
-class _FixedLifespan:
+class _FixedLifespan:  # pylint: disable=too-few-public-methods
+    """Lifespan that yields a fixed AppContext for tests."""
+
     def __init__(self, app_context: AppContext) -> None:
         self._app_context = app_context
 
@@ -75,6 +83,7 @@ class _FixedLifespan:
 async def client(
     monkeypatch: pytest.MonkeyPatch, app_context: AppContext
 ) -> AsyncGenerator[ClientSession]:
+    """MCP client connected to the server with test AppContext injected."""
     monkeypatch.setattr(
         mcp._mcp_server,  # pyright: ignore[reportPrivateUsage]
         "lifespan",

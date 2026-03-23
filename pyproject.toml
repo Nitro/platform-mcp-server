@@ -150,5 +150,8 @@ include = ["app*"]
 [tool.setuptools_scm]
 local_scheme = "no-local-version"
 
+[tool.pylint]
+known-third-party = ["mcp"]
+
 [tool.pylint.main]
 load-plugins = ["pylint_pydantic"]

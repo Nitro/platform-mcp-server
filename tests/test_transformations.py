@@ -12,11 +12,13 @@ from app.tools.transformations import MergeRequest, MergeResult
 
 
 def test_merge_request_rejects_empty_list() -> None:
+    """Empty input list fails validation."""
     with pytest.raises(ValidationError):
         MergeRequest(input_filenames=[])
 
 
 def test_merge_request_requires_minimum_two_files() -> None:
+    """Single file input fails validation."""
     with pytest.raises(ValidationError):
         MergeRequest(input_filenames=["file1.pdf"])
 
@@ -28,6 +30,7 @@ async def test_merge_files(
     pdf_b: str,
     platform_handler_mock: MagicMock,
 ) -> None:
+    """Merge calls platform handler with file contents and returns result."""
     platform_handler_mock.merge_pdfs.return_value = b"merged"
 
     response = await client.call_tool(
@@ -54,6 +57,7 @@ async def test_merge_files_missing_file_raises(
     pdf_a: str,
     platform_handler_mock: MagicMock,
 ) -> None:
+    """Missing input file returns an error response."""
     platform_handler_mock.merge_pdfs.return_value = b"merged"
 
     response = await client.call_tool(
@@ -71,6 +75,7 @@ async def test_merge_files_platform_error_raises(
     pdf_b: str,
     platform_handler_mock: MagicMock,
 ) -> None:
+    """Platform handler error returns an error response."""
     platform_handler_mock.merge_pdfs.side_effect = RuntimeError("api-error")
 
     response = await client.call_tool(
@@ -88,11 +93,16 @@ async def test_merge_files_custom_output_filename(
     pdf_b: str,
     platform_handler_mock: MagicMock,
 ) -> None:
+    """Custom output filename is reflected in the result."""
     platform_handler_mock.merge_pdfs.return_value = b"merged"
 
     response = await client.call_tool(
         "merge_files",
-        {"merge_request": MergeRequest(input_filenames=[pdf_a, pdf_b], output_filename="out.pdf").model_dump()},
+        {
+            "merge_request": MergeRequest(
+                input_filenames=[pdf_a, pdf_b], output_filename="out.pdf"
+            ).model_dump()
+        },
     )
 
     assert response.structuredContent is not None
