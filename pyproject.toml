@@ -141,6 +141,9 @@ exclude_lines = [
 branch = true
 source = ["app"]
 
+[tool.setuptools.packages.find]
+include = ["app*"]
+
 [tool.setuptools_scm]
 local_scheme = "no-local-version"
 

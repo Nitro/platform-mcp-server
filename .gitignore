@@ -84,3 +84,11 @@ dmypy.json
 
 # MCP workspace
 nitro_mcp_workspace/
+
+# misc
+.in
+corpus
+
+# Local test files
+run_*.py
+tmp*.py
