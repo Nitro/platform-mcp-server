@@ -66,6 +66,7 @@ async def test_merge_files_missing_file_raises(
     )
 
     assert response.isError
+    platform_handler_mock.merge_pdfs.assert_not_called()
 
 
 @pytest.mark.anyio
