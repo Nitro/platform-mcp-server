@@ -83,6 +83,7 @@ async def test_merge_files_platform_error_raises(
         {"merge_request": MergeRequest(input_filenames=[pdf_a, pdf_b]).model_dump()},
     )
 
+    platform_handler_mock.merge_pdfs.assert_called_once_with([b"pdf-a-content", b"pdf-b-content"])
     assert response.isError
 
 
