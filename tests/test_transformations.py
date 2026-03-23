@@ -105,5 +105,14 @@ async def test_merge_files_custom_output_filename(
         },
     )
 
-    assert response.structuredContent is not None
-    assert response.structuredContent["output_filename"] == "out.pdf"
+    platform_handler_mock.merge_pdfs.assert_called_once_with([b"pdf-a-content", b"pdf-b-content"])
+    assert (
+        response.structuredContent
+        == MergeResult(
+            output_filename="out.pdf",
+            input_files=[pdf_a, pdf_b],
+            input_count=2,
+            total_input_size_bytes=26,
+            output_size_bytes=6,
+        ).model_dump()
+    )
