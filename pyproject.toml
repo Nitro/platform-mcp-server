@@ -38,11 +38,16 @@ dev = [
 build = [
     "pyinstaller>=6.0.0",
 ]
+local-dev = [  # Used for local testing and dev
+    "openai-agents>=0.13.0",
+    "rich>=14.3.3",
+]
 
 [project.scripts]
 nitro-mcp = "app.server:main"
 
 [tool.pyright]
+jobs = 4
 include = ["app", "tests"]
 typeCheckingMode = "strict"
 pythonVersion = "3.14"

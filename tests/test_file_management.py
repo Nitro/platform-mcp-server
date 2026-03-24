@@ -33,6 +33,7 @@ async def test_list_files_returns_pdfs(
     result = FileListResult.model_validate(response.structuredContent)
     assert result.total_count == 1
     assert result.files[0].name == pdf_a
+    assert result.files[0].file_type == "pdf"
 
 
 @pytest.mark.anyio
@@ -41,14 +42,16 @@ async def test_list_files_all_types(
     pdf_a: str,
     temp_workspace: Path,
 ) -> None:
-    """All file types are returned when file_type is all."""
+    """All file types are returned when file_type is None."""
     (temp_workspace / "b.txt").touch()
 
-    response = await client.call_tool("list_files", {"file_type": "all"})
+    response = await client.call_tool("list_files", {"file_type": None})
 
     result = FileListResult.model_validate(response.structuredContent)
     assert result.total_count == 2
+    assert result.requested_file_type is None
     assert {f.name for f in result.files} == {pdf_a, "b.txt"}
+    assert {f.file_type for f in result.files} == {"pdf", "txt"}
 
 
 @pytest.mark.anyio
