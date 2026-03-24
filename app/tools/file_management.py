@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
 
-from app.config.settings import settings
+from app.context import CoreContext, get_dep
 
 if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
@@ -29,7 +29,7 @@ class FileListResult(BaseModel):
     folder_path: str = Field(description="Path to the workspace folder")
 
 
-def list_files(file_type: str = "pdf") -> FileListResult:
+def list_files(ctx: CoreContext, file_type: str = "pdf") -> FileListResult:
     """
     List files available for processing in the configured workspace folder.
 
@@ -42,7 +42,7 @@ def list_files(file_type: str = "pdf") -> FileListResult:
     Raises:
         FileNotFoundError: If workspace folder does not exist
     """
-    files_folder = settings.files_folder
+    files_folder = get_dep(ctx, "files-folder")
 
     if not files_folder.exists():
         msg = f"Workspace folder does not exist: {files_folder}"

@@ -114,6 +114,9 @@ ignore = [
     "S105",    # Hardcoded passwords/tokens in tests
     "S106",    # Hardcoded secrets/tokens in tests
 ]
+"app/**/*.py" = [
+    "TC002",   # MCP Context/Session types must be available at runtime for FastMCP introspection
+]
 
 [tool.ruff.lint.flake8-pytest-style]
 parametrize-names-type = "csv"
@@ -146,6 +149,9 @@ include = ["app*"]
 
 [tool.setuptools_scm]
 local_scheme = "no-local-version"
+
+[tool.pylint]
+known-third-party = ["mcp"]
 
 [tool.pylint.main]
 load-plugins = ["pylint_pydantic"]

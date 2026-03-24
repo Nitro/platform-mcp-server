@@ -6,8 +6,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
 
-from app.client import PlatformHandler
-from app.config import settings
+from app.context import CoreContext, get_dep
 
 if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
@@ -36,7 +35,7 @@ class MergeResult(BaseModel):
     output_size_bytes: int = Field(description="Size of merged output file in bytes")
 
 
-def merge_files(merge_request: MergeRequest) -> MergeResult:
+def merge_files(ctx: CoreContext, merge_request: MergeRequest) -> MergeResult:
     """
     Merge multiple PDF files from the workspace into one PDF.
 
@@ -50,7 +49,8 @@ def merge_files(merge_request: MergeRequest) -> MergeResult:
         FileNotFoundError: If any input file doesn't exist
         RuntimeError: If merge operation fails
     """
-    files_folder = settings.files_folder
+    files_folder = get_dep(ctx, "files-folder")
+    platform_handler = get_dep(ctx, "platform-handler")
 
     # Read all files
     file_contents: list[bytes] = []
@@ -68,8 +68,7 @@ def merge_files(merge_request: MergeRequest) -> MergeResult:
         total_size += len(content)
 
     # Merge PDFs using platform handler
-    handler = PlatformHandler.create(settings.api_url, settings.auth_token)
-    merged_bytes = handler.merge_pdfs(file_contents)
+    merged_bytes = platform_handler.merge_pdfs(file_contents)
 
     # Save merged file
     output_path = files_folder / merge_request.output_filename
