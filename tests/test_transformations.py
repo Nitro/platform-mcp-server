@@ -2,10 +2,10 @@
 
 """Tests for transformation tools"""
 
-from unittest.mock import MagicMock  # noqa: TC003
+from unittest.mock import MagicMock
 
 import pytest
-from mcp import ClientSession  # noqa: TC002
+from mcp import ClientSession
 from pydantic import ValidationError
 
 from app.tools.transformations import MergeRequest, MergeResult

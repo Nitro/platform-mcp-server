@@ -2,10 +2,10 @@
 
 """Tests for file management tools"""
 
-from pathlib import Path  # noqa: TC003
+from pathlib import Path
 
 import pytest
-from mcp import ClientSession  # noqa: TC002
+from mcp import ClientSession
 
 from app.tools.file_management import FileListResult
 
