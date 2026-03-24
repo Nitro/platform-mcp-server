@@ -47,6 +47,7 @@ local-dev = [  # Used for local testing and dev
 nitro-mcp = "app.server:main"
 
 [tool.pyright]
+jobs = 4
 include = ["app", "tests"]
 typeCheckingMode = "strict"
 pythonVersion = "3.14"
