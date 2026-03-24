@@ -2,7 +2,6 @@
 
 """Tests for file management tools"""
 
-import time
 from pathlib import Path  # noqa: TC003
 
 import pytest
@@ -59,7 +58,6 @@ async def test_list_files_sorted_newest_first(
     temp_workspace: Path,
 ) -> None:
     """Files are sorted newest first."""
-    time.sleep(0.01)
     (temp_workspace / "b.pdf").write_bytes(b"pdf-b-content")
 
     response = await client.call_tool("list_files", {"file_type": "pdf"})
