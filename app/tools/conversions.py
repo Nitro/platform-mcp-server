@@ -2,7 +2,6 @@
 
 """File conversion tools for MCP server"""
 
-import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -50,7 +49,6 @@ async def convert_file(ctx: CoreContext, request: ConversionRequest) -> Conversi
     output_name = f"converted-{input_path.stem}-{timestamp}.{request.to}"
     output_path = input_path.parent / output_name
     output_path.write_bytes(converted_bytes)
-    print(f"Converted to {output_path}", file=sys.stderr)
     return ConversionResult(input_path=str(input_path), output_path=str(output_path.name))
 
 
@@ -66,5 +64,4 @@ def register_conversion_tool(mcp: FastMCP) -> None:
         f"Convert from a {to_pdf_from} to pdf.\n"
         "Use list_files first if you need to discover available files."
     )
-    print(description, file=sys.stderr)
     mcp.tool(description=description)(convert_file)
