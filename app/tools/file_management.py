@@ -2,6 +2,7 @@
 
 """File management tools for MCP server"""
 
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, Field
@@ -19,8 +20,8 @@ class FileInfo(BaseModel):
 
     name: str = Field(description="File name")
     file_type: str = Field(description="File extension/type")
-    size_mb: float = Field(description="File size in megabytes")
-    modified_time: float = Field(description="Last modification time (Unix timestamp)")
+    size_bytes: int = Field(description="File size in bytes")
+    modified_time: datetime = Field(description="Last modification time, ISO format")
 
 
 class FileListResult(BaseModel):
@@ -57,8 +58,8 @@ def list_files(ctx: CoreContext, file_type: FileType | None = "pdf") -> FileList
             FileInfo(
                 name=file_path.name,
                 file_type=file_path.suffix.lstrip(".") or "unknown",
-                size_mb=stat.st_size / (1024 * 1024),
-                modified_time=stat.st_mtime,
+                size_bytes=stat.st_size,
+                modified_time=datetime.fromtimestamp(stat.st_mtime, tz=UTC),
             )
         )
 
