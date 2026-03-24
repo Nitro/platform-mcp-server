@@ -60,7 +60,7 @@ def mock_settings(temp_workspace: Path, monkeypatch: pytest.MonkeyPatch) -> Sett
 
 @pytest.fixture(name="platform_handler_mock")
 def _platform_handler_mock(mocker: MockerFixture) -> MagicMock:
-    return mocker.create_autospec(PlatformHandler)
+    return mocker.create_autospec(PlatformHandler, instance=True, spec_set=True)
 
 
 @pytest.fixture(name="app_context")
