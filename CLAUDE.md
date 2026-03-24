@@ -11,7 +11,7 @@ Things to note.
 * Type safety: we use pyright in strict mode for type safety, `uv run pyright FILES` must pass without errors
   on all files you edit. # type: ignore or # pyright: ignore can ONLY be used if you have a very good reason and
   you must request permission from the user to use it.
-* Testing: check exising tests to see our approach to tests. When testing an MCP tool call, make sure to assert the
+* Testing: check existing tests to see our approach to tests. When testing an MCP tool call, make sure to assert the
   structured content return as well as any/all mocked handlers/clients via assert_called_once_with or similar.
   `uv run pytest FILES` must pass without errors on all files you edit.
 
