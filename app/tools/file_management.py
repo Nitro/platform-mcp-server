@@ -21,7 +21,7 @@ class FileInfo(BaseModel):
     name: str = Field(description="File name")
     file_type: str = Field(description="File extension/type")
     size_bytes: int = Field(description="File size in bytes")
-    modified_time: datetime = Field(description="Last modification time, ISO format")
+    modified_time: datetime = Field(description="Last modification time, ISO format, UTC timezone")
 
 
 class FileListResult(BaseModel):
