@@ -32,8 +32,15 @@ The style guide is symlinked from the `doc-intelligence-api` repo — if missing
 
 ## Python
 
+This codebase is **fully typed**. Every function, method, and variable must have explicit type annotations — no exceptions. Pyright strict mode is the enforcer; treat any type error as a build failure.
+
 - Python 3.14 — DO NOT USE `from __future__ import annotations` (not needed)
 - DO NOT USE string types in annotations (not needed in Python 3.14)
+- Use `X | Y` over `Union[X, Y]`, `X | None` over `Optional[X]`
+- Use PEP 695 generic syntax (`def foo[T](x: T) -> T`) over `TypeVar`
+- Use PEP 695 `type Foo = ...` over `TypeAlias`
+- Use `@typing.override` where applicable
+- Line length: 100 characters
 
 ## Code Quality
 
