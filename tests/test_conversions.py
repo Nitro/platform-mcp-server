@@ -1,5 +1,3 @@
-# Copyright (c) 2005-2025 Nitro Software Inc. All Rights Reserved
-
 """Tests for conversion tools"""
 
 from pathlib import Path

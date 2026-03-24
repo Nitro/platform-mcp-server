@@ -1,5 +1,3 @@
-# Copyright (c) 2005-2025 Nitro Software Inc. All Rights Reserved
-
 """File conversion tools for MCP server"""
 
 from datetime import datetime
