@@ -71,6 +71,6 @@ def list_files(ctx: CoreContext, file_type: FileType | None = "pdf") -> FileList
     )
 
 
-def register_file_management_tools(mcp: FastMCP) -> None:
+def register_file_management_tool(mcp: FastMCP) -> None:
     """Register file management tools with the MCP server"""
     mcp.tool()(list_files)

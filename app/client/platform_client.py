@@ -6,13 +6,13 @@ import dataclasses
 import json
 import logging
 import time
-from collections.abc import Sequence  # noqa: TC003
+from collections.abc import Sequence
 from enum import StrEnum
 from typing import Any, Literal
 
 import httpx
 
-from app.client.enums import ContentType  # noqa: TC001
+from app.client.enums import ContentType
 
 logger = logging.getLogger("PlatformAPI")
 
@@ -24,7 +24,6 @@ class AcceptFormat(StrEnum):
     JSON = "json"
 
 
-@dataclasses.dataclass
 @dataclasses.dataclass
 class URLFile:
     """URL File abstraction for remote file references"""

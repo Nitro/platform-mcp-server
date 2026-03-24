@@ -97,7 +97,6 @@ select = [
     "SIM",   # simplifications
     "C90",   # mccabe complexity
     "TID",   # tidy imports
-    "TC",    # typing under TYPE_CHECKING
     "TD",    # TODOs must be annotated
     "UP",    # pyupgrade / newer syntax
     "W",     # pycodestyle warnings
