@@ -30,13 +30,13 @@ class MergeRequest(BaseModel):
 class MergeResult(SingleFileOutputBase):
     """Result of merging PDF files"""
 
-    input_files: list[str] = Field(description="List of input filenames that were merged")
+    input_filenames: list[str] = Field(description="List of input filenames that were merged")
     input_count: int = Field(description="Number of files merged")
     total_input_size_bytes: int = Field(description="Total size of input files in bytes")
     output_size_bytes: int = Field(description="Size of merged output file in bytes")
 
 
-def merge_files(ctx: CoreContext, merge_request: MergeRequest) -> MergeResult:
+def merge_files(ctx: CoreContext, request: MergeRequest) -> MergeResult:
     """
     Merge multiple PDF files from the workspace into one PDF.
 
@@ -56,22 +56,19 @@ def merge_files(ctx: CoreContext, merge_request: MergeRequest) -> MergeResult:
     file_contents: list[bytes] = []
     total_size = 0
 
-    for filename in merge_request.input_filenames:
+    for filename in request.input_filenames:
         content = files_handler.read(Path(filename))
         file_contents.append(content)
         total_size += len(content)
 
     merged_bytes = platform_handler.merge_pdfs(file_contents)
 
-    output_path = Path(merge_request.output_filename)
-    written = files_handler.write_timestamped(
-        "merged", output_path.stem, output_path.suffix.lstrip("."), merged_bytes
-    )
+    written = files_handler.write(request.output_filename, merged_bytes)
 
     return MergeResult(
-        output_path=written.name,
-        input_files=merge_request.input_filenames,
-        input_count=len(merge_request.input_filenames),
+        output_filename=written.name,
+        input_filenames=request.input_filenames,
+        input_count=len(request.input_filenames),
         total_input_size_bytes=total_size,
         output_size_bytes=len(merged_bytes),
     )

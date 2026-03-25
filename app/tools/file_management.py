@@ -32,7 +32,6 @@ class FileListResult(BaseModel):
     requested_file_type: FileType | None = Field(
         description="File type filter that was requested (None means all files)"
     )
-    folder_path: str = Field(description="Path to the workspace folder")
 
 
 def list_files(ctx: CoreContext, file_type: FileType | None = "pdf") -> FileListResult:
@@ -59,7 +58,6 @@ def list_files(ctx: CoreContext, file_type: FileType | None = "pdf") -> FileList
         files=file_infos,
         total_count=len(file_infos),
         requested_file_type=file_type,
-        folder_path=str(files_handler.root_path),
     )
 
 

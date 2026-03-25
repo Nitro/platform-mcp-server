@@ -16,7 +16,7 @@ from app.models import SingleFileOutputBase
 class ConversionRequest(BaseModel):
     """Request to convert a file to a different format"""
 
-    input_path: Path = Field(description="Relative path to the source file")
+    input_filename: Path = Field(description="Filename of the source file in the workspace")
 
     # We deliberately don't use `to` as an enum here. We have to explain to the LLM in the
     # description the supported conversion matrix. So we enumerate all the allowed values there.
@@ -27,7 +27,7 @@ class ConversionRequest(BaseModel):
 class ConversionResult(SingleFileOutputBase):
     """Result of a file conversion operation"""
 
-    input_path: str = Field(description="Relative path to the source file")
+    input_filename: str = Field(description="Filename of the source file in the workspace")
 
 
 async def convert_file(ctx: CoreContext, request: ConversionRequest) -> ConversionResult:
@@ -35,16 +35,18 @@ async def convert_file(ctx: CoreContext, request: ConversionRequest) -> Conversi
     platform_handler = get_dep(ctx, "platform-handler")
     files_handler = get_dep(ctx, "files-handler")
 
-    input_bytes = files_handler.read(request.input_path)
+    input_bytes = files_handler.read(request.input_filename)
     converted_bytes = platform_handler.convert_file(
         input_bytes,
-        FileFormat(request.input_path.suffix.lstrip(".").lower()),
+        FileFormat(request.input_filename.suffix.lstrip(".").lower()),
         FileFormat(request.to),
     )
-    output_path = files_handler.write_timestamped(
-        "converted", request.input_path.stem, request.to, converted_bytes
+    output_path = files_handler.write(
+        str(request.input_filename), converted_bytes, suffix="converted", ext=request.to
     )
-    return ConversionResult(input_path=str(request.input_path), output_path=str(output_path.name))
+    return ConversionResult(
+        input_filename=str(request.input_filename), output_filename=output_path.name
+    )
 
 
 def register_conversion_tool(mcp: FastMCP) -> None:

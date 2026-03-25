@@ -8,4 +8,4 @@ from pydantic import BaseModel, Field
 class SingleFileOutputBase(BaseModel):
     """Base model for tool responses that produce a single output file."""
 
-    output_path: str = Field(description="Relative path to the output file in the workspace")
+    output_filename: str = Field(description="Filename of the output file in the workspace")

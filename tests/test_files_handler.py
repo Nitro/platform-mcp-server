@@ -5,7 +5,6 @@
 from pathlib import Path
 
 import pytest
-from freezegun import freeze_time
 
 from app.handlers import FilesHandler, PathTraversalError
 
@@ -33,22 +32,25 @@ def test_read_path_traversal_raises(files_handler: FilesHandler) -> None:
         files_handler.read(Path("../../etc/passwd"))
 
 
-@freeze_time("2026-01-01T12:00:00+00:00")
-def test_write_timestamped_creates_file(files_handler: FilesHandler, tmp_path: Path) -> None:
-    """write_timestamped creates a file with the expected timestamped name."""
-    result = files_handler.write_timestamped("converted", "output", "docx", b"docx-content")
-    assert result.name == "converted-output-2026-01-01T120000.docx"
-    assert (tmp_path / "converted-output-2026-01-01T120000.docx").read_bytes() == b"docx-content"
+def test_write_creates_file(files_handler: FilesHandler, tmp_path: Path) -> None:
+    """write creates a file with the given filename."""
+    result = files_handler.write("merged.pdf", b"pdf-content")
+    assert result.name == "merged.pdf"
+    assert (tmp_path / "merged.pdf").read_bytes() == b"pdf-content"
 
 
-@freeze_time("2026-01-01T12:00:00+00:00")
-def test_write_timestamped_custom_sep(files_handler: FilesHandler, tmp_path: Path) -> None:
-    """write_timestamped respects a custom separator."""
-    result = files_handler.write_timestamped(
-        "converted", "output", "docx", b"docx-content", sep="_"
-    )
-    assert result.name == "converted_output_2026-01-01T120000.docx"
-    assert (tmp_path / "converted_output_2026-01-01T120000.docx").read_bytes() == b"docx-content"
+def test_write_with_suffix_and_ext(files_handler: FilesHandler, tmp_path: Path) -> None:
+    """write appends suffix to stem and overrides extension."""
+    result = files_handler.write("a.pdf", b"docx-content", suffix="converted", ext="docx")
+    assert result.name == "a-converted.docx"
+    assert (tmp_path / "a-converted.docx").read_bytes() == b"docx-content"
+
+
+def test_write_raises_if_file_exists(files_handler: FilesHandler, tmp_path: Path) -> None:
+    """write raises FileExistsError if the output file already exists."""
+    (tmp_path / "merged.pdf").write_bytes(b"existing")
+    with pytest.raises(FileExistsError):
+        files_handler.write("merged.pdf", b"new-content")
 
 
 def test_list_files_returns_all_files(files_handler: FilesHandler, tmp_path: Path) -> None:

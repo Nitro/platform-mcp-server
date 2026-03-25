@@ -3,7 +3,6 @@
 """Workspace-aware file handler"""
 
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 
 
@@ -34,22 +33,32 @@ class FilesHandler:
             raise FileNotFoundError(msg)
         return resolved.read_bytes()
 
-    def _write(self, path: Path, data: bytes) -> Path:
-        resolved = self._resolve(path)
+    def write(
+        self, filename: str, data: bytes, *, suffix: str | None = None, ext: str | None = None
+    ) -> Path:
+        """Write data to a file in the workspace.
+
+        Args:
+            filename: Base filename (e.g. 'merged.pdf' or 'a.pdf')
+            data: File contents to write
+            suffix: Optional tag appended to stem (e.g. 'converted' -> 'a-converted.docx')
+            ext: Optional extension override, strips existing ext from filename
+
+        Examples:
+            write('merged.pdf', data)                          -> 'merged.pdf'
+            write('a.pdf', data, suffix='converted', ext='docx') -> 'a-converted.docx'
+        """
+        path = Path(filename)
+        stem = path.stem
+        if suffix:
+            stem = f"{stem}-{suffix}"
+        extension = ext if ext is not None else path.suffix.lstrip(".")
+        resolved = self._resolve(Path(f"{stem}.{extension}"))
+        if resolved.exists():
+            msg = f"File already exists: {resolved.name}"
+            raise FileExistsError(msg)
         resolved.write_bytes(data)
         return resolved
-
-    def write_timestamped(  # pylint: disable=too-many-arguments
-        self, prefix: str, stem: str, suffix: str, data: bytes, *, sep: str = "-"
-    ) -> Path:
-        """Write data to a file named '<prefix><sep><stem><sep><timestamp>.<suffix>'.
-
-        Example: write_timestamped("converted", "doc", "pdf", data)
-                 -> "converted-doc-2026-01-01T120000.pdf"
-        """
-        timestamp = datetime.now().astimezone().strftime("%Y-%m-%dT%H%M%S")
-        path = Path(f"{prefix}{sep}{stem}{sep}{timestamp}.{suffix}")
-        return self._write(path, data)
 
     def list_files(self, extension: str | None = None) -> list[Path]:
         """List files in the workspace, optionally filtered by extension (without leading dot)."""
