@@ -3,12 +3,19 @@
 """High-level handler for Nitro Platform API operations"""
 
 from dataclasses import dataclass
-from typing import ClassVar
+from typing import ClassVar, TypedDict
 
 import httpx
 
-from app.client.enums import ContentType, FileFormat
+from app.client.enums import CompressionLevel, ContentType, FileFormat
 from app.client.platform_client import AcceptFormat, BytesFile, PlatformApiClient
+
+
+class PageRotation(TypedDict):
+    """Represents a page rotation operation"""
+
+    pageIndex: int
+    amount: int
 
 
 class ConversionNotSupportedError(Exception):
@@ -153,24 +160,26 @@ class PlatformHandler:
 
         return response.content
 
-    def compress_pdf(self, file_bytes: bytes, level: int) -> bytes:
+    def compress_pdf(self, file_bytes: bytes, level: CompressionLevel) -> bytes:
         """
         Compress a PDF file to reduce its size.
 
         Args:
             file_bytes: PDF file content as bytes
-            level: Compression level (0=light, 1=medium, 2=heavy)
+            level: Compression level (light, medium, or heavy)
 
         Returns:
             Compressed PDF content as bytes
 
         Raises:
-            ValueError: If compression level is invalid
             RuntimeError: If compression operation fails
         """
-        if level not in {0, 1, 2}:
-            msg = f"Invalid compression level: {level}. Must be 0 (light), 1 (medium), or 2 (heavy)"
-            raise ValueError(msg)
+        level_map = {
+            CompressionLevel.LIGHT: 0,
+            CompressionLevel.MEDIUM: 1,
+            CompressionLevel.HEAVY: 2,
+        }
+        level_int = level_map[level]
 
         file = BytesFile(content_type=ContentType.PDF, content=file_bytes, name="input.pdf")
 
@@ -178,7 +187,7 @@ class PlatformHandler:
             "transformations",
             file,
             method="compress",
-            params={"level": level},
+            params={"level": level_int},
             accept_format=AcceptFormat.BYTES,
         )
 
@@ -223,7 +232,7 @@ class PlatformHandler:
 
         return response.content
 
-    def rotate_pdf(self, file_bytes: bytes, rotations: list[dict[str, int]]) -> bytes:
+    def rotate_pdf(self, file_bytes: bytes, rotations: list[PageRotation]) -> bytes:
         """
         Rotate specific pages in a PDF file.
 

@@ -9,6 +9,7 @@ import pytest
 from mcp import ClientSession
 from pydantic import ValidationError
 
+from app.client import CompressionLevel
 from app.tools.transformations import (
     CompressRequest,
     CompressResult,
@@ -22,6 +23,7 @@ from app.tools.transformations import (
     ProtectResult,
     RotateRequest,
     RotateResult,
+    Rotation,
     SetMetadataRequest,
     SetMetadataResult,
     SplitRequest,
@@ -162,7 +164,9 @@ async def test_compress_file_medium(
     ).model_dump()
     assert response.structuredContent == expected
     files_handler_mock.read.assert_called_once_with(Path("a.pdf"))
-    platform_handler_mock.compress_pdf.assert_called_once_with(b"pdf-content", 1)
+    platform_handler_mock.compress_pdf.assert_called_once_with(
+        b"pdf-content", CompressionLevel.MEDIUM
+    )
     files_handler_mock.write.assert_called_once_with(
         Path("a.pdf"), b"compressed", stem_suffix="compressed-medium"
     )
@@ -200,7 +204,11 @@ async def test_split_pdf_success(
 
     response = await client.call_tool(
         "split_pdf",
-        {"request": SplitRequest(input_filename=Path("a.pdf"), page_ranges="1-2,4").model_dump()},
+        {
+            "request": SplitRequest(
+                input_filename=Path("a.pdf"), page_ranges=["1-2", "4"]
+            ).model_dump()
+        },
     )
 
     expected = SplitResult(
@@ -234,7 +242,8 @@ async def test_rotate_pdf_success(
         "rotate_pdf",
         {
             "request": RotateRequest(
-                input_filename=Path("a.pdf"), rotations="1:90,3:180"
+                input_filename=Path("a.pdf"),
+                rotations=[Rotation(page_number=1, amount=90), Rotation(page_number=3, amount=180)],
             ).model_dump()
         },
     )
@@ -264,7 +273,7 @@ async def test_rotate_pdf_invalid_degrees(
     """Invalid rotation degrees returns error."""
     response = await client.call_tool(
         "rotate_pdf",
-        {"request": RotateRequest(input_filename=Path("a.pdf"), rotations="1:45").model_dump()},
+        {"request": {"input_filename": "a.pdf", "rotations": [{"page_number": 1, "amount": 45}]}},
     )
     assert response.isError
     platform_handler_mock.rotate_pdf.assert_not_called()

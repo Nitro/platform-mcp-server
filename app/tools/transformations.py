@@ -3,12 +3,13 @@
 """PDF transformation tools for MCP server"""
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, Field
 
-from app.client import RotationAmount
+from app.client import CompressionLevel
 from app.context import CoreContext, get_dep
+from app.handlers.platform_handler import PageRotation
 from app.models import SingleFileOutputBase
 
 if TYPE_CHECKING:
@@ -87,7 +88,11 @@ async def compress_file(ctx: CoreContext, request: CompressRequest) -> CompressR
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
-    level_map = {"light": 0, "medium": 1, "heavy": 2}
+    level_map = {
+        "light": CompressionLevel.LIGHT,
+        "medium": CompressionLevel.MEDIUM,
+        "heavy": CompressionLevel.HEAVY,
+    }
     level = level_map.get(request.level)
     if level is None:
         msg = f"Invalid compression level: {request.level}. Must be 'light', 'medium', or 'heavy'"
@@ -117,8 +122,8 @@ class SplitRequest(BaseModel):
     """Request to split a PDF by page ranges"""
 
     input_filename: Path = Field(description="Filename of the source PDF in the workspace")
-    page_ranges: str = Field(
-        description='Page ranges to split (e.g., "1-3,5,7-9"). Pages are 1-indexed.',
+    page_ranges: list[str] = Field(
+        description='Page ranges to split (e.g., ["1-3", "5", "7-9"]). Pages are 1-indexed.',
     )
 
 
@@ -135,7 +140,7 @@ async def split_pdf(ctx: CoreContext, request: SplitRequest) -> SplitResult:
     platform_handler = get_dep(ctx, "platform-handler")
 
     parsed_ranges: list[list[int]] = []
-    for range_str in request.page_ranges.split(","):
+    for range_str in request.page_ranges:
         range_str = range_str.strip()
         if "-" in range_str:
             start_str, end_str = range_str.split("-", 1)
@@ -156,15 +161,19 @@ async def split_pdf(ctx: CoreContext, request: SplitRequest) -> SplitResult:
     )
 
 
+class Rotation(BaseModel):
+    """Represents a page rotation operation"""
+
+    page_number: int = Field(description="Page number to rotate (1-indexed)", ge=1)
+    amount: Literal[-270, -180, -90, 90, 180, 270] = Field(description="Rotation amount in degrees")
+
+
 class RotateRequest(BaseModel):
     """Request to rotate specific pages in a PDF"""
 
     input_filename: Path = Field(description="Filename of the source PDF in the workspace")
-    rotations: str = Field(
-        description=(
-            'Page rotations as "page:degrees,page:degrees" (e.g., "1:90,3:180,5:270"). '
-            "Pages are 1-indexed. Valid degrees: 90, 180, 270, -90, -180, -270."
-        ),
+    rotations: list[Rotation] = Field(
+        description="List of page rotations to apply. Pages are 1-indexed."
     )
 
 
@@ -180,26 +189,13 @@ async def rotate_pdf(ctx: CoreContext, request: RotateRequest) -> RotateResult:
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
-    parsed_rotations: list[dict[str, int]] = []
-    valid_amounts = RotationAmount.valid_amounts()
-
-    for rotation_str in request.rotations.split(","):
-        rotation_str = rotation_str.strip()
-        if ":" not in rotation_str:
-            msg = "Invalid rotation format. Use: '1:90,3:180,5:270'"
-            raise ValueError(msg)
-
-        page_str, degrees_str = rotation_str.split(":", 1)
-        degrees = int(degrees_str)
-
-        if degrees not in valid_amounts:
-            msg = f"Invalid rotation amount: {degrees}. Use: {', '.join(map(str, valid_amounts))}"
-            raise ValueError(msg)
-
-        parsed_rotations.append({"pageIndex": int(page_str) - 1, "amount": degrees})
+    page_rotations: list[PageRotation] = [
+        {"pageIndex": rotation.page_number - 1, "amount": rotation.amount}
+        for rotation in request.rotations
+    ]
 
     rotated_bytes = platform_handler.rotate_pdf(
-        files_handler.read(request.input_filename), parsed_rotations
+        files_handler.read(request.input_filename), page_rotations
     )
 
     written = files_handler.write(request.input_filename, rotated_bytes, stem_suffix="rotated")
@@ -207,7 +203,7 @@ async def rotate_pdf(ctx: CoreContext, request: RotateRequest) -> RotateResult:
     return RotateResult(
         input_filename=str(request.input_filename),
         output_filename=written.name,
-        rotation_count=len(parsed_rotations),
+        rotation_count=len(page_rotations),
     )
 
 
@@ -450,7 +446,7 @@ async def flatten_pdf(ctx: CoreContext, request: FlattenRequest) -> FlattenResul
     )
 
 
-def register_transformation_tool(mcp: FastMCP) -> None:
+def register_transformation_tools(mcp: FastMCP) -> None:
     """Register transformation tools with the MCP server"""
     mcp.tool()(merge_files)
     mcp.tool()(compress_file)

@@ -5,10 +5,11 @@ from unittest.mock import MagicMock
 import pytest
 from pytest_mock import MockerFixture
 
-from app.client import FileFormat
+from app.client import CompressionLevel, FileFormat
 from app.client.enums import ContentType
 from app.client.platform_client import AcceptFormat, BytesFile, PlatformApiClient
 from app.handlers import ConversionNotSupportedError, PlatformHandler
+from app.handlers.platform_handler import PageRotation
 
 
 @pytest.fixture(name="platform_client_mock")
@@ -21,7 +22,7 @@ def _platform_handler(platform_client_mock: MagicMock) -> PlatformHandler:
     return PlatformHandler(platform_client_mock)
 
 
-def test_merge_pdfs_calls_client(
+def test_merge_pdfs(
     platform_handler: PlatformHandler,
     platform_client_mock: MagicMock,
 ) -> None:
@@ -52,7 +53,7 @@ def test_merge_pdfs_empty_list_raises(platform_handler: PlatformHandler) -> None
         platform_handler.merge_pdfs([])
 
 
-def test_convert_file_calls_client(
+def test_convert_file(
     platform_handler: PlatformHandler,
     platform_client_mock: MagicMock,
 ) -> None:
@@ -80,7 +81,7 @@ def test_convert_file_unsupported_raises(platform_handler: PlatformHandler) -> N
         platform_handler.convert_file(b"pdf-content", FileFormat.PDF, FileFormat.PDF)
 
 
-def test_compress_pdf_calls_client(
+def test_compress_pdf(
     platform_handler: PlatformHandler,
     platform_client_mock: MagicMock,
 ) -> None:
@@ -90,7 +91,7 @@ def test_compress_pdf_calls_client(
     mock_response.content = b"compressed"
     platform_client_mock.run.return_value = mock_response
 
-    result = platform_handler.compress_pdf(b"pdf-content", 1)
+    result = platform_handler.compress_pdf(b"pdf-content", CompressionLevel.MEDIUM)
 
     assert result == b"compressed"
     platform_client_mock.run.assert_called_once_with(
@@ -102,13 +103,7 @@ def test_compress_pdf_calls_client(
     )
 
 
-def test_compress_pdf_invalid_level_raises(platform_handler: PlatformHandler) -> None:
-    """compress_pdf raises ValueError for invalid compression level."""
-    with pytest.raises(ValueError, match="Invalid compression level"):
-        platform_handler.compress_pdf(b"pdf-content", 5)
-
-
-def test_split_pdf_calls_client(
+def test_split_pdf(
     platform_handler: PlatformHandler,
     platform_client_mock: MagicMock,
 ) -> None:
@@ -136,7 +131,7 @@ def test_split_pdf_empty_ranges_raises(platform_handler: PlatformHandler) -> Non
         platform_handler.split_pdf(b"pdf-content", [])
 
 
-def test_rotate_pdf_calls_client(
+def test_rotate_pdf(
     platform_handler: PlatformHandler,
     platform_client_mock: MagicMock,
 ) -> None:
@@ -146,7 +141,10 @@ def test_rotate_pdf_calls_client(
     mock_response.content = b"rotated"
     platform_client_mock.run.return_value = mock_response
 
-    rotations = [{"pageIndex": 0, "amount": 90}, {"pageIndex": 2, "amount": 180}]
+    rotations: list[PageRotation] = [
+        {"pageIndex": 0, "amount": 90},
+        {"pageIndex": 2, "amount": 180},
+    ]
     result = platform_handler.rotate_pdf(b"pdf-content", rotations)
 
     assert result == b"rotated"
@@ -165,7 +163,7 @@ def test_rotate_pdf_empty_rotations_raises(platform_handler: PlatformHandler) ->
         platform_handler.rotate_pdf(b"pdf-content", [])
 
 
-def test_protect_pdf_calls_client(
+def test_protect_pdf(
     platform_handler: PlatformHandler,
     platform_client_mock: MagicMock,
 ) -> None:
@@ -202,7 +200,7 @@ def test_protect_pdf_no_passwords_raises(platform_handler: PlatformHandler) -> N
         platform_handler.protect_pdf(b"pdf-content")
 
 
-def test_unprotect_pdf_calls_client(
+def test_unprotect_pdf(
     platform_handler: PlatformHandler,
     platform_client_mock: MagicMock,
 ) -> None:
@@ -230,7 +228,7 @@ def test_unprotect_pdf_no_passwords_raises(platform_handler: PlatformHandler) ->
         platform_handler.unprotect_pdf(b"pdf-content")
 
 
-def test_delete_pdf_pages_calls_client(
+def test_delete_pdf_pages(
     platform_handler: PlatformHandler,
     platform_client_mock: MagicMock,
 ) -> None:
@@ -258,7 +256,7 @@ def test_delete_pdf_pages_empty_indices_raises(platform_handler: PlatformHandler
         platform_handler.delete_pdf_pages(b"pdf-content", [])
 
 
-def test_set_pdf_metadata_calls_client(
+def test_set_pdf_metadata(
     platform_handler: PlatformHandler,
     platform_client_mock: MagicMock,
 ) -> None:
@@ -287,7 +285,7 @@ def test_set_pdf_metadata_empty_dict_raises(platform_handler: PlatformHandler) -
         platform_handler.set_pdf_metadata(b"pdf-content", {})
 
 
-def test_flatten_pdf_calls_client(
+def test_flatten_pdf(
     platform_handler: PlatformHandler,
     platform_client_mock: MagicMock,
 ) -> None:
