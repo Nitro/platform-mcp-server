@@ -45,7 +45,7 @@ class FilesHandler:
             ext: Optional extension override, strips existing ext from filename
 
         Examples:
-            write('merged.pdf', data)                          -> 'merged.pdf'
+            write('merged.pdf', data)                            -> 'merged.pdf'
             write('a.pdf', data, suffix='converted', ext='docx') -> 'a-converted.docx'
         """
         path = Path(filename)
