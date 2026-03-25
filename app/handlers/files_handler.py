@@ -34,24 +34,24 @@ class FilesHandler:
         return resolved.read_bytes()
 
     def write(
-        self, filename: str, data: bytes, *, suffix: str | None = None, ext: str | None = None
+        self, filename: str, data: bytes, *, stem_suffix: str | None = None, ext: str | None = None
     ) -> Path:
         """Write data to a file in the workspace.
 
         Args:
             filename: Base filename (e.g. 'merged.pdf' or 'a.pdf')
             data: File contents to write
-            suffix: Optional tag appended to stem (e.g. 'converted' -> 'a-converted.docx')
+            stem_suffix: Optional tag appended to stem (e.g. 'converted' -> 'a-converted.docx')
             ext: Optional extension override, strips existing ext from filename
 
         Examples:
-            write('merged.pdf', data)                            -> 'merged.pdf'
-            write('a.pdf', data, suffix='converted', ext='docx') -> 'a-converted.docx'
+            write('a.pdf', b"")                                      -> 'a.pdf'
+            write('a.pdf', b"", stem_suffix='converted', ext='docx') -> 'a-converted.docx'
         """
         path = Path(filename)
         stem = path.stem
-        if suffix:
-            stem = f"{stem}-{suffix}"
+        if stem_suffix:
+            stem = f"{stem}-{stem_suffix}"
         extension = ext if ext is not None else path.suffix.lstrip(".")
         resolved = self._resolve(Path(f"{stem}.{extension}"))
         if resolved.exists():

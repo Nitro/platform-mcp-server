@@ -60,7 +60,7 @@ async def test_convert_file_pdf_to_docx(
         FileFormat.DOCX,
     )
     files_handler_mock.write.assert_called_once_with(
-        "a.pdf", b"converted-content", suffix="converted", ext="docx"
+        "a.pdf", b"converted-content", stem_suffix="converted", ext="docx"
     )
 
 
@@ -90,7 +90,7 @@ async def test_convert_file_docx_to_pdf(
         FileFormat.PDF,
     )
     files_handler_mock.write.assert_called_once_with(
-        "doc.docx", b"pdf-output", suffix="converted", ext="pdf"
+        "doc.docx", b"pdf-output", stem_suffix="converted", ext="pdf"
     )
 
 
@@ -166,5 +166,5 @@ async def test_convert_file_output_written_to_workspace(
         {"request": ConversionRequest(input_filename=Path("a.pdf"), to="docx").model_dump()},
     )
     files_handler_mock.write.assert_called_once_with(
-        "a.pdf", b"output-bytes", suffix="converted", ext="docx"
+        "a.pdf", b"output-bytes", stem_suffix="converted", ext="docx"
     )

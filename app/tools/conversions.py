@@ -42,7 +42,7 @@ async def convert_file(ctx: CoreContext, request: ConversionRequest) -> Conversi
         FileFormat(request.to),
     )
     output_path = files_handler.write(
-        str(request.input_filename), converted_bytes, suffix="converted", ext=request.to
+        str(request.input_filename), converted_bytes, stem_suffix="converted", ext=request.to
     )
     return ConversionResult(
         input_filename=str(request.input_filename), output_filename=output_path.name

@@ -41,7 +41,7 @@ def test_write_creates_file(files_handler: FilesHandler, tmp_path: Path) -> None
 
 def test_write_with_suffix_and_ext(files_handler: FilesHandler, tmp_path: Path) -> None:
     """write appends suffix to stem and overrides extension."""
-    result = files_handler.write("a.pdf", b"docx-content", suffix="converted", ext="docx")
+    result = files_handler.write("a.pdf", b"docx-content", stem_suffix="converted", ext="docx")
     assert result.name == "a-converted.docx"
     assert (tmp_path / "a-converted.docx").read_bytes() == b"docx-content"
 
