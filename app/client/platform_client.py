@@ -120,12 +120,12 @@ class PlatformApiClient:
         with connect_sse(
             self._httpx_client, "GET", status_url, timeout=self._job_wait_timeout
         ) as event_source:
-            elapsed = time.perf_counter() - start_time
-            if elapsed >= self._job_wait_timeout:
-                msg = f"Job timed out after {elapsed:.2f}s"
-                raise TimeoutError(msg)
             _sse_event_adapter: TypeAdapter[_SSEEvent] = TypeAdapter(_SSEEvent)
             for sse in event_source.iter_sse():
+                elapsed = time.perf_counter() - start_time
+                if elapsed >= self._job_wait_timeout:
+                    msg = f"Job timed out after {elapsed:.2f}s"
+                    raise TimeoutError(msg)
                 yield _sse_event_adapter.validate_json(sse.data)
 
     def _wait_for_job_completion(self, status_url: str) -> str:
