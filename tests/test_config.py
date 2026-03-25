@@ -24,23 +24,21 @@ def test_settings_creates_workspace_folder(mock_settings: Settings) -> None:
     assert mock_settings.files_folder.is_dir()
 
 
-def test_settings_uses_default_api_url(
-    temp_workspace: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_settings_uses_default_api_url(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that default API URL is used when not specified"""
     monkeypatch.setenv("NITRO_AUTH_TOKEN", "test-token")
-    monkeypatch.setenv("NITRO_MCP_WORKSPACE", str(temp_workspace))
+    monkeypatch.setenv("NITRO_MCP_WORKSPACE", str(tmp_path))
 
     settings = Settings()
     assert settings.api_url == "https://api.gonitrodev.com/idp/platform"
 
 
 def test_settings_auth_token_defaults_to_empty(
-    temp_workspace: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test that auth token defaults to empty string when not provided"""
     monkeypatch.delenv("NITRO_AUTH_TOKEN", raising=False)
-    monkeypatch.setenv("NITRO_MCP_WORKSPACE", str(temp_workspace))
+    monkeypatch.setenv("NITRO_MCP_WORKSPACE", str(tmp_path))
 
     settings = Settings()
     assert settings.auth_token == ""

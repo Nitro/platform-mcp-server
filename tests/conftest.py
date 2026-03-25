@@ -11,9 +11,9 @@ import pytest
 from mcp.server.fastmcp.server import lifespan_wrapper
 from mcp.shared.memory import create_connected_server_and_client_session
 
-from app.client import PlatformHandler
 from app.config.settings import Settings
 from app.context import AppContext
+from app.handlers import FilesHandler, PlatformHandler
 from app.server import mcp
 
 if TYPE_CHECKING:
@@ -27,33 +27,11 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture
-def temp_workspace(tmp_path: Path) -> Path:
-    """Temporary workspace folder."""
-    workspace = tmp_path / "test_workspace"
-    workspace.mkdir()
-    return workspace
-
-
-@pytest.fixture(name="pdf_a")
-def _pdf_a(temp_workspace: Path) -> str:
-    """PDF file a.pdf in the workspace."""
-    (temp_workspace / "a.pdf").write_bytes(b"pdf-a-content")
-    return "a.pdf"
-
-
-@pytest.fixture(name="pdf_b")
-def _pdf_b(temp_workspace: Path) -> str:
-    """PDF file b.pdf in the workspace."""
-    (temp_workspace / "b.pdf").write_bytes(b"pdf-b-content")
-    return "b.pdf"
-
-
-@pytest.fixture
-def mock_settings(temp_workspace: Path, monkeypatch: pytest.MonkeyPatch) -> Settings:
+def mock_settings(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Settings:
     """Settings backed by a temporary workspace."""
     monkeypatch.setenv("NITRO_AUTH_TOKEN", "test-token-123")
     monkeypatch.setenv("PLATFORM_API_URL", "https://test-api.example.com")
-    monkeypatch.setenv("NITRO_MCP_WORKSPACE", str(temp_workspace))
+    monkeypatch.setenv("NITRO_MCP_WORKSPACE", str(tmp_path))
     monkeypatch.setenv("MCP_SERVER_VERSION", "0.0.0-test")
     return Settings()
 
@@ -63,9 +41,14 @@ def _platform_handler_mock(mocker: MockerFixture) -> MagicMock:
     return mocker.create_autospec(PlatformHandler, instance=True, spec_set=True)
 
 
+@pytest.fixture(name="files_handler_mock")
+def _files_handler_mock(mocker: MockerFixture) -> MagicMock:
+    return mocker.create_autospec(FilesHandler, instance=True, spec_set=True)
+
+
 @pytest.fixture(name="app_context")
-def _app_context(platform_handler_mock: MagicMock, temp_workspace: Path) -> AppContext:
-    return AppContext(platform_handler=platform_handler_mock, files_folder=temp_workspace)
+def _app_context(platform_handler_mock: MagicMock, files_handler_mock: MagicMock) -> AppContext:
+    return AppContext(platform_handler=platform_handler_mock, files_handler=files_handler_mock)
 
 
 class _FixedLifespan:  # pylint: disable=too-few-public-methods

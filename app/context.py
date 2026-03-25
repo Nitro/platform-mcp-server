@@ -1,3 +1,5 @@
+# Copyright (c) 2005-2025 Nitro Software Inc. All Rights Reserved
+
 """App context and dependency injection for MCP tools."""
 
 from dataclasses import dataclass
@@ -7,9 +9,7 @@ from mcp.server.fastmcp import Context
 from mcp.server.session import ServerSession
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
-    from app.client import PlatformHandler
+    from app.handlers import FilesHandler, PlatformHandler
 
 
 @dataclass(slots=True)
@@ -17,7 +17,7 @@ class AppContext:
     """Lifespan context injected into every tool call."""
 
     platform_handler: PlatformHandler
-    files_folder: Path
+    files_handler: FilesHandler
 
 
 CoreContext = Context[ServerSession, AppContext]
@@ -29,8 +29,8 @@ def _get_app_context(ctx: CoreContext) -> AppContext:
 
 
 @overload
-def get_dep(ctx: CoreContext, thing: Literal["files-folder"]) -> Path:
-    """Get the files folder path from the context"""
+def get_dep(ctx: CoreContext, thing: Literal["files-handler"]) -> FilesHandler:
+    """Get the files handler from the context"""
 
 
 @overload
@@ -39,9 +39,9 @@ def get_dep(ctx: CoreContext, thing: Literal["platform-handler"]) -> PlatformHan
 
 
 def get_dep(
-    ctx: CoreContext, thing: Literal["files-folder", "platform-handler"]
-) -> Path | PlatformHandler:
+    ctx: CoreContext, thing: Literal["files-handler", "platform-handler"]
+) -> FilesHandler | PlatformHandler:
     """Get a dependency from the context by name."""
-    if thing == "files-folder":
-        return _get_app_context(ctx).files_folder
+    if thing == "files-handler":
+        return _get_app_context(ctx).files_handler
     return _get_app_context(ctx).platform_handler
