@@ -83,10 +83,14 @@ async def test_convert_file_docx_to_pdf(
         output_filename="doc-converted.pdf",
     ).model_dump()
     assert response.structuredContent == expected
+    files_handler_mock.read.assert_called_once_with(Path("doc.docx"))
     platform_handler_mock.convert_file.assert_called_once_with(
         b"docx-content",
         FileFormat.DOCX,
         FileFormat.PDF,
+    )
+    files_handler_mock.write.assert_called_once_with(
+        "doc.docx", b"pdf-output", suffix="converted", ext="pdf"
     )
 
 
@@ -145,6 +149,7 @@ async def test_convert_file_platform_error_raises(
     )
     assert response.isError
     platform_handler_mock.convert_file.assert_called_once()
+    files_handler_mock.write.assert_not_called()
 
 
 @pytest.mark.anyio

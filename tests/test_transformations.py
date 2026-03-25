@@ -82,6 +82,7 @@ async def test_merge_files_platform_error_raises(
     )
     assert response.isError
     platform_handler_mock.merge_pdfs.assert_called_once_with([b"pdf-a-content", b"pdf-b-content"])
+    files_handler_mock.write.assert_not_called()
 
 
 @pytest.mark.anyio

@@ -26,6 +26,7 @@ async def test_list_files_empty_workspace(
     result = FileListResult.model_validate(response.structuredContent)
     assert result.total_count == 0
     assert result.files == []
+    files_handler_mock.list_files.assert_called_once_with("pdf")
 
 
 @pytest.mark.anyio
@@ -88,3 +89,4 @@ async def test_list_files_sorted_newest_first(
 
     result = FileListResult.model_validate(response.structuredContent)
     assert [f.name for f in result.files] == ["b.pdf", "a.pdf"]
+    files_handler_mock.list_files.assert_called_once_with("pdf")
