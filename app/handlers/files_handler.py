@@ -33,8 +33,14 @@ class FilesHandler:
             raise FileNotFoundError(msg)
         return resolved.read_bytes()
 
-    def write(
-        self, filename: str, data: bytes, *, stem_suffix: str | None = None, ext: str | None = None
+    def write(  # pylint: disable=too-many-arguments
+        self,
+        filename: str | Path,
+        data: bytes,
+        *,
+        stem_suffix: str | None = None,
+        ext: str | None = None,
+        sep: str = "-",
     ) -> Path:
         """Write data to a file in the workspace.
 
@@ -43,15 +49,16 @@ class FilesHandler:
             data: File contents to write
             stem_suffix: Optional tag appended to stem (e.g. 'converted' -> 'a-converted.docx')
             ext: Optional extension override, strips existing ext from filename
+            sep: Separator between stem and suffix (default: '-')
 
         Examples:
             write('a.pdf', b"")                                      -> 'a.pdf'
             write('a.pdf', b"", stem_suffix='converted', ext='docx') -> 'a-converted.docx'
         """
-        path = Path(filename)
+        path = Path(filename) if isinstance(filename, str) else filename
         stem = path.stem
         if stem_suffix:
-            stem = f"{stem}-{stem_suffix}"
+            stem = f"{stem}{sep}{stem_suffix}"
         extension = ext if ext is not None else path.suffix.lstrip(".")
         resolved = self._resolve(Path(f"{stem}.{extension}"))
         if resolved.exists():

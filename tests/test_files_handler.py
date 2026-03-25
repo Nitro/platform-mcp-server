@@ -46,6 +46,15 @@ def test_write_with_suffix_and_ext(files_handler: FilesHandler, tmp_path: Path) 
     assert (tmp_path / "a-converted.docx").read_bytes() == b"docx-content"
 
 
+def test_write_accepts_path(files_handler: FilesHandler, tmp_path: Path) -> None:
+    """write accepts a Path as filename."""
+    result = files_handler.write(
+        Path("a.pdf"), b"docx-content", stem_suffix="converted", ext="docx"
+    )
+    assert result.name == "a-converted.docx"
+    assert (tmp_path / "a-converted.docx").read_bytes() == b"docx-content"
+
+
 def test_write_raises_if_file_exists(files_handler: FilesHandler, tmp_path: Path) -> None:
     """write raises FileExistsError if the output file already exists."""
     (tmp_path / "merged.pdf").write_bytes(b"existing")
