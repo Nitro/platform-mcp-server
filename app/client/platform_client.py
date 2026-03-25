@@ -93,16 +93,15 @@ class InvalidRequestError(Exception):
         super().__init__(f"Invalid request: [{status_code}] |{json.dumps(response, indent=2)}|")
 
 
+@dataclasses.dataclass
 class JobFailedError(Exception):
     """Exception raised when an asynchronous job fails with an error response"""
 
     job_id: str
     error: dict[str, Any]
 
-    def __init__(self, job_id: str, error: dict[str, Any]) -> None:
-        self.job_id = job_id
-        self.error = error
-        super().__init__(f"Job {job_id} failed with error: {json.dumps(error, indent=2)}")
+    def __str__(self) -> str:
+        return f"Job {self.job_id} failed with error: {json.dumps(self.error, indent=2)}"
 
 
 @dataclasses.dataclass
