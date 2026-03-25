@@ -152,3 +152,23 @@ class PlatformHandler:
             raise RuntimeError(msg)
 
         return response.content
+
+    def get_pdf_metadata(self, file_content: bytes) -> bytes:
+        """Get PDF metadata properties and return as JSON result."""
+        pdf_file = BytesFile(
+            content_type=ContentType.PDF, content=file_content, name="document.pdf"
+        )
+
+        response = self._platform_client.run(
+            "extractions",
+            pdf_file,
+            method="get-properties",
+            params={},
+            accept_format=AcceptFormat.JSON,
+        )
+
+        if response.status_code != 200:
+            msg = f"Metadata extraction failed with status code: {response.status_code}"
+            raise RuntimeError(msg)
+
+        return response.content
