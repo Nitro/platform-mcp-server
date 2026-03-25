@@ -179,7 +179,6 @@ def test_run_progress_then_complete(
                     "jobID": "job-id",
                     "status": "running",
                     "progress": 0.0,
-                    "timeRemaining": 0.0,
                 }),
             },
             {
@@ -188,7 +187,6 @@ def test_run_progress_then_complete(
                     "jobID": "job-id",
                     "status": "running",
                     "progress": 0.5,
-                    "timeRemaining": 0.0,
                 }),
             },
             {
