@@ -55,6 +55,12 @@ def test_write_accepts_path(files_handler: FilesHandler, tmp_path: Path) -> None
     assert (tmp_path / "a-converted.docx").read_bytes() == b"docx-content"
 
 
+def test_write_custom_sep(files_handler: FilesHandler) -> None:
+    """write uses the provided sep between stem and suffix."""
+    result = files_handler.write("a.pdf", b"", stem_suffix="converted", ext="docx", sep="_")
+    assert result.name == "a_converted.docx"
+
+
 def test_write_raises_if_file_exists(files_handler: FilesHandler, tmp_path: Path) -> None:
     """write raises FileExistsError if the output file already exists."""
     (tmp_path / "merged.pdf").write_bytes(b"existing")
