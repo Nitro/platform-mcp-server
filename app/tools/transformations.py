@@ -83,6 +83,6 @@ def merge_files(ctx: CoreContext, merge_request: MergeRequest) -> MergeResult:
     )
 
 
-def register_transformation_tools(mcp: FastMCP) -> None:
+def register_transformation_tool(mcp: FastMCP) -> None:
     """Register transformation tools with the MCP server"""
     mcp.tool()(merge_files)

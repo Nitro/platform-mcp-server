@@ -3,7 +3,7 @@
 """MCP server for Nitro Document Intelligence Platform"""
 
 import contextlib
-from typing import TYPE_CHECKING
+from collections.abc import AsyncGenerator
 
 from mcp.server.fastmcp import FastMCP
 
@@ -11,9 +11,6 @@ from app.client import PlatformHandler
 from app.config import settings
 from app.context import AppContext
 from app.tools import register as register_tools
-
-if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
 
 
 @contextlib.asynccontextmanager
