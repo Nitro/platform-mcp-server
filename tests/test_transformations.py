@@ -2,9 +2,11 @@
 
 """Tests for transformation tools"""
 
-from unittest.mock import MagicMock
+from pathlib import Path
+from unittest.mock import MagicMock, call
 
 import pytest
+from freezegun import freeze_time
 from mcp import ClientSession
 from pydantic import ValidationError
 
@@ -24,40 +26,46 @@ def test_merge_request_requires_minimum_two_files() -> None:
 
 
 @pytest.mark.anyio
+@freeze_time("2026-01-01T12:00:00+00:00")
 async def test_merge_files(
     client: ClientSession,
-    pdf_a: str,
-    pdf_b: str,
+    files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
 ) -> None:
     """Merge calls platform handler with file contents and returns result."""
+    files_handler_mock.read.side_effect = [b"pdf-a-content", b"pdf-b-content"]
     platform_handler_mock.merge_pdfs.return_value = b"merged"
+    files_handler_mock.write_timestamped.return_value = Path("merged-2026-01-01T120000.pdf")
     response = await client.call_tool(
         "merge_files",
-        {"merge_request": MergeRequest(input_filenames=[pdf_a, pdf_b]).model_dump()},
+        {"merge_request": MergeRequest(input_filenames=["a.pdf", "b.pdf"]).model_dump()},
     )
     expected = MergeResult(
-        output_filename="merged.pdf",
-        input_files=[pdf_a, pdf_b],
+        output_path="merged-2026-01-01T120000.pdf",
+        input_files=["a.pdf", "b.pdf"],
         input_count=2,
         total_input_size_bytes=26,
         output_size_bytes=6,
     ).model_dump()
     assert response.structuredContent == expected
+    files_handler_mock.read.assert_has_calls([call(Path("a.pdf")), call(Path("b.pdf"))])
     platform_handler_mock.merge_pdfs.assert_called_once_with([b"pdf-a-content", b"pdf-b-content"])
+    files_handler_mock.write_timestamped.assert_called_once_with(
+        "merged", "merged", "pdf", b"merged"
+    )
 
 
 @pytest.mark.anyio
 async def test_merge_files_missing_file_raises(
     client: ClientSession,
-    pdf_a: str,
+    files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
 ) -> None:
     """Missing input file returns an error response."""
-    platform_handler_mock.merge_pdfs.return_value = b"merged"
+    files_handler_mock.read.side_effect = [b"pdf-a-content", FileNotFoundError]
     response = await client.call_tool(
         "merge_files",
-        {"merge_request": MergeRequest(input_filenames=[pdf_a, "missing.pdf"]).model_dump()},
+        {"merge_request": MergeRequest(input_filenames=["a.pdf", "missing.pdf"]).model_dump()},
     )
     assert response.isError
     platform_handler_mock.merge_pdfs.assert_not_called()
@@ -66,43 +74,46 @@ async def test_merge_files_missing_file_raises(
 @pytest.mark.anyio
 async def test_merge_files_platform_error_raises(
     client: ClientSession,
-    pdf_a: str,
-    pdf_b: str,
+    files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
 ) -> None:
     """Platform handler error returns an error response."""
+    files_handler_mock.read.side_effect = [b"pdf-a-content", b"pdf-b-content"]
     platform_handler_mock.merge_pdfs.side_effect = RuntimeError("api-error")
     response = await client.call_tool(
         "merge_files",
-        {"merge_request": MergeRequest(input_filenames=[pdf_a, pdf_b]).model_dump()},
+        {"merge_request": MergeRequest(input_filenames=["a.pdf", "b.pdf"]).model_dump()},
     )
     assert response.isError
     platform_handler_mock.merge_pdfs.assert_called_once_with([b"pdf-a-content", b"pdf-b-content"])
 
 
 @pytest.mark.anyio
+@freeze_time("2026-01-01T12:00:00+00:00")
 async def test_merge_files_custom_output_filename(
     client: ClientSession,
-    pdf_a: str,
-    pdf_b: str,
+    files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
 ) -> None:
     """Custom output filename is reflected in the result."""
+    files_handler_mock.read.side_effect = [b"pdf-a-content", b"pdf-b-content"]
     platform_handler_mock.merge_pdfs.return_value = b"merged"
+    files_handler_mock.write_timestamped.return_value = Path("out-2026-01-01T120000.pdf")
     response = await client.call_tool(
         "merge_files",
         {
             "merge_request": MergeRequest(
-                input_filenames=[pdf_a, pdf_b], output_filename="out.pdf"
+                input_filenames=["a.pdf", "b.pdf"], output_filename="out.pdf"
             ).model_dump()
         },
     )
     expected = MergeResult(
-        output_filename="out.pdf",
-        input_files=[pdf_a, pdf_b],
+        output_path="out-2026-01-01T120000.pdf",
+        input_files=["a.pdf", "b.pdf"],
         input_count=2,
         total_input_size_bytes=26,
         output_size_bytes=6,
     ).model_dump()
     assert response.structuredContent == expected
+    files_handler_mock.write_timestamped.assert_called_once_with("merged", "out", "pdf", b"merged")
     platform_handler_mock.merge_pdfs.assert_called_once_with([b"pdf-a-content", b"pdf-b-content"])

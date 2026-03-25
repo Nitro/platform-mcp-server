@@ -5,10 +5,10 @@ from unittest.mock import MagicMock
 import pytest
 from pytest_mock import MockerFixture
 
-from app.client import FileFormat, PlatformHandler
+from app.client import FileFormat
 from app.client.enums import ContentType
 from app.client.platform_client import AcceptFormat, BytesFile, PlatformApiClient
-from app.client.platform_handler import ConversionNotSupportedError
+from app.handlers import ConversionNotSupportedError, PlatformHandler
 
 
 @pytest.fixture(name="platform_client_mock")

@@ -7,9 +7,9 @@ from collections.abc import AsyncGenerator
 
 from mcp.server.fastmcp import FastMCP
 
-from app.client import PlatformHandler
 from app.config import settings
 from app.context import AppContext
+from app.handlers import FilesHandler, PlatformHandler
 from app.tools import register as register_tools
 
 
@@ -18,7 +18,7 @@ async def lifespan(_: FastMCP) -> AsyncGenerator[AppContext]:
     """Lifespan handler for MCP server"""
     yield AppContext(
         platform_handler=PlatformHandler.create(settings.api_url, settings.auth_token),
-        files_folder=settings.files_folder,
+        files_handler=FilesHandler(settings.files_folder),
     )
 
 

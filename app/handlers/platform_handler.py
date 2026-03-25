@@ -3,7 +3,7 @@
 """High-level handler for Nitro Platform API operations"""
 
 from dataclasses import dataclass
-from typing import TypedDict
+from typing import ClassVar
 
 import httpx
 
@@ -11,22 +11,27 @@ from app.client.enums import ContentType, FileFormat
 from app.client.platform_client import AcceptFormat, BytesFile, PlatformApiClient
 
 
-class SupportedConversionsTypedDict(TypedDict):
-    """TypedDict for supported file conversions"""
+class ConversionNotSupportedError(Exception):
+    """Exception raised when an unsupported conversion is attempted"""
 
-    from_pdf_to: list[FileFormat]
-    to_pdf_from: list[FileFormat]
+    def __init__(self, from_format: FileFormat, to_format: FileFormat) -> None:
+        message = f"Conversion from {from_format} to {to_format} is not supported"
+        super().__init__(message)
 
 
-SUPPORTED_CONVERSIONS: SupportedConversionsTypedDict = {
-    "from_pdf_to": [
+@dataclass(frozen=True, slots=True)
+class SupportedConversions:
+    """Describes the file formats supported for conversion."""
+
+    from_pdf_to: frozenset[FileFormat] = frozenset({
         FileFormat.DOCX,
         FileFormat.XLSX,
         FileFormat.PPTX,
         FileFormat.JPEG,
         FileFormat.PNG,
-    ],
-    "to_pdf_from": [
+    })
+
+    to_pdf_from: frozenset[FileFormat] = frozenset({
         FileFormat.DOC,
         FileFormat.DOCX,
         FileFormat.DOCM,
@@ -51,30 +56,16 @@ SUPPORTED_CONVERSIONS: SupportedConversionsTypedDict = {
         FileFormat.CSV,
         FileFormat.RTF,
         FileFormat.HTML,
-    ],
-}
-
-
-def _is_valid_conversion(file_type: FileFormat, to: FileFormat) -> bool:
-    """Check if the conversion from 'from' format to 'to' format is supported"""
-    return (file_type == FileFormat.PDF and to in SUPPORTED_CONVERSIONS["from_pdf_to"]) or (
-        to == FileFormat.PDF and file_type in SUPPORTED_CONVERSIONS["to_pdf_from"]
-    )
-
-
-class ConversionNotSupportedError(Exception):
-    """Exception raised when an unsupported conversion is attempted"""
-
-    def __init__(self, from_format: FileFormat, to_format: FileFormat) -> None:
-        message = f"Conversion from {from_format} to {to_format} is not supported"
-        super().__init__(message)
+    })
 
 
 @dataclass
 class PlatformHandler:
     """High-level handler for platform document operations"""
 
-    platform_client: PlatformApiClient
+    supported_conversions: ClassVar[SupportedConversions] = SupportedConversions()
+
+    _platform_client: PlatformApiClient
 
     @classmethod
     def create(cls, base_url: str, auth_token: str, timeout: float = 120.0) -> PlatformHandler:
@@ -91,12 +82,13 @@ class PlatformHandler:
         """
         headers = {"Authorization": f"Bearer {auth_token}"}
         httpx_client = httpx.Client(headers=headers, timeout=60.0)
-        platform_client = PlatformApiClient(
-            _httpx_client=httpx_client,
-            _platform_url=base_url,
-            _job_wait_timeout=timeout,
-        )
+        platform_client = PlatformApiClient(httpx_client, base_url, timeout)
         return cls(platform_client)
+
+    def _is_valid_conversion(self, file_type: FileFormat, to: FileFormat) -> bool:
+        return (file_type == FileFormat.PDF and to in self.supported_conversions.from_pdf_to) or (
+            to == FileFormat.PDF and file_type in self.supported_conversions.to_pdf_from
+        )
 
     def merge_pdfs(self, file_contents: list[bytes]) -> bytes:
         """
@@ -116,7 +108,6 @@ class PlatformHandler:
             msg = "At least one PDF file is required for merging"
             raise ValueError(msg)
 
-        # Create BytesFile objects for each PDF
         pdf_files: list[BytesFile] = []
         for i, content in enumerate(file_contents):
             pdf_file = BytesFile(
@@ -124,7 +115,7 @@ class PlatformHandler:
             )
             pdf_files.append(pdf_file)
 
-        response = self.platform_client.run(
+        response = self._platform_client.run(
             "transformations",
             pdf_files,
             method="merge",
@@ -140,7 +131,7 @@ class PlatformHandler:
 
     def convert_file(self, file_bytes: bytes, file_type: FileFormat, to: FileFormat) -> bytes:
         """Convert a file to a different format."""
-        if not _is_valid_conversion(file_type, to):
+        if not self._is_valid_conversion(file_type, to):
             raise ConversionNotSupportedError(file_type, to)
         file = BytesFile(
             content_type=ContentType[file_type.value.upper()],
@@ -148,7 +139,7 @@ class PlatformHandler:
             name=f"input.{file_type.value}",
         )
 
-        response = self.platform_client.run(
+        response = self._platform_client.run(
             "conversions",
             file,
             method=None,

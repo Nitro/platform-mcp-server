@@ -1,13 +1,16 @@
+# Copyright (c) 2005-2025 Nitro Software Inc. All Rights Reserved
+
 """File conversion tools for MCP server"""
 
-from datetime import datetime
 from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, Field
 
-from app.client import SUPPORTED_CONVERSIONS, FileFormat
+from app.client import FileFormat
 from app.context import CoreContext, get_dep
+from app.handlers import PlatformHandler
+from app.models import SingleFileOutputBase
 
 
 class ConversionRequest(BaseModel):
@@ -21,40 +24,33 @@ class ConversionRequest(BaseModel):
     to: str = Field(description="Format to convert the file to")
 
 
-class ConversionResult(BaseModel):
+class ConversionResult(SingleFileOutputBase):
     """Result of a file conversion operation"""
 
     input_path: str = Field(description="Relative path to the source file")
-    output_path: str = Field(description="Relative path to the converted output file")
 
 
 async def convert_file(ctx: CoreContext, request: ConversionRequest) -> ConversionResult:
     """Convert a file using the platform handler's conversion capabilities"""
     platform_handler = get_dep(ctx, "platform-handler")
-    files_folder = get_dep(ctx, "files-folder")
+    files_handler = get_dep(ctx, "files-handler")
 
-    input_path = files_folder / request.input_path
-    if not input_path.exists():
-        msg = f"Input file does not exist: {input_path}"
-        raise FileNotFoundError(msg)
-
+    input_bytes = files_handler.read(request.input_path)
     converted_bytes = platform_handler.convert_file(
-        input_path.read_bytes(),
-        FileFormat(input_path.suffix.lstrip(".").lower()),
+        input_bytes,
+        FileFormat(request.input_path.suffix.lstrip(".").lower()),
         FileFormat(request.to),
     )
-    timestamp = datetime.now().astimezone().strftime("%Y-%m-%dT%H%M%S")
-    output_name = f"converted-{input_path.stem}-{timestamp}.{request.to}"
-    output_path = input_path.parent / output_name
-    output_path.write_bytes(converted_bytes)
-    return ConversionResult(input_path=str(input_path), output_path=str(output_path.name))
+    output_path = files_handler.write_timestamped(
+        "converted", request.input_path.stem, request.to, converted_bytes
+    )
+    return ConversionResult(input_path=str(request.input_path), output_path=str(output_path.name))
 
 
 def register_conversion_tool(mcp: FastMCP) -> None:
     """Register conversion tools with the MCP server"""
-
-    from_pdf_to = ", ".join(SUPPORTED_CONVERSIONS["from_pdf_to"])
-    to_pdf_from = ", ".join(SUPPORTED_CONVERSIONS["to_pdf_from"])
+    from_pdf_to = ", ".join(f.value for f in PlatformHandler.supported_conversions.from_pdf_to)
+    to_pdf_from = ", ".join(f.value for f in PlatformHandler.supported_conversions.to_pdf_from)
     description = (
         "Use this tool when the user asks to convert a file.\n"
         "The following conversions are supported:\n"

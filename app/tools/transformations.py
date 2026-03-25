@@ -2,11 +2,13 @@
 
 """PDF transformation tools for MCP server"""
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
 
 from app.context import CoreContext, get_dep
+from app.models import SingleFileOutputBase
 
 if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
@@ -25,10 +27,9 @@ class MergeRequest(BaseModel):
     )
 
 
-class MergeResult(BaseModel):
+class MergeResult(SingleFileOutputBase):
     """Result of merging PDF files"""
 
-    output_filename: str = Field(description="Name of the merged output file")
     input_files: list[str] = Field(description="List of input filenames that were merged")
     input_count: int = Field(description="Number of files merged")
     total_input_size_bytes: int = Field(description="Total size of input files in bytes")
@@ -49,33 +50,26 @@ def merge_files(ctx: CoreContext, merge_request: MergeRequest) -> MergeResult:
         FileNotFoundError: If any input file doesn't exist
         RuntimeError: If merge operation fails
     """
-    files_folder = get_dep(ctx, "files-folder")
+    files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
-    # Read all files
     file_contents: list[bytes] = []
     total_size = 0
 
     for filename in merge_request.input_filenames:
-        file_path = files_folder / filename
-
-        if not file_path.exists():
-            msg = f"File not found: {filename}"
-            raise FileNotFoundError(msg)
-
-        content = file_path.read_bytes()
+        content = files_handler.read(Path(filename))
         file_contents.append(content)
         total_size += len(content)
 
-    # Merge PDFs using platform handler
     merged_bytes = platform_handler.merge_pdfs(file_contents)
 
-    # Save merged file
-    output_path = files_folder / merge_request.output_filename
-    output_path.write_bytes(merged_bytes)
+    output_path = Path(merge_request.output_filename)
+    written = files_handler.write_timestamped(
+        "merged", output_path.stem, output_path.suffix.lstrip("."), merged_bytes
+    )
 
     return MergeResult(
-        output_filename=merge_request.output_filename,
+        output_path=written.name,
         input_files=merge_request.input_filenames,
         input_count=len(merge_request.input_filenames),
         total_input_size_bytes=total_size,

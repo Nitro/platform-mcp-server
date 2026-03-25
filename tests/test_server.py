@@ -46,11 +46,11 @@ def test_welcome_message_is_markdown() -> None:
     assert message.startswith("# Nitro MCP")
 
 
-def test_main_requires_auth_token(temp_workspace: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_main_requires_auth_token(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that main() raises error when auth token is not set"""
     # Create settings without auth_token
     monkeypatch.delenv("NITRO_AUTH_TOKEN", raising=False)
-    monkeypatch.setenv("NITRO_MCP_WORKSPACE", str(temp_workspace))
+    monkeypatch.setenv("NITRO_MCP_WORKSPACE", str(tmp_path))
     empty_settings = Settings()
 
     monkeypatch.setattr(server, "settings", empty_settings)

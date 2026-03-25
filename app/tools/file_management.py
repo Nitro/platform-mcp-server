@@ -38,17 +38,9 @@ class FileListResult(BaseModel):
 def list_files(ctx: CoreContext, file_type: FileType | None = "pdf") -> FileListResult:
     """List files available for processing in the configured workspace folder, pass
     file_type=None to list all files regardless of type"""
-    files_folder = get_dep(ctx, "files-folder")
+    files_handler = get_dep(ctx, "files-handler")
 
-    if not files_folder.exists():
-        msg = f"Workspace folder does not exist: {files_folder}"
-        raise FileNotFoundError(msg)
-
-    if file_type is None:
-        file_paths = [f for f in files_folder.iterdir() if f.is_file()]
-    else:
-        file_paths = list(files_folder.glob(f"*.{file_type}"))
-
+    file_paths = files_handler.list_files(file_type)
     file_paths.sort(key=lambda x: x.stat().st_mtime, reverse=True)
 
     file_infos: list[FileInfo] = []
@@ -67,7 +59,7 @@ def list_files(ctx: CoreContext, file_type: FileType | None = "pdf") -> FileList
         files=file_infos,
         total_count=len(file_infos),
         requested_file_type=file_type,
-        folder_path=str(files_folder),
+        folder_path=str(files_handler.root_path),
     )
 
 
