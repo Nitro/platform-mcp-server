@@ -1,5 +1,6 @@
 """Tests for PlatformApiClient"""
 
+import json
 from typing import Literal
 
 import httpx
@@ -12,6 +13,7 @@ from app.client.platform_client import (
     BytesFile,
     File,
     InvalidRequestError,
+    JobFailedError,
     PlatformApiClient,
     URLFile,
 )
@@ -57,6 +59,13 @@ def _path(request: pytest.FixtureRequest) -> Path:
     return request.param
 
 
+def _sse_stream(*events: dict[str, str]) -> bytes:
+    parts: list[str] = []
+    for event in events:
+        parts.append(f"event: {event['event']}\ndata: {event['data']}\n\n")
+    return "".join(parts).encode()
+
+
 def _mock_job(
     httpx_mock: HTTPXMock,
     *,
@@ -68,14 +77,21 @@ def _mock_job(
         method="POST",
         url=f"https://api.example.com/{path}",
         status_code=202,
-        headers={"Location": "https://api.example.com/jobs/job-id", "Retry-After": "1.0"},
+        headers={"Location": "https://api.example.com/jobs/job-id"},
     )
     httpx_mock.add_response(
         method="GET",
         url="https://api.example.com/jobs/job-id",
-        status_code=302,
-        headers={"Location": "https://api.example.com/results/job-id"},
-        json={"status": "completed"},
+        status_code=200,
+        headers={"Content-Type": "text/event-stream"},
+        content=_sse_stream({
+            "event": "redirect",
+            "data": json.dumps({
+                "jobID": "job-id",
+                "status": "completed",
+                "location": "https://api.example.com/results/job-id",
+            }),
+        }),
     )
     httpx_mock.add_response(
         method="GET",
@@ -139,31 +155,51 @@ def test_run_server_error_raises(
         )
 
 
-def test_run_polls_until_complete(
+def test_run_progress_then_complete(
     platform_client: PlatformApiClient,
     pdf_file: BytesFile,
     httpx_mock: HTTPXMock,
 ) -> None:
-    """Job that is running is polled until completed."""
+    """progress-update events are consumed and redirect event resolves the result URL."""
     httpx_mock.add_response(
         method="POST",
         url="https://api.example.com/conversions",
         status_code=202,
-        headers={"Location": "https://api.example.com/jobs/job-id", "Retry-After": "0.001"},
+        headers={"Location": "https://api.example.com/jobs/job-id"},
     )
-    for _ in range(3):
-        httpx_mock.add_response(
-            method="GET",
-            url="https://api.example.com/jobs/job-id",
-            status_code=200,
-            json={"status": "running"},
-        )
     httpx_mock.add_response(
         method="GET",
         url="https://api.example.com/jobs/job-id",
-        status_code=302,
-        headers={"Location": "https://api.example.com/results/job-id"},
-        json={"status": "completed"},
+        status_code=200,
+        headers={"Content-Type": "text/event-stream"},
+        content=_sse_stream(
+            {
+                "event": "progress-update",
+                "data": json.dumps({
+                    "jobID": "job-id",
+                    "status": "running",
+                    "progress": 0.0,
+                    "timeRemaining": 0.0,
+                }),
+            },
+            {
+                "event": "progress-update",
+                "data": json.dumps({
+                    "jobID": "job-id",
+                    "status": "running",
+                    "progress": 0.5,
+                    "timeRemaining": 0.0,
+                }),
+            },
+            {
+                "event": "redirect",
+                "data": json.dumps({
+                    "jobID": "job-id",
+                    "status": "completed",
+                    "location": "https://api.example.com/results/job-id",
+                }),
+            },
+        ),
     )
     httpx_mock.add_response(
         method="GET",
@@ -179,30 +215,34 @@ def test_run_polls_until_complete(
     assert response.content == b"output"
 
 
-@pytest.mark.httpx_mock(assert_all_responses_were_requested=False)
-def test_run_job_timeout_raises(pdf_file: BytesFile, httpx_mock: HTTPXMock) -> None:
-    """Job that never completes raises TimeoutError."""
+def test_run_job_failed_raises(
+    platform_client: PlatformApiClient,
+    pdf_file: BytesFile,
+    httpx_mock: HTTPXMock,
+) -> None:
+    """job-failed SSE event raises RuntimeError with error details."""
     httpx_mock.add_response(
         method="POST",
         url="https://api.example.com/conversions",
         status_code=202,
-        headers={"Location": "https://api.example.com/jobs/job-id", "Retry-After": "0.001"},
+        headers={"Location": "https://api.example.com/jobs/job-id"},
     )
-    for _ in range(200):
-        httpx_mock.add_response(
-            method="GET",
-            url="https://api.example.com/jobs/job-id",
-            status_code=200,
-            json={"status": "running"},
-        )
-
-    short_timeout_client = PlatformApiClient(
-        _httpx_client=httpx.Client(headers={"Authorization": "Bearer test-token"}, timeout=60.0),
-        _platform_url="https://api.example.com",
-        _job_wait_timeout=0.1,
+    httpx_mock.add_response(
+        method="GET",
+        url="https://api.example.com/jobs/job-id",
+        status_code=200,
+        headers={"Content-Type": "text/event-stream"},
+        content=_sse_stream({
+            "event": "job-failed",
+            "data": json.dumps({
+                "jobID": "job-id",
+                "status": "failed",
+                "error": {"type": "conversion-error", "title": "Conversion failed"},
+            }),
+        }),
     )
 
-    with pytest.raises(TimeoutError, match="did not complete within"):
-        short_timeout_client.run(
+    with pytest.raises(JobFailedError):
+        platform_client.run(
             "conversions", pdf_file, method=None, params={}, accept_format=AcceptFormat.BYTES
         )

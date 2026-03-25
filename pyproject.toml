@@ -15,6 +15,7 @@ dependencies = [
     "httpx>=0.28.1",
     "pydantic>=2.11.9",
     "pydantic-settings>=2.0.0",
+    "httpx-sse>=0.4",
 ]
 
 [build-system]

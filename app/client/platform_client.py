@@ -6,15 +6,41 @@ import dataclasses
 import json
 import logging
 import time
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 import httpx
+from httpx_sse import connect_sse
+from pydantic import BaseModel, Field, TypeAdapter
 
 from app.client.enums import ContentType
 
 logger = logging.getLogger("PlatformAPI")
+
+
+class _BaseEvent(BaseModel):
+    job_id: str = Field(alias="jobID")
+
+
+class _ProgressUpdateEvent(_BaseEvent):
+    status: Literal["running"]
+    progress: float
+
+
+class _RedirectEvent(_BaseEvent):
+    status: Literal["completed"]
+    location: str
+
+
+class _FailedEvent(_BaseEvent):
+    status: Literal["failed"]
+    error: dict[str, Any]
+
+
+_SSEEvent = Annotated[
+    _ProgressUpdateEvent | _RedirectEvent | _FailedEvent, Field(discriminator="status")
+]
 
 
 class AcceptFormat(StrEnum):
@@ -24,7 +50,7 @@ class AcceptFormat(StrEnum):
     JSON = "json"
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class URLFile:
     """URL File abstraction for remote file references"""
 
@@ -41,7 +67,7 @@ class URLFile:
         )
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class BytesFile:
     """Bytes File abstraction for in-memory file content"""
 
@@ -67,6 +93,18 @@ class InvalidRequestError(Exception):
         super().__init__(f"Invalid request: [{status_code}] |{json.dumps(response, indent=2)}|")
 
 
+class JobFailedError(Exception):
+    """Exception raised when an asynchronous job fails with an error response"""
+
+    job_id: str
+    error: dict[str, Any]
+
+    def __init__(self, job_id: str, error: dict[str, Any]) -> None:
+        self.job_id = job_id
+        self.error = error
+        super().__init__(f"Job {job_id} failed with error: {json.dumps(error, indent=2)}")
+
+
 @dataclasses.dataclass
 class PlatformApiClient:
     """Low-level client for invoking Nitro Platform operations with async job polling"""
@@ -76,40 +114,34 @@ class PlatformApiClient:
     _default_timeout: float = 30.0
     _job_wait_timeout: float = 120.0
 
-    def _wait_for_job_completion(self, status_url: str, retry_after: float) -> str:
-        """Poll job status URL until completion and return result URL"""
-        logger.info("Waiting for job at `%s` using short polling", status_url)
-        start_time = time.time()
+    def _iter_sse_events(self, status_url: str) -> Iterator[_SSEEvent]:
+        """Helper generator to stream SSE events from status URL"""
+        logger.info("Connecting to SSE stream at `%s`", status_url)
+        try:
+            with connect_sse(
+                self._httpx_client, "GET", status_url, timeout=self._job_wait_timeout
+            ) as event_source:
+                _sse_event_adapter: TypeAdapter[_SSEEvent] = TypeAdapter(_SSEEvent)
+                for sse in event_source.iter_sse():
+                    yield _sse_event_adapter.validate_json(sse.data)
+        except httpx.ReadTimeout as exc:
+            msg = f"SSE stream read timed out while waiting for job completion at {status_url}"
+            raise TimeoutError(msg) from exc
 
-        while True:
-            elapsed = time.time() - start_time
-            if elapsed > self._job_wait_timeout:
-                msg = (
-                    f"Job at {status_url} did not complete within {self._job_wait_timeout} seconds"
-                )
-                raise TimeoutError(msg)
-
-            response = self._httpx_client.get(
-                status_url, follow_redirects=False, timeout=self._default_timeout
-            )
-            result = response.json()
-            status = result["status"]
-
-            if status == "running":
-                assert response.status_code == 200
-                time.sleep(retry_after)
+    def _wait_for_job_completion(self, status_url: str) -> str:
+        """Stream SSE events from status URL until completion and return result URL"""
+        logger.info("Waiting for job at `%s` via SSE", status_url)
+        for event in self._iter_sse_events(status_url):
+            if isinstance(event, _ProgressUpdateEvent):
+                logger.info("Job progress: %.0f%%", event.progress * 100)
                 continue
+            if isinstance(event, _FailedEvent):
+                raise JobFailedError(event.job_id, event.error)
+            assert isinstance(event, _RedirectEvent)
+            return event.location
 
-            if status == "completed":
-                assert response.status_code == 302
-                return response.headers["Location"]
-
-            if status == "failed":
-                msg = f"Job at {status_url} failed: {result}"
-                raise RuntimeError(msg)
-
-            msg = f"Unexpected job status: {result}"
-            raise RuntimeError(msg)
+        msg = f"SSE stream closed before job at {status_url} completed"
+        raise RuntimeError(msg)
 
     def _check_error_response(self, response: httpx.Response) -> None:
         """Check response for errors and raise appropriate exceptions"""
@@ -154,8 +186,6 @@ class PlatformApiClient:
             RuntimeError: For 5xx server errors or job failures
             TimeoutError: If async job doesn't complete within timeout period
         """
-        params = {} if params is None else params
-        headers: dict[str, str] = {"Prefer": "respond-async"}
         data: dict[str, Any] = {"params": json.dumps(params)}
 
         # Handle method
@@ -172,13 +202,13 @@ class PlatformApiClient:
 
         # Submit async job
         logger.info("Starting async job [%s/%s]", path, method)
-        start_time = time.time()
+        start_time = time.perf_counter()
 
         response = self._httpx_client.post(
             f"{self._platform_url}/{path}",
             files=files,
             data=data,
-            headers=headers,
+            headers={"Prefer": "respond-async"},
             timeout=self._default_timeout,
         )
         self._check_error_response(response)
@@ -186,11 +216,10 @@ class PlatformApiClient:
         # Job should be accepted (202)
         assert response.status_code == 202
         status_url = response.headers["Location"]
-        retry_after = float(response.headers.get("Retry-After", 1.0))
         logger.info("Job started, status URL: %s", status_url)
 
-        # Poll for completion
-        result_url = self._wait_for_job_completion(status_url, retry_after)
+        # Wait for completion via SSE
+        result_url = self._wait_for_job_completion(status_url)
 
         # Fetch final result
         result_headers = (
@@ -205,7 +234,7 @@ class PlatformApiClient:
         # Check for errors in result fetch
         self._check_error_response(result_response)
 
-        elapsed = time.time() - start_time
+        elapsed = time.perf_counter() - start_time
         logger.info("Platform operation [%s/%s] completed in %.2fs", path, method, elapsed)
 
         return result_response
