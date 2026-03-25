@@ -3,15 +3,12 @@
 """File extraction tools for MCP server"""
 
 from pathlib import Path
-from typing import TYPE_CHECKING
 
+from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, Field
 
 from app.context import CoreContext, get_dep
 from app.models import SingleFileOutputBase
-
-if TYPE_CHECKING:
-    from mcp.server.fastmcp import FastMCP
 
 
 class PDFMetadataRequest(BaseModel):
