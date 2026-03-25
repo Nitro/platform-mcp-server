@@ -37,19 +37,7 @@ class MergeResult(SingleFileOutputBase):
 
 
 def merge_files(ctx: CoreContext, request: MergeRequest) -> MergeResult:
-    """
-    Merge multiple PDF files from the workspace into one PDF.
-
-    Args:
-        merge_request: Request containing input filenames and output filename
-
-    Returns:
-        MergeResult with details about the merge operation
-
-    Raises:
-        FileNotFoundError: If any input file doesn't exist
-        RuntimeError: If merge operation fails
-    """
+    """Merge multiple PDF one PDF."""
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 

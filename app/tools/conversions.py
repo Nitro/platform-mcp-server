@@ -51,8 +51,12 @@ async def convert_file(ctx: CoreContext, request: ConversionRequest) -> Conversi
 
 def register_conversion_tool(mcp: FastMCP) -> None:
     """Register conversion tools with the MCP server"""
-    from_pdf_to = ", ".join(f.value for f in PlatformHandler.supported_conversions.from_pdf_to)
-    to_pdf_from = ", ".join(f.value for f in PlatformHandler.supported_conversions.to_pdf_from)
+    from_pdf_to = ", ".join(
+        f.value for f in sorted(PlatformHandler.supported_conversions.from_pdf_to)
+    )
+    to_pdf_from = ", ".join(
+        f.value for f in sorted(PlatformHandler.supported_conversions.to_pdf_from)
+    )
     description = (
         "Use this tool when the user asks to convert a file.\n"
         "The following conversions are supported:\n"
