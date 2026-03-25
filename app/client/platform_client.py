@@ -116,16 +116,17 @@ class PlatformApiClient:
     def _iter_sse_events(self, status_url: str) -> Iterator[_SSEEvent]:
         """Helper generator to stream SSE events from status URL"""
         logger.info("Connecting to SSE stream at `%s`", status_url)
-        try:
-            with connect_sse(
-                self._httpx_client, "GET", status_url, timeout=self._job_wait_timeout
-            ) as event_source:
-                _sse_event_adapter: TypeAdapter[_SSEEvent] = TypeAdapter(_SSEEvent)
-                for sse in event_source.iter_sse():
-                    yield _sse_event_adapter.validate_json(sse.data)
-        except httpx.ReadTimeout as exc:
-            msg = f"SSE stream read timed out while waiting for job completion at {status_url}"
-            raise TimeoutError(msg) from exc
+        start_time = time.perf_counter()
+        with connect_sse(
+            self._httpx_client, "GET", status_url, timeout=self._job_wait_timeout
+        ) as event_source:
+            elapsed = time.perf_counter() - start_time
+            if elapsed >= self._job_wait_timeout:
+                msg = f"Job timed out after {elapsed:.2f}s"
+                raise TimeoutError(msg)
+            _sse_event_adapter: TypeAdapter[_SSEEvent] = TypeAdapter(_SSEEvent)
+            for sse in event_source.iter_sse():
+                yield _sse_event_adapter.validate_json(sse.data)
 
     def _wait_for_job_completion(self, status_url: str) -> str:
         """Stream SSE events from status URL until completion and return result URL"""
@@ -185,7 +186,9 @@ class PlatformApiClient:
             RuntimeError: For 5xx server errors or job failures
             TimeoutError: If async job doesn't complete within timeout period
         """
-        data: dict[str, Any] = {"params": json.dumps(params)}
+        data: dict[str, str] = {}
+        if params is not None:
+            data["params"] = json.dumps(params)
 
         # Handle method
         if method is not None:
