@@ -78,3 +78,232 @@ def test_convert_file_unsupported_raises(platform_handler: PlatformHandler) -> N
     """convert_file raises ConversionNotSupportedError for unsupported conversions."""
     with pytest.raises(ConversionNotSupportedError):
         platform_handler.convert_file(b"pdf-content", FileFormat.PDF, FileFormat.PDF)
+
+
+def test_compress_pdf_calls_client(
+    platform_handler: PlatformHandler,
+    platform_client_mock: MagicMock,
+) -> None:
+    """compress_pdf calls client with correct args and returns bytes."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b"compressed"
+    platform_client_mock.run.return_value = mock_response
+
+    result = platform_handler.compress_pdf(b"pdf-content", 1)
+
+    assert result == b"compressed"
+    platform_client_mock.run.assert_called_once_with(
+        "transformations",
+        BytesFile(content_type=ContentType.PDF, content=b"pdf-content", name="input.pdf"),
+        method="compress",
+        params={"level": 1},
+        accept_format=AcceptFormat.BYTES,
+    )
+
+
+def test_compress_pdf_invalid_level_raises(platform_handler: PlatformHandler) -> None:
+    """compress_pdf raises ValueError for invalid compression level."""
+    with pytest.raises(ValueError, match="Invalid compression level"):
+        platform_handler.compress_pdf(b"pdf-content", 5)
+
+
+def test_split_pdf_calls_client(
+    platform_handler: PlatformHandler,
+    platform_client_mock: MagicMock,
+) -> None:
+    """split_pdf calls client with correct args and returns ZIP bytes."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b"zip-content"
+    platform_client_mock.run.return_value = mock_response
+
+    result = platform_handler.split_pdf(b"pdf-content", [[0, 1, 2], [4]])
+
+    assert result == b"zip-content"
+    platform_client_mock.run.assert_called_once_with(
+        "transformations",
+        BytesFile(content_type=ContentType.PDF, content=b"pdf-content", name="input.pdf"),
+        method="split",
+        params={"pageIndices": [[0, 1, 2], [4]]},
+        accept_format=AcceptFormat.BYTES,
+    )
+
+
+def test_split_pdf_empty_ranges_raises(platform_handler: PlatformHandler) -> None:
+    """split_pdf raises ValueError when given empty page ranges."""
+    with pytest.raises(ValueError, match="At least one page range is required"):
+        platform_handler.split_pdf(b"pdf-content", [])
+
+
+def test_rotate_pdf_calls_client(
+    platform_handler: PlatformHandler,
+    platform_client_mock: MagicMock,
+) -> None:
+    """rotate_pdf calls client with correct args and returns bytes."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b"rotated"
+    platform_client_mock.run.return_value = mock_response
+
+    rotations = [{"pageIndex": 0, "amount": 90}, {"pageIndex": 2, "amount": 180}]
+    result = platform_handler.rotate_pdf(b"pdf-content", rotations)
+
+    assert result == b"rotated"
+    platform_client_mock.run.assert_called_once_with(
+        "transformations",
+        BytesFile(content_type=ContentType.PDF, content=b"pdf-content", name="input.pdf"),
+        method="rotate",
+        params={"rotations": rotations},
+        accept_format=AcceptFormat.BYTES,
+    )
+
+
+def test_rotate_pdf_empty_rotations_raises(platform_handler: PlatformHandler) -> None:
+    """rotate_pdf raises ValueError when given empty rotations."""
+    with pytest.raises(ValueError, match="At least one rotation is required"):
+        platform_handler.rotate_pdf(b"pdf-content", [])
+
+
+def test_protect_pdf_calls_client(
+    platform_handler: PlatformHandler,
+    platform_client_mock: MagicMock,
+) -> None:
+    """protect_pdf calls client with correct args and returns bytes."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b"protected"
+    platform_client_mock.run.return_value = mock_response
+
+    result = platform_handler.protect_pdf(
+        b"pdf-content",
+        owner_password="owner123",
+        user_password="user123",
+        permissions=["print", "copy"],
+    )
+
+    assert result == b"protected"
+    platform_client_mock.run.assert_called_once_with(
+        "transformations",
+        BytesFile(content_type=ContentType.PDF, content=b"pdf-content", name="input.pdf"),
+        method="protect",
+        params={
+            "ownerPassword": "owner123",
+            "userPassword": "user123",
+            "permissions": ["print", "copy"],
+        },
+        accept_format=AcceptFormat.BYTES,
+    )
+
+
+def test_protect_pdf_no_passwords_raises(platform_handler: PlatformHandler) -> None:
+    """protect_pdf raises ValueError when no passwords provided."""
+    with pytest.raises(ValueError, match="At least one password"):
+        platform_handler.protect_pdf(b"pdf-content")
+
+
+def test_unprotect_pdf_calls_client(
+    platform_handler: PlatformHandler,
+    platform_client_mock: MagicMock,
+) -> None:
+    """unprotect_pdf calls client with correct args and returns bytes."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b"unprotected"
+    platform_client_mock.run.return_value = mock_response
+
+    result = platform_handler.unprotect_pdf(b"pdf-content", owner_password="owner123")
+
+    assert result == b"unprotected"
+    platform_client_mock.run.assert_called_once_with(
+        "transformations",
+        BytesFile(content_type=ContentType.PDF, content=b"pdf-content", name="input.pdf"),
+        method="unprotect",
+        params={"ownerPassword": "owner123"},
+        accept_format=AcceptFormat.BYTES,
+    )
+
+
+def test_unprotect_pdf_no_passwords_raises(platform_handler: PlatformHandler) -> None:
+    """unprotect_pdf raises ValueError when no passwords provided."""
+    with pytest.raises(ValueError, match="At least one password"):
+        platform_handler.unprotect_pdf(b"pdf-content")
+
+
+def test_delete_pdf_pages_calls_client(
+    platform_handler: PlatformHandler,
+    platform_client_mock: MagicMock,
+) -> None:
+    """delete_pdf_pages calls client with correct args and returns bytes."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b"modified"
+    platform_client_mock.run.return_value = mock_response
+
+    result = platform_handler.delete_pdf_pages(b"pdf-content", [0, 2, 4])
+
+    assert result == b"modified"
+    platform_client_mock.run.assert_called_once_with(
+        "transformations",
+        BytesFile(content_type=ContentType.PDF, content=b"pdf-content", name="input.pdf"),
+        method="delete",
+        params={"pageIndices": [0, 2, 4]},
+        accept_format=AcceptFormat.BYTES,
+    )
+
+
+def test_delete_pdf_pages_empty_indices_raises(platform_handler: PlatformHandler) -> None:
+    """delete_pdf_pages raises ValueError when given empty page indices."""
+    with pytest.raises(ValueError, match="At least one page index is required"):
+        platform_handler.delete_pdf_pages(b"pdf-content", [])
+
+
+def test_set_pdf_metadata_calls_client(
+    platform_handler: PlatformHandler,
+    platform_client_mock: MagicMock,
+) -> None:
+    """set_pdf_metadata calls client with correct args and returns bytes."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b"metadata-updated"
+    platform_client_mock.run.return_value = mock_response
+
+    metadata = {"title": "Test Document", "author": "John Doe"}
+    result = platform_handler.set_pdf_metadata(b"pdf-content", metadata)
+
+    assert result == b"metadata-updated"
+    platform_client_mock.run.assert_called_once_with(
+        "transformations",
+        BytesFile(content_type=ContentType.PDF, content=b"pdf-content", name="input.pdf"),
+        method="metadata",
+        params=metadata,
+        accept_format=AcceptFormat.BYTES,
+    )
+
+
+def test_set_pdf_metadata_empty_dict_raises(platform_handler: PlatformHandler) -> None:
+    """set_pdf_metadata raises ValueError when given empty metadata dict."""
+    with pytest.raises(ValueError, match="At least one metadata field must be provided"):
+        platform_handler.set_pdf_metadata(b"pdf-content", {})
+
+
+def test_flatten_pdf_calls_client(
+    platform_handler: PlatformHandler,
+    platform_client_mock: MagicMock,
+) -> None:
+    """flatten_pdf calls client with correct args and returns bytes."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b"flattened"
+    platform_client_mock.run.return_value = mock_response
+
+    result = platform_handler.flatten_pdf(b"pdf-content")
+
+    assert result == b"flattened"
+    platform_client_mock.run.assert_called_once_with(
+        "transformations",
+        BytesFile(content_type=ContentType.PDF, content=b"pdf-content", name="input.pdf"),
+        method="flatten",
+        params={},
+        accept_format=AcceptFormat.BYTES,
+    )

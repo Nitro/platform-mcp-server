@@ -2,12 +2,13 @@
 
 """Client module for Nitro Platform API"""
 
-from app.client.enums import ContentType, FileFormat, RotationAmount
+from app.client.enums import CompressionLevel, ContentType, FileFormat, RotationAmount
 from app.client.platform_client import AcceptFormat, BytesFile, PlatformApiClient, URLFile
 
 __all__ = [
     "AcceptFormat",
     "BytesFile",
+    "CompressionLevel",
     "ContentType",
     "FileFormat",
     "PlatformApiClient",
