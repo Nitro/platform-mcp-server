@@ -218,7 +218,7 @@ def test_run_job_failed_raises(
     pdf_file: BytesFile,
     httpx_mock: HTTPXMock,
 ) -> None:
-    """job-failed SSE event raises RuntimeError with error details."""
+    """job-failed SSE event raises error"""
     httpx_mock.add_response(
         method="POST",
         url="https://api.example.com/conversions",
