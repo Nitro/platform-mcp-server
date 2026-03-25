@@ -235,7 +235,7 @@ def test_run_job_failed_raises(
             "data": json.dumps({
                 "jobID": "job-id",
                 "status": "failed",
-                "error": {"type": "conversion-error", "title": "Conversion failed"},
+                "error": {"type": "type", "title": "title"},
             }),
         }),
     )
