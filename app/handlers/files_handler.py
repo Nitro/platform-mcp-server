@@ -60,7 +60,7 @@ class FilesHandler:
         stem = path.stem
         if stem_suffix:
             stem = f"{stem}{sep}{stem_suffix}"
-        timestamp = datetime.now().astimezone().strftime("%Y-%m-%dT%H-%M-%S")
+        timestamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")  # noqa: DTZ005
         stem = f"{stem}{sep}{timestamp}"
         extension = ext if ext is not None else path.suffix.lstrip(".")
         resolved = self._resolve(Path(f"{stem}.{extension}"))
