@@ -14,7 +14,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 def _auto_adjust_columns(ws: Worksheet, min_width: int, max_width: int) -> None:
     for column_cells in ws.columns:
         cells = list(column_cells)
-        length = max(len(str(cell.value) or "") for cell in cells)
+        length = max(len(str(cell.value) if cell.value is not None else "") for cell in cells)
         col_letter = get_column_letter(cells[0].column or 1)
         ws.column_dimensions[col_letter].width = min(max(length, min_width), max_width)
 
