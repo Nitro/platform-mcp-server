@@ -26,7 +26,7 @@ jobs:
             - name: Run Claude Code Review
               uses: anthropics/claude-code-action@v1
               with:
-                  anthropic_api_key: ${{ secrets.CLAUDE_API_KEY }}
+                  anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
                   allowed_bots: 'claude'
                   track_progress: true
                   claude_args: '--allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(cat:*)"'

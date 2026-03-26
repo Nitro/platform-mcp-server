@@ -44,11 +44,11 @@ This codebase is **fully typed**. Every function, method, and variable must have
 
 ## Code Quality
 
-- Linting: `uv run ruff check --fix FILES` must run on all files you edit
-  - `# noqa: XXXX` is a last resort, not the default
-- Types: `uv run pyright FILES` must pass without errors in strict mode
-  - `# type: ignore` / `# pyright: ignore` requires explicit user permission
-- Tests: `uv run pytest FILES` must pass without errors on all files you edit; strike a balance between safety and utility — do not over-test
+After making code changes, use the **ruff**, **pyright**, and **pytest** subagents to verify correctness.
+
+- `# noqa: XXXX` is a last resort, not the default
+- `# type: ignore` / `# pyright: ignore` requires explicit user permission
+- Strike a balance between safety and utility — do not over-test
   - When testing MCP tool calls, assert both the structured content return and all mocked handlers/clients via `assert_called_once_with` or similar
   - Mocks must be created with `mocker.create_autospec(Thing, instance=True, spec_set=True)` where `mocker` is a `MockerFixture`
 
