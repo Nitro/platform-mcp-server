@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 from app.context import CoreContext, get_dep
 from app.handlers.platform_handler import ExtractionDataType, ExtractionParams
 from app.models import SingleFileOutputBase
-from app.utils.excel_helpers import create_forms_excel, create_tables_excel
+from app.utils import create_forms_excel, create_tables_excel
 
 
 class PDFMetadataRequest(BaseModel):
