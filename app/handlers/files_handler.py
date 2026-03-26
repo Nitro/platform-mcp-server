@@ -3,6 +3,7 @@
 """Workspace-aware file handler"""
 
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 
@@ -52,13 +53,15 @@ class FilesHandler:
             sep: Separator between stem and suffix (default: '-')
 
         Examples:
-            write('a.pdf', b"")                                      -> 'a.pdf'
-            write('a.pdf', b"", stem_suffix='converted', ext='docx') -> 'a-converted.docx'
+            write('a.pdf', b"")                           -> 'a-<timestamp>.pdf'
+            write('a.pdf', b"", stem_suffix='sfx', ext='docx') -> 'a-sfx-<timestamp>.docx'
         """
         path = Path(filename) if isinstance(filename, str) else filename
         stem = path.stem
         if stem_suffix:
             stem = f"{stem}{sep}{stem_suffix}"
+        timestamp = datetime.now().astimezone().strftime("%Y-%m-%dT%H-%M-%S")
+        stem = f"{stem}{sep}{timestamp}"
         extension = ext if ext is not None else path.suffix.lstrip(".")
         resolved = self._resolve(Path(f"{stem}.{extension}"))
         if resolved.exists():
