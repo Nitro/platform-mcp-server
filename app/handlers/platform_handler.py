@@ -3,7 +3,7 @@
 """High-level handler for Nitro Platform API operations"""
 
 from dataclasses import dataclass
-from typing import ClassVar, TypedDict
+from typing import Any, ClassVar, Literal, TypedDict, cast
 
 import httpx
 
@@ -16,6 +16,23 @@ class PageRotation(TypedDict):
 
     pageIndex: int
     amount: int
+
+
+class PdfMetadata(TypedDict, total=False):
+    """PDF metadata fields"""
+
+    title: str
+    author: str
+    subject: str
+    keywords: str
+    creator: str
+    producer: str
+    creation_date: str
+    mod_date: str
+    trapped: str
+
+
+type PdfPermission = Literal["print", "modify", "copy", "annotate", "form", "assemble", "print-hq"]
 
 
 class ConversionNotSupportedError(Exception):
@@ -273,7 +290,7 @@ class PlatformHandler:
         file_bytes: bytes,
         owner_password: str | None = None,
         user_password: str | None = None,
-        permissions: list[str] | None = None,
+        permissions: list[PdfPermission] | None = None,
     ) -> bytes:
         """
         Protect a PDF with passwords and permissions.
@@ -304,7 +321,7 @@ class PlatformHandler:
         if user_password:
             params["userPassword"] = user_password
         if permissions:
-            params["permissions"] = permissions
+            params["permissions"] = cast(list[str], permissions)
 
         response = self._platform_client.run(
             "transformations",
@@ -402,7 +419,7 @@ class PlatformHandler:
 
         return response.content
 
-    def set_pdf_metadata(self, file_bytes: bytes, metadata: dict[str, str]) -> bytes:
+    def set_pdf_metadata(self, file_bytes: bytes, metadata: PdfMetadata) -> bytes:
         """
         Set metadata properties for a PDF file.
 
@@ -429,7 +446,7 @@ class PlatformHandler:
             "transformations",
             file,
             method="metadata",
-            params=metadata,
+            params=cast(dict[str, Any], metadata),
             accept_format=AcceptFormat.BYTES,
         )
 

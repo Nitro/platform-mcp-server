@@ -382,7 +382,7 @@ async def test_delete_pdf_pages_success(
         "delete_pdf_pages",
         {
             "request": DeletePagesRequest(
-                input_filename=Path("a.pdf"), page_numbers="1,3,5-7"
+                input_filename=Path("a.pdf"), page_numbers=["1", "3", "5-7"]
             ).model_dump()
         },
     )
@@ -414,7 +414,7 @@ async def test_delete_pdf_pages_invalid_range(
         "delete_pdf_pages",
         {
             "request": DeletePagesRequest(
-                input_filename=Path("a.pdf"), page_numbers="5-2"
+                input_filename=Path("a.pdf"), page_numbers=["5-2"]
             ).model_dump()
         },
     )

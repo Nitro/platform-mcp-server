@@ -3,13 +3,13 @@
 """PDF transformation tools for MCP server"""
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, cast
 
 from pydantic import BaseModel, Field
 
 from app.client import CompressionLevel
 from app.context import CoreContext, get_dep
-from app.handlers.platform_handler import PageRotation
+from app.handlers.platform_handler import PageRotation, PdfMetadata, PdfPermission
 from app.models import SingleFileOutputBase
 
 if TYPE_CHECKING:
@@ -219,12 +219,9 @@ class ProtectRequest(BaseModel):
         default=None,
         description="User password for restricted access (optional)",
     )
-    permissions: list[str] | None = Field(
+    permissions: list[PdfPermission] | None = Field(
         default=None,
-        description=(
-            "List of permissions to grant: "
-            '["print", "modify", "copy", "annotate", "form", "assemble", "print-hq"]'
-        ),
+        description="List of permissions to grant",
     )
 
 
@@ -303,8 +300,11 @@ class DeletePagesRequest(BaseModel):
     """Request to delete specific pages from a PDF"""
 
     input_filename: Path = Field(description="Filename of the source PDF in the workspace")
-    page_numbers: str = Field(
-        description='Page numbers to delete (e.g., "1,3,5" or "2,4-6,8"). Pages are 1-indexed.',
+    page_numbers: list[str] = Field(
+        description=(
+            'Page numbers to delete (e.g., ["1", "3", "5"] or ["2", "4-6", "8"]). '
+            "Pages are 1-indexed."
+        ),
     )
 
 
@@ -321,7 +321,7 @@ async def delete_pdf_pages(ctx: CoreContext, request: DeletePagesRequest) -> Del
     platform_handler = get_dep(ctx, "platform-handler")
 
     parsed_pages: list[int] = []
-    for page_part in request.page_numbers.split(","):
+    for page_part in request.page_numbers:
         page_part = page_part.strip()
         if "-" in page_part:
             start_str, end_str = page_part.split("-", 1)
@@ -397,7 +397,7 @@ async def set_pdf_metadata(ctx: CoreContext, request: SetMetadataRequest) -> Set
         "mod_date": request.mod_date,
         "trapped": request.trapped,
     }
-    metadata = {k: v for k, v in field_mapping.items() if v is not None}
+    metadata = cast(PdfMetadata, {k: v for k, v in field_mapping.items() if v is not None})
 
     modified_bytes = platform_handler.set_pdf_metadata(
         files_handler.read(request.input_filename), metadata

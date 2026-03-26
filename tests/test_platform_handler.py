@@ -9,7 +9,7 @@ from app.client import CompressionLevel, FileFormat
 from app.client.enums import ContentType
 from app.client.platform_client import AcceptFormat, BytesFile, PlatformApiClient
 from app.handlers import ConversionNotSupportedError, PlatformHandler
-from app.handlers.platform_handler import PageRotation
+from app.handlers.platform_handler import PageRotation, PdfMetadata
 
 
 @pytest.fixture(name="platform_client_mock")
@@ -266,7 +266,7 @@ def test_set_pdf_metadata(
     mock_response.content = b"metadata-updated"
     platform_client_mock.run.return_value = mock_response
 
-    metadata = {"title": "Test Document", "author": "John Doe"}
+    metadata: PdfMetadata = {"title": "Test Document", "author": "John Doe"}
     result = platform_handler.set_pdf_metadata(b"pdf-content", metadata)
 
     assert result == b"metadata-updated"
