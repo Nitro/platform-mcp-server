@@ -5,6 +5,7 @@
 from pathlib import Path
 
 import pytest
+from freezegun import freeze_time
 
 from app.handlers import FilesHandler, PathTraversalError
 
@@ -32,38 +33,43 @@ def test_read_path_traversal_raises(files_handler: FilesHandler) -> None:
         files_handler.read(Path("../../etc/passwd"))
 
 
+@freeze_time("2025-01-01 10:20:30")
 def test_write_creates_file(files_handler: FilesHandler, tmp_path: Path) -> None:
     """write creates a file with the given filename."""
     result = files_handler.write("merged.pdf", b"pdf-content")
-    assert result.name == "merged.pdf"
-    assert (tmp_path / "merged.pdf").read_bytes() == b"pdf-content"
+    assert result.name == "merged-2025-01-01T10-20-30.pdf"
+    assert (tmp_path / "merged-2025-01-01T10-20-30.pdf").read_bytes() == b"pdf-content"
 
 
+@freeze_time("2025-01-01 10:20:30")
 def test_write_with_suffix_and_ext(files_handler: FilesHandler, tmp_path: Path) -> None:
     """write appends suffix to stem and overrides extension."""
     result = files_handler.write("a.pdf", b"docx-content", stem_suffix="converted", ext="docx")
-    assert result.name == "a-converted.docx"
-    assert (tmp_path / "a-converted.docx").read_bytes() == b"docx-content"
+    assert result.name == "a-converted-2025-01-01T10-20-30.docx"
+    assert (tmp_path / "a-converted-2025-01-01T10-20-30.docx").read_bytes() == b"docx-content"
 
 
+@freeze_time("2025-01-01 10:20:30")
 def test_write_accepts_path(files_handler: FilesHandler, tmp_path: Path) -> None:
     """write accepts a Path as filename."""
     result = files_handler.write(
         Path("a.pdf"), b"docx-content", stem_suffix="converted", ext="docx"
     )
-    assert result.name == "a-converted.docx"
-    assert (tmp_path / "a-converted.docx").read_bytes() == b"docx-content"
+    assert result.name == "a-converted-2025-01-01T10-20-30.docx"
+    assert (tmp_path / "a-converted-2025-01-01T10-20-30.docx").read_bytes() == b"docx-content"
 
 
+@freeze_time("2025-01-01 10:20:30")
 def test_write_custom_sep(files_handler: FilesHandler) -> None:
     """write uses the provided sep between stem and suffix."""
     result = files_handler.write("a.pdf", b"", stem_suffix="converted", ext="docx", sep="_")
-    assert result.name == "a_converted.docx"
+    assert result.name == "a_converted_2025-01-01T10-20-30.docx"
 
 
+@freeze_time("2025-01-01 10:20:30")
 def test_write_raises_if_file_exists(files_handler: FilesHandler, tmp_path: Path) -> None:
     """write raises FileExistsError if the output file already exists."""
-    (tmp_path / "merged.pdf").write_bytes(b"existing")
+    (tmp_path / "merged-2025-01-01T10-20-30.pdf").write_bytes(b"existing")
     with pytest.raises(FileExistsError):
         files_handler.write("merged.pdf", b"new-content")
 
