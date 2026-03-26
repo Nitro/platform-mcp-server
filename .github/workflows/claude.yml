@@ -22,14 +22,14 @@ jobs:
             actions: read
         steps:
             - name: Checkout repository
-              uses: actions/checkout@v4
+              uses: actions/checkout@v6
               with:
                   fetch-depth: 1
 
             - name: Run Claude Code
               uses: anthropics/claude-code-action@v1
               with:
-                  anthropic_api_key: ${{ secrets.CLAUDE_API_KEY }}
+                  anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
                   allowed_bots: 'claude'
                   additional_permissions: |
                       actions: read
