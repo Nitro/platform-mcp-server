@@ -53,8 +53,8 @@ class FilesHandler:
             sep: Separator between stem and suffix (default: '-')
 
         Examples:
-            write('a.pdf', b"")                           -> 'a-<timestamp>.pdf'
-            write('a.pdf', b"", stem_suffix='sfx', ext='docx') -> 'a-sfx-<timestamp>.docx'
+            write('a.pdf', b"")                                -> 'a-2025-01-01T10-20-30.pdf'
+            write('a.pdf', b"", stem_suffix='sfx', ext='docx') -> 'a-sfx-2025-01-01T10-20-30.docx'
         """
         path = Path(filename) if isinstance(filename, str) else filename
         stem = path.stem
