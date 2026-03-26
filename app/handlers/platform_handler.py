@@ -3,12 +3,36 @@
 """High-level handler for Nitro Platform API operations"""
 
 from dataclasses import dataclass
-from typing import ClassVar
+from typing import Any, ClassVar, Literal, TypedDict, cast
 
 import httpx
 
-from app.client.enums import ContentType, FileFormat
+from app.client.enums import CompressionLevel, ContentType, FileFormat
 from app.client.platform_client import AcceptFormat, BytesFile, PlatformApiClient
+
+
+class PageRotation(TypedDict):
+    """Represents a page rotation operation"""
+
+    pageIndex: int
+    amount: int
+
+
+class PdfMetadata(TypedDict, total=False):
+    """PDF metadata fields"""
+
+    title: str
+    author: str
+    subject: str
+    keywords: str
+    creator: str
+    producer: str
+    creation_date: str
+    mod_date: str
+    trapped: str
+
+
+type PdfPermission = Literal["print", "modify", "copy", "annotate", "form", "assemble", "print-hq"]
 
 
 class ConversionNotSupportedError(Exception):
@@ -169,6 +193,317 @@ class PlatformHandler:
 
         if response.status_code != 200:
             msg = f"Metadata extraction failed with status code: {response.status_code}"
+            raise RuntimeError(msg)
+
+        return response.content
+
+    def compress_pdf(self, file_bytes: bytes, level: CompressionLevel) -> bytes:
+        """
+        Compress a PDF file to reduce its size.
+
+        Args:
+            file_bytes: PDF file content as bytes
+            level: Compression level (light, medium, or heavy)
+
+        Returns:
+            Compressed PDF content as bytes
+
+        Raises:
+            RuntimeError: If compression operation fails
+        """
+        level_map = {
+            CompressionLevel.LIGHT: 0,
+            CompressionLevel.MEDIUM: 1,
+            CompressionLevel.HEAVY: 2,
+        }
+        level_int = level_map[level]
+
+        file = BytesFile(content_type=ContentType.PDF, content=file_bytes, name="input.pdf")
+
+        response = self._platform_client.run(
+            "transformations",
+            file,
+            method="compress",
+            params={"level": level_int},
+            accept_format=AcceptFormat.BYTES,
+        )
+
+        if response.status_code != 200:
+            msg = f"Compression failed with status code: {response.status_code}"
+            raise RuntimeError(msg)
+
+        return response.content
+
+    def split_pdf(self, file_bytes: bytes, page_ranges: list[list[int]]) -> bytes:
+        """
+        Split a PDF by page ranges into separate PDFs packaged in a ZIP file.
+
+        Args:
+            file_bytes: PDF file content as bytes
+            page_ranges: List of page ranges (0-based indices), e.g. [[0,1,2], [4], [6,7,8]]
+
+        Returns:
+            ZIP file content as bytes containing the split PDFs
+
+        Raises:
+            ValueError: If page_ranges is empty
+            RuntimeError: If split operation fails
+        """
+        if not page_ranges:
+            msg = "At least one page range is required for splitting"
+            raise ValueError(msg)
+
+        file = BytesFile(content_type=ContentType.PDF, content=file_bytes, name="input.pdf")
+
+        response = self._platform_client.run(
+            "transformations",
+            file,
+            method="split",
+            params={"pageIndices": page_ranges},
+            accept_format=AcceptFormat.BYTES,
+        )
+
+        if response.status_code != 200:
+            msg = f"Split failed with status code: {response.status_code}"
+            raise RuntimeError(msg)
+
+        return response.content
+
+    def rotate_pdf(self, file_bytes: bytes, rotations: list[PageRotation]) -> bytes:
+        """
+        Rotate specific pages in a PDF file.
+
+        Args:
+            file_bytes: PDF file content as bytes
+            rotations: List of rotations with 0-based page indices,
+                      e.g. [{"pageIndex": 0, "amount": 90}, {"pageIndex": 2, "amount": 180}]
+
+        Returns:
+            Rotated PDF content as bytes
+
+        Raises:
+            ValueError: If rotations list is empty
+            RuntimeError: If rotation operation fails
+        """
+        if not rotations:
+            msg = "At least one rotation is required"
+            raise ValueError(msg)
+
+        file = BytesFile(content_type=ContentType.PDF, content=file_bytes, name="input.pdf")
+
+        response = self._platform_client.run(
+            "transformations",
+            file,
+            method="rotate",
+            params={"rotations": rotations},
+            accept_format=AcceptFormat.BYTES,
+        )
+
+        if response.status_code != 200:
+            msg = f"Rotation failed with status code: {response.status_code}"
+            raise RuntimeError(msg)
+
+        return response.content
+
+    def protect_pdf(
+        self,
+        file_bytes: bytes,
+        owner_password: str | None = None,
+        user_password: str | None = None,
+        permissions: list[PdfPermission] | None = None,
+    ) -> bytes:
+        """
+        Protect a PDF with passwords and permissions.
+
+        Args:
+            file_bytes: PDF file content as bytes
+            owner_password: Owner password for full access (optional)
+            user_password: User password for restricted access (optional)
+            permissions: List of allowed permissions (optional):
+                        ["print", "modify", "copy", "annotate", "form", "assemble", "print-hq"]
+
+        Returns:
+            Protected PDF content as bytes
+
+        Raises:
+            ValueError: If neither password is provided
+            RuntimeError: If protection operation fails
+        """
+        if not owner_password and not user_password:
+            msg = "At least one password (owner_password or user_password) must be provided"
+            raise ValueError(msg)
+
+        file = BytesFile(content_type=ContentType.PDF, content=file_bytes, name="input.pdf")
+
+        params: dict[str, str | list[str]] = {}
+        if owner_password:
+            params["ownerPassword"] = owner_password
+        if user_password:
+            params["userPassword"] = user_password
+        if permissions:
+            params["permissions"] = cast(list[str], permissions)
+
+        response = self._platform_client.run(
+            "transformations",
+            file,
+            method="protect",
+            params=params,
+            accept_format=AcceptFormat.BYTES,
+        )
+
+        if response.status_code != 200:
+            msg = f"Protection failed with status code: {response.status_code}"
+            raise RuntimeError(msg)
+
+        return response.content
+
+    def unprotect_pdf(
+        self,
+        file_bytes: bytes,
+        owner_password: str | None = None,
+        user_password: str | None = None,
+    ) -> bytes:
+        """
+        Remove password protection from a PDF.
+
+        Args:
+            file_bytes: PDF file content as bytes
+            owner_password: Owner password to remove protection (optional)
+            user_password: User password to remove protection (optional)
+
+        Returns:
+            Unprotected PDF content as bytes
+
+        Raises:
+            ValueError: If neither password is provided
+            RuntimeError: If unprotection operation fails
+        """
+        if not owner_password and not user_password:
+            msg = "At least one password (owner_password or user_password) must be provided"
+            raise ValueError(msg)
+
+        file = BytesFile(content_type=ContentType.PDF, content=file_bytes, name="input.pdf")
+
+        params: dict[str, str] = {}
+        if owner_password:
+            params["ownerPassword"] = owner_password
+        if user_password:
+            params["userPassword"] = user_password
+
+        response = self._platform_client.run(
+            "transformations",
+            file,
+            method="unprotect",
+            params=params,
+            accept_format=AcceptFormat.BYTES,
+        )
+
+        if response.status_code != 200:
+            msg = f"Unprotection failed with status code: {response.status_code}"
+            raise RuntimeError(msg)
+
+        return response.content
+
+    def delete_pdf_pages(self, file_bytes: bytes, page_indices: list[int]) -> bytes:
+        """
+        Delete specific pages from a PDF file.
+
+        Args:
+            file_bytes: PDF file content as bytes
+            page_indices: List of 0-based page indices to delete, e.g. [0, 2, 4]
+
+        Returns:
+            Modified PDF content as bytes
+
+        Raises:
+            ValueError: If page_indices is empty
+            RuntimeError: If deletion operation fails
+        """
+        if not page_indices:
+            msg = "At least one page index is required for deletion"
+            raise ValueError(msg)
+
+        file = BytesFile(content_type=ContentType.PDF, content=file_bytes, name="input.pdf")
+
+        response = self._platform_client.run(
+            "transformations",
+            file,
+            method="delete",
+            params={"pageIndices": page_indices},
+            accept_format=AcceptFormat.BYTES,
+        )
+
+        if response.status_code != 200:
+            msg = f"Page deletion failed with status code: {response.status_code}"
+            raise RuntimeError(msg)
+
+        return response.content
+
+    def set_pdf_metadata(self, file_bytes: bytes, metadata: PdfMetadata) -> bytes:
+        """
+        Set metadata properties for a PDF file.
+
+        Args:
+            file_bytes: PDF file content as bytes
+            metadata: Dictionary of metadata fields to set. Valid keys:
+                     title, author, subject, keywords, creator, producer,
+                     creation_date, mod_date, trapped
+
+        Returns:
+            Modified PDF content as bytes
+
+        Raises:
+            ValueError: If metadata dictionary is empty
+            RuntimeError: If metadata operation fails
+        """
+        if not metadata:
+            msg = "At least one metadata field must be provided"
+            raise ValueError(msg)
+
+        file = BytesFile(content_type=ContentType.PDF, content=file_bytes, name="input.pdf")
+
+        response = self._platform_client.run(
+            "transformations",
+            file,
+            method="metadata",
+            params=cast(dict[str, Any], metadata),
+            accept_format=AcceptFormat.BYTES,
+        )
+
+        if response.status_code != 200:
+            msg = f"Metadata update failed with status code: {response.status_code}"
+            raise RuntimeError(msg)
+
+        return response.content
+
+    def flatten_pdf(self, file_bytes: bytes) -> bytes:
+        """
+        Flatten a PDF to make forms and annotations non-editable.
+
+        This operation converts all interactive elements (form fields, annotations, etc.)
+        into static content that becomes part of the page and cannot be edited.
+
+        Args:
+            file_bytes: PDF file content as bytes
+
+        Returns:
+            Flattened PDF content as bytes
+
+        Raises:
+            RuntimeError: If flatten operation fails
+        """
+        file = BytesFile(content_type=ContentType.PDF, content=file_bytes, name="input.pdf")
+
+        response = self._platform_client.run(
+            "transformations",
+            file,
+            method="flatten",
+            params={},
+            accept_format=AcceptFormat.BYTES,
+        )
+
+        if response.status_code != 200:
+            msg = f"Flatten failed with status code: {response.status_code}"
             raise RuntimeError(msg)
 
         return response.content

@@ -593,6 +593,7 @@ name = "platform-mcp-server"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },
+    { name = "httpx-sse" },
     { name = "mcp" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -624,6 +625,7 @@ local-dev = [
 [package.metadata]
 requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "httpx-sse", specifier = ">=0.4" },
     { name = "mcp", specifier = ">=1.21.2" },
     { name = "pydantic", specifier = ">=2.11.9" },
     { name = "pydantic-settings", specifier = ">=2.0.0" },

@@ -85,3 +85,11 @@ class RotationAmount(StrEnum):
     def valid_amounts(cls) -> list[int]:
         """Return list of valid rotation amounts as integers"""
         return [int(amount.value) for amount in cls]
+
+
+class CompressionLevel(StrEnum):
+    """PDF compression levels for file size optimization"""
+
+    LIGHT = "light"
+    MEDIUM = "medium"
+    HEAVY = "heavy"
