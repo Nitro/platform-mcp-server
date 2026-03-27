@@ -5,10 +5,10 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal, overload
 
-from app.auth import resolve_token, start_auth_flow
-
 from mcp.server.fastmcp import Context
 from mcp.server.session import ServerSession
+
+from app.auth import resolve_token, start_auth_flow
 
 if TYPE_CHECKING:
     from app.handlers import FilesHandler, PlatformHandler

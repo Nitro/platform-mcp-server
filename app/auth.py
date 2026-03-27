@@ -45,7 +45,9 @@ class _CallbackHandler(BaseHTTPRequestHandler):
         if not codes:
             self.wfile.write(b"<html><body><h2>Missing code. Please try again.</h2></body></html>")
             return
-        self.wfile.write(b"<html><body><h2>Authenticated! You can close this tab.</h2></body></html>")
+        self.wfile.write(
+            b"<html><body><h2>Authenticated! You can close this tab.</h2></body></html>"
+        )
         try:
             r = httpx.post(
                 f"{srv.auth_url}/token",
@@ -69,11 +71,13 @@ class _CallbackHandler(BaseHTTPRequestHandler):
 
 def _save(tokens: TokenSet) -> None:
     _TOKEN_PATH.parent.mkdir(parents=True, exist_ok=True)
-    _TOKEN_PATH.write_text(json.dumps({
-        "access_token": tokens.access_token,
-        "refresh_token": tokens.refresh_token,
-        "expires_at": tokens.expires_at,
-    }))
+    _TOKEN_PATH.write_text(
+        json.dumps({
+            "access_token": tokens.access_token,
+            "refresh_token": tokens.refresh_token,
+            "expires_at": tokens.expires_at,
+        })
+    )
 
 
 def _load() -> TokenSet | None:
@@ -101,7 +105,11 @@ def _refresh(auth_url: str, refresh_token: str) -> TokenSet | None:
     try:
         r = httpx.post(
             f"{auth_url}/token",
-            data={"grant_type": "refresh_token", "refresh_token": refresh_token, "client_id": CLIENT_ID},
+            data={
+                "grant_type": "refresh_token",
+                "refresh_token": refresh_token,
+                "client_id": CLIENT_ID,
+            },
             timeout=10,
         )
         if r.status_code != 200:
