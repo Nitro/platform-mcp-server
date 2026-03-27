@@ -50,6 +50,7 @@ def test_settings_auth_token_raises_when_missing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test that accessing auth_token raises when NITRO_AUTH_TOKEN is not set"""
+    monkeypatch.setenv("NITRO_AUTH_MODE", "token-auth")
     monkeypatch.delenv("NITRO_AUTH_TOKEN", raising=False)
     monkeypatch.setenv("NITRO_MCP_WORKSPACE", str(tmp_path))
     empty_settings = Settings()
