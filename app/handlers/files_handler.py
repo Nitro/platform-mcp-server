@@ -3,7 +3,6 @@
 """Workspace-aware file handler"""
 
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 
 
@@ -34,6 +33,26 @@ class FilesHandler:
             raise FileNotFoundError(msg)
         return resolved.read_bytes()
 
+    def _find_available_path(self, stem: str, extension: str) -> Path:
+        """Find the next available filename using incremental suffixes."""
+        # Try the base filename first
+        candidate = self._resolve(Path(f"{stem}.{extension}"))
+        if not candidate.exists():
+            return candidate
+
+        # Try incremental suffixes: (1), (2), (3), etc.
+        max_attempts = 1000
+        for counter in range(1, max_attempts + 1):
+            candidate = self._resolve(Path(f"{stem}({counter}).{extension}"))
+            if not candidate.exists():
+                return candidate
+
+        msg = (
+            f"Could not find available filename for '{stem}.{extension}' "
+            f"after {max_attempts} attempts"
+        )
+        raise FileExistsError(msg)
+
     def write(  # pylint: disable=too-many-arguments
         self,
         filename: str | Path,
@@ -53,20 +72,15 @@ class FilesHandler:
             sep: Separator between stem and suffix (default: '-')
 
         Examples:
-            write('a.pdf', b"")                                -> 'a-2025-01-01T10-20-30.pdf'
-            write('a.pdf', b"", stem_suffix='sfx', ext='docx') -> 'a-sfx-2025-01-01T10-20-30.docx'
+            write('a.pdf', b"")                                -> 'a.pdf' or 'a(1).pdf' if exists
+            write('a.pdf', b"", stem_suffix='sfx', ext='docx') -> 'a-sfx.docx' or 'a-sfx(1).docx'
         """
         path = Path(filename) if isinstance(filename, str) else filename
         stem = path.stem
         if stem_suffix:
             stem = f"{stem}{sep}{stem_suffix}"
-        timestamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")  # noqa: DTZ005
-        stem = f"{stem}{sep}{timestamp}"
         extension = ext if ext is not None else path.suffix.lstrip(".")
-        resolved = self._resolve(Path(f"{stem}.{extension}"))
-        if resolved.exists():
-            msg = f"File already exists: {resolved.name}"
-            raise FileExistsError(msg)
+        resolved = self._find_available_path(stem, extension)
         resolved.write_bytes(data)
         return resolved
 
