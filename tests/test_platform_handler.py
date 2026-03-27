@@ -49,7 +49,9 @@ def test_from_client_credentials(mocker: MockerFixture) -> None:
     )
 
     assert isinstance(handler, PlatformHandler)
-    get_token_mock.assert_called_once_with(httpx_client_mock, "client-id", "client-secret")
+    get_token_mock.assert_called_once_with(
+        httpx_client_mock, "https://api.example.com", "client-id", "client-secret"
+    )
 
 
 def test_merge_pdfs(

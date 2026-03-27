@@ -83,10 +83,10 @@ class SupportedConversions:
     })
 
 
-def _get_token(http_client: httpx.Client, client_id: str, client_secret: str) -> str:
+def _get_token(http_client: httpx.Client, base_url: str, client_id: str, client_secret: str) -> str:
     """Exchange client credentials for a bearer token."""
     response = http_client.post(
-        "https://public-api.gonitrodev.com/oauth/token",
+        f"{base_url}/oauth/token",
         json={"clientID": client_id, "clientSecret": client_secret},
     )
     response.raise_for_status()
@@ -121,7 +121,7 @@ class PlatformHandler:
     ) -> PlatformHandler:
         """Create a PlatformHandler by exchanging client credentials for a bearer token."""
         httpx_client = httpx.Client()
-        auth_token = _get_token(httpx_client, *client_credentials)
+        auth_token = _get_token(httpx_client, base_url, *client_credentials)
         return cls.from_auth_token(base_url, auth_token, httpx_client=httpx_client)
 
     def _is_valid_conversion(self, file_type: FileFormat, to: FileFormat) -> bool:
