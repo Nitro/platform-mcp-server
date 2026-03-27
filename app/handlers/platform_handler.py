@@ -480,7 +480,7 @@ class PlatformHandler:
             "transformations",
             file,
             method="metadata",
-            params=cast(dict[str, Any], metadata),
+            params=metadata,
             accept_format=AcceptFormat.BYTES,
         )
 
@@ -544,7 +544,7 @@ class PlatformHandler:
             "extractions",
             pdf_file,
             method=method_map[data_type],
-            params=cast(dict[str, Any], params),
+            params=params,
             accept_format=AcceptFormat.JSON,
         )
 

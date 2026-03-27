@@ -11,8 +11,11 @@ from mcp import ClientSession
 
 from app.handlers.platform_handler import ExtractionParams
 from app.tools.extractions import (
-    ExtractPDFDataRequest,
+    ExtractPDFAccessibilityRequest,
     ExtractPDFDataResult,
+    ExtractPDFFormsRequest,
+    ExtractPDFTablesRequest,
+    ExtractPDFTextRequest,
     PDFMetadataRequest,
     PDFMetadataResult,
 )
@@ -75,51 +78,12 @@ async def test_get_pdf_metadata_empty(
 
 
 @pytest.mark.anyio
-async def test_extract_pdf_data_forms_json(
+async def test_extract_pdf_forms_excel(
     client: ClientSession,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
 ) -> None:
-    """extract_pdf_data for forms defaults to JSON output."""
-    form_json = json.dumps({
-        "fields": [{"name": "field-a", "value": "value-a", "confidence": 0.9}],
-        "averageConfidence": 0.9,
-    }).encode()
-    files_handler_mock.read.return_value = b"pdf-content"
-    platform_handler_mock.extract_pdf_data.return_value = form_json
-    files_handler_mock.write.return_value = Path("a-forms.json")
-
-    response = await client.call_tool(
-        "extract_pdf_data",
-        {
-            "request": ExtractPDFDataRequest(
-                input_filename=Path("a.pdf"), data_type="forms", language="fr"
-            ).model_dump(mode="json")
-        },
-    )
-
-    expected = ExtractPDFDataResult(
-        input_filename="a.pdf",
-        output_filename="a-forms.json",
-        data_type="forms",
-    ).model_dump()
-    assert response.structuredContent == expected
-    files_handler_mock.read.assert_called_once_with(Path("a.pdf"))
-    platform_handler_mock.extract_pdf_data.assert_called_once_with(
-        b"pdf-content", "forms", ExtractionParams(language="fr")
-    )
-    files_handler_mock.write.assert_called_once_with(
-        Path("a.pdf"), form_json, stem_suffix="forms", ext="json"
-    )
-
-
-@pytest.mark.anyio
-async def test_extract_pdf_data_forms_excel(
-    client: ClientSession,
-    files_handler_mock: MagicMock,
-    platform_handler_mock: MagicMock,
-) -> None:
-    """extract_pdf_data for forms with excel output writes Excel file."""
+    """extract_pdf_forms defaults to Excel output."""
     form_json = json.dumps({
         "fields": [{"name": "field-a", "value": "value-a", "confidence": 0.9}],
         "averageConfidence": 0.9,
@@ -129,13 +93,10 @@ async def test_extract_pdf_data_forms_excel(
     files_handler_mock.write.return_value = Path("a-forms.xlsx")
 
     response = await client.call_tool(
-        "extract_pdf_data",
+        "extract_pdf_forms",
         {
-            "request": ExtractPDFDataRequest(
-                input_filename=Path("a.pdf"),
-                data_type="forms",
-                language="fr",
-                output_format="excel",
+            "request": ExtractPDFFormsRequest(
+                input_filename=Path("a.pdf"), language="fr"
             ).model_dump(mode="json")
         },
     )
@@ -146,6 +107,9 @@ async def test_extract_pdf_data_forms_excel(
         data_type="forms",
     ).model_dump()
     assert response.structuredContent == expected
+    platform_handler_mock.extract_pdf_data.assert_called_once_with(
+        b"pdf-content", "forms", ExtractionParams(language="fr")
+    )
     files_handler_mock.write.assert_called_once()
     write_call = files_handler_mock.write.call_args
     assert write_call.args[0] == Path("a.pdf")
@@ -153,12 +117,97 @@ async def test_extract_pdf_data_forms_excel(
 
 
 @pytest.mark.anyio
-async def test_extract_pdf_data_tables_json(
+async def test_extract_pdf_forms_json(
     client: ClientSession,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
 ) -> None:
-    """extract_pdf_data for tables defaults to JSON output."""
+    """extract_pdf_forms with json output writes JSON file."""
+    form_json = json.dumps({
+        "fields": [{"name": "field-a", "value": "value-a", "confidence": 0.9}],
+        "averageConfidence": 0.9,
+    }).encode()
+    files_handler_mock.read.return_value = b"pdf-content"
+    platform_handler_mock.extract_pdf_data.return_value = form_json
+    files_handler_mock.write.return_value = Path("a-forms.json")
+
+    response = await client.call_tool(
+        "extract_pdf_forms",
+        {
+            "request": ExtractPDFFormsRequest(
+                input_filename=Path("a.pdf"), language="fr", output_format="json"
+            ).model_dump(mode="json")
+        },
+    )
+
+    expected = ExtractPDFDataResult(
+        input_filename="a.pdf",
+        output_filename="a-forms.json",
+        data_type="forms",
+    ).model_dump()
+    assert response.structuredContent == expected
+    platform_handler_mock.extract_pdf_data.assert_called_once_with(
+        b"pdf-content", "forms", ExtractionParams(language="fr")
+    )
+    files_handler_mock.write.assert_called_once_with(
+        Path("a.pdf"), form_json, stem_suffix="forms", ext="json"
+    )
+
+
+@pytest.mark.anyio
+async def test_extract_pdf_tables_excel(
+    client: ClientSession,
+    files_handler_mock: MagicMock,
+    platform_handler_mock: MagicMock,
+) -> None:
+    """extract_pdf_tables defaults to Excel output."""
+    tables_json = json.dumps({
+        "tables": [
+            {
+                "tableData": {
+                    "title": "table-a",
+                    "cells": [["a", "b"]],
+                    "averageConfidence": 0.8,
+                },
+                "pageIndices": [0],
+            }
+        ]
+    }).encode()
+    files_handler_mock.read.return_value = b"pdf-content"
+    platform_handler_mock.extract_pdf_data.return_value = tables_json
+    files_handler_mock.write.return_value = Path("a-tables.xlsx")
+
+    response = await client.call_tool(
+        "extract_pdf_tables",
+        {
+            "request": ExtractPDFTablesRequest(
+                input_filename=Path("a.pdf"), page_indices=[0, 1]
+            ).model_dump(mode="json")
+        },
+    )
+
+    expected = ExtractPDFDataResult(
+        input_filename="a.pdf",
+        output_filename="a-tables.xlsx",
+        data_type="tables",
+    ).model_dump()
+    assert response.structuredContent == expected
+    platform_handler_mock.extract_pdf_data.assert_called_once_with(
+        b"pdf-content", "tables", ExtractionParams(pageIndices=[0, 1])
+    )
+    files_handler_mock.write.assert_called_once()
+    write_call = files_handler_mock.write.call_args
+    assert write_call.args[0] == Path("a.pdf")
+    assert write_call.kwargs == {"stem_suffix": "tables", "ext": "xlsx"}
+
+
+@pytest.mark.anyio
+async def test_extract_pdf_tables_json(
+    client: ClientSession,
+    files_handler_mock: MagicMock,
+    platform_handler_mock: MagicMock,
+) -> None:
+    """extract_pdf_tables with json output writes JSON file."""
     tables_json = json.dumps({
         "tables": [
             {
@@ -176,10 +225,10 @@ async def test_extract_pdf_data_tables_json(
     files_handler_mock.write.return_value = Path("a-tables.json")
 
     response = await client.call_tool(
-        "extract_pdf_data",
+        "extract_pdf_tables",
         {
-            "request": ExtractPDFDataRequest(
-                input_filename=Path("a.pdf"), data_type="tables", page_indices=[0, 1]
+            "request": ExtractPDFTablesRequest(
+                input_filename=Path("a.pdf"), page_indices=[0, 1], output_format="json"
             ).model_dump(mode="json")
         },
     )
@@ -199,69 +248,21 @@ async def test_extract_pdf_data_tables_json(
 
 
 @pytest.mark.anyio
-async def test_extract_pdf_data_tables_excel(
+async def test_extract_pdf_text(
     client: ClientSession,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
 ) -> None:
-    """extract_pdf_data for tables with excel output writes Excel file."""
-    tables_json = json.dumps({
-        "tables": [
-            {
-                "tableData": {
-                    "title": "table-a",
-                    "cells": [["a", "b"]],
-                    "averageConfidence": 0.8,
-                },
-                "pageIndices": [0],
-            }
-        ]
-    }).encode()
-    files_handler_mock.read.return_value = b"pdf-content"
-    platform_handler_mock.extract_pdf_data.return_value = tables_json
-    files_handler_mock.write.return_value = Path("a-tables.xlsx")
-
-    response = await client.call_tool(
-        "extract_pdf_data",
-        {
-            "request": ExtractPDFDataRequest(
-                input_filename=Path("a.pdf"),
-                data_type="tables",
-                page_indices=[0, 1],
-                output_format="excel",
-            ).model_dump(mode="json")
-        },
-    )
-
-    expected = ExtractPDFDataResult(
-        input_filename="a.pdf",
-        output_filename="a-tables.xlsx",
-        data_type="tables",
-    ).model_dump()
-    assert response.structuredContent == expected
-    files_handler_mock.write.assert_called_once()
-    write_call = files_handler_mock.write.call_args
-    assert write_call.args[0] == Path("a.pdf")
-    assert write_call.kwargs == {"stem_suffix": "tables", "ext": "xlsx"}
-
-
-@pytest.mark.anyio
-async def test_extract_pdf_data_text(
-    client: ClientSession,
-    files_handler_mock: MagicMock,
-    platform_handler_mock: MagicMock,
-) -> None:
-    """extract_pdf_data for text writes JSON output."""
+    """extract_pdf_text writes JSON output."""
     files_handler_mock.read.return_value = b"pdf-content"
     platform_handler_mock.extract_pdf_data.return_value = b'{"text": ""}'
     files_handler_mock.write.return_value = Path("a-text.json")
 
     response = await client.call_tool(
-        "extract_pdf_data",
+        "extract_pdf_text",
         {
-            "request": ExtractPDFDataRequest(
+            "request": ExtractPDFTextRequest(
                 input_filename=Path("a.pdf"),
-                data_type="text",
                 page_indices=[0],
                 reading_order=True,
             ).model_dump(mode="json")
@@ -281,22 +282,22 @@ async def test_extract_pdf_data_text(
 
 
 @pytest.mark.anyio
-async def test_extract_pdf_data_accessibility(
+async def test_extract_pdf_accessibility(
     client: ClientSession,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
 ) -> None:
-    """extract_pdf_data for accessibility writes JSON output."""
+    """extract_pdf_accessibility writes JSON output."""
     files_handler_mock.read.return_value = b"pdf-content"
     platform_handler_mock.extract_pdf_data.return_value = b'{"accessibility": {}}'
     files_handler_mock.write.return_value = Path("a-accessibility.json")
 
     response = await client.call_tool(
-        "extract_pdf_data",
+        "extract_pdf_accessibility",
         {
-            "request": ExtractPDFDataRequest(
-                input_filename=Path("a.pdf"), data_type="accessibility"
-            ).model_dump(mode="json")
+            "request": ExtractPDFAccessibilityRequest(input_filename=Path("a.pdf")).model_dump(
+                mode="json"
+            )
         },
     )
 
@@ -312,23 +313,3 @@ async def test_extract_pdf_data_accessibility(
     files_handler_mock.write.assert_called_once_with(
         Path("a.pdf"), b'{"accessibility": {}}', stem_suffix="accessibility", ext="json"
     )
-
-
-@pytest.mark.anyio
-async def test_extract_pdf_data_excel_unsupported_data_type(
-    client: ClientSession,
-    files_handler_mock: MagicMock,
-) -> None:
-    """Excel output format raises error for text data type."""
-    files_handler_mock.read.return_value = b"pdf-content"
-
-    response = await client.call_tool(
-        "extract_pdf_data",
-        {
-            "request": ExtractPDFDataRequest(
-                input_filename=Path("a.pdf"), data_type="text", output_format="excel"
-            ).model_dump(mode="json")
-        },
-    )
-
-    assert response.isError is True
