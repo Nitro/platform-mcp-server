@@ -162,9 +162,7 @@ class PlatformApiClient:
             HTTP response from the platform API with the operation result
 
         Raises:
-            InvalidRequestError: For 4xx client errors
-            RuntimeError: For 5xx server errors
-            JobFailedError: For job failures reported by the platform
+            GenericFailedError: For any error response or job failure reported by the platform
             TimeoutError: If async job doesn't complete within timeout period
         """
         data: dict[str, str] = {}
