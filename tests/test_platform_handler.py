@@ -1,5 +1,6 @@
 """Tests for PlatformHandler"""
 
+import json
 from unittest.mock import MagicMock
 
 import httpx
@@ -10,7 +11,7 @@ from app.client import CompressionLevel, FileFormat
 from app.client.enums import ContentType
 from app.client.platform_client import AcceptFormat, BytesFile, PlatformApiClient
 from app.handlers import ConversionNotSupportedError, PlatformHandler
-from app.handlers.platform_handler import PageRotation, PdfMetadata
+from app.handlers.platform_handler import ExtractionParams, PageRotation, PdfMetadata
 
 
 @pytest.fixture(name="platform_client_mock")
@@ -311,6 +312,100 @@ def test_set_pdf_metadata_empty_dict_raises(platform_handler: PlatformHandler) -
     """set_pdf_metadata raises ValueError when given empty metadata dict."""
     with pytest.raises(ValueError, match="At least one metadata field must be provided"):
         platform_handler.set_pdf_metadata(b"pdf-content", {})
+
+
+def test_extract_pdf_data_forms(
+    platform_handler: PlatformHandler,
+    platform_client_mock: MagicMock,
+) -> None:
+    """extract_pdf_data for forms calls client with language param."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b'{"result": {"forms": []}}'
+    platform_client_mock.run.return_value = mock_response
+
+    result = platform_handler.extract_pdf_data(
+        b"pdf-content", "forms", ExtractionParams(language="fr")
+    )
+
+    assert json.loads(result) == {"forms": []}
+    platform_client_mock.run.assert_called_once_with(
+        "extractions",
+        BytesFile(content_type=ContentType.PDF, content=b"pdf-content", name="document.pdf"),
+        method="extract-forms",
+        params={"language": "fr"},
+        accept_format=AcceptFormat.JSON,
+    )
+
+
+def test_extract_pdf_data_tables(
+    platform_handler: PlatformHandler,
+    platform_client_mock: MagicMock,
+) -> None:
+    """extract_pdf_data for tables calls client with page indices."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b'{"result": {"tables": []}}'
+    platform_client_mock.run.return_value = mock_response
+
+    result = platform_handler.extract_pdf_data(
+        b"pdf-content", "tables", ExtractionParams(pageIndices=[0, 1])
+    )
+
+    assert json.loads(result) == {"tables": []}
+    platform_client_mock.run.assert_called_once_with(
+        "extractions",
+        BytesFile(content_type=ContentType.PDF, content=b"pdf-content", name="document.pdf"),
+        method="extract-tables",
+        params={"pageIndices": [0, 1]},
+        accept_format=AcceptFormat.JSON,
+    )
+
+
+def test_extract_pdf_data_text(
+    platform_handler: PlatformHandler,
+    platform_client_mock: MagicMock,
+) -> None:
+    """extract_pdf_data for text calls client with page indices and reading order."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b'{"result": {"text": ""}}'
+    platform_client_mock.run.return_value = mock_response
+
+    result = platform_handler.extract_pdf_data(
+        b"pdf-content", "text", ExtractionParams(pageIndices=[0], readingOrder=True)
+    )
+
+    assert json.loads(result) == {"text": ""}
+    platform_client_mock.run.assert_called_once_with(
+        "extractions",
+        BytesFile(content_type=ContentType.PDF, content=b"pdf-content", name="document.pdf"),
+        method="extract-text",
+        params={"pageIndices": [0], "readingOrder": True},
+        accept_format=AcceptFormat.JSON,
+    )
+
+
+def test_extract_pdf_data_accessibility(
+    platform_handler: PlatformHandler,
+    platform_client_mock: MagicMock,
+) -> None:
+    """extract_pdf_data for accessibility calls client with no extra params."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b'{"result": {"accessibility": {}}}'
+    platform_client_mock.run.return_value = mock_response
+
+    result = platform_handler.extract_pdf_data(b"pdf-content", "accessibility", ExtractionParams())
+
+    assert json.loads(result) == {"accessibility": {}}
+    platform_client_mock.run.assert_called_once_with(
+        "extractions",
+        BytesFile(content_type=ContentType.PDF, content=b"pdf-content", name="document.pdf"),
+        method="extract-accessibility",
+        params={},
+        accept_format=AcceptFormat.JSON,
+    )
 
 
 def test_flatten_pdf(

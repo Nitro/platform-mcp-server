@@ -6,7 +6,7 @@ import dataclasses
 import json
 import logging
 import time
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from enum import StrEnum
 from typing import Annotated, Any, Literal
 
@@ -142,7 +142,7 @@ class PlatformApiClient:
         file_or_files: File | Sequence[File],
         /,
         method: str | None,
-        params: dict[str, Any] | None = None,
+        params: Mapping[str, Any] | None = None,
         accept_format: AcceptFormat = AcceptFormat.JSON,
     ) -> httpx.Response:
         """

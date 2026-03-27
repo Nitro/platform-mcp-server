@@ -2,6 +2,7 @@
 
 """High-level handler for Nitro Platform API operations"""
 
+import json
 from dataclasses import dataclass
 from typing import Any, ClassVar, Literal, TypedDict, cast
 
@@ -32,7 +33,16 @@ class PdfMetadata(TypedDict, total=False):
     trapped: str
 
 
+class ExtractionParams(TypedDict, total=False):
+    """Query parameters for PDF data extraction endpoints"""
+
+    language: str
+    pageIndices: list[int]
+    readingOrder: bool
+
+
 type PdfPermission = Literal["print", "modify", "copy", "annotate", "form", "assemble", "print-hq"]
+type ExtractionDataType = Literal["forms", "tables", "text", "accessibility"]
 
 
 class ConversionNotSupportedError(Exception):
@@ -192,6 +202,10 @@ class PlatformHandler:
 
         return response.content
 
+    def _extract_result(self, content: bytes) -> bytes:
+        parsed: dict[str, Any] = json.loads(content)
+        return json.dumps(parsed["result"], indent=2).encode()
+
     def get_pdf_metadata(self, file_content: bytes) -> bytes:
         """Get PDF metadata properties and return as JSON result."""
         pdf_file = BytesFile(
@@ -210,7 +224,7 @@ class PlatformHandler:
             msg = f"Metadata extraction failed with status code: {response.status_code}"
             raise RuntimeError(msg)
 
-        return response.content
+        return self._extract_result(response.content)
 
     def compress_pdf(self, file_bytes: bytes, level: CompressionLevel) -> bytes:
         """
@@ -481,7 +495,7 @@ class PlatformHandler:
             "transformations",
             file,
             method="metadata",
-            params=cast(dict[str, Any], metadata),
+            params=metadata,
             accept_format=AcceptFormat.BYTES,
         )
 
@@ -522,3 +536,35 @@ class PlatformHandler:
             raise RuntimeError(msg)
 
         return response.content
+
+    def extract_pdf_data(
+        self,
+        file_content: bytes,
+        data_type: ExtractionDataType,
+        params: ExtractionParams,
+    ) -> bytes:
+        """Extract data from a PDF file and return as JSON bytes."""
+        pdf_file = BytesFile(
+            content_type=ContentType.PDF, content=file_content, name="document.pdf"
+        )
+
+        method_map: dict[ExtractionDataType, str] = {
+            "forms": "extract-forms",
+            "tables": "extract-tables",
+            "text": "extract-text",
+            "accessibility": "extract-accessibility",
+        }
+
+        response = self._platform_client.run(
+            "extractions",
+            pdf_file,
+            method=method_map[data_type],
+            params=params,
+            accept_format=AcceptFormat.JSON,
+        )
+
+        if response.status_code != 200:
+            msg = f"Data extraction failed with status code: {response.status_code}"
+            raise RuntimeError(msg)
+
+        return self._extract_result(response.content)
