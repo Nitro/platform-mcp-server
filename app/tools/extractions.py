@@ -33,7 +33,7 @@ class ExtractPDFFormsRequest(BaseModel):
     language: str = Field(default="en", description="Language code for form extraction")
     output_format: Literal["json", "excel"] = Field(
         default="excel",
-        description="Output format: 'excel' (default) or 'json'",
+        description="Output format: 'excel' (always the default) or 'json' if explicitly requested",
     )
 
 
@@ -47,7 +47,7 @@ class ExtractPDFTablesRequest(BaseModel):
     )
     output_format: Literal["json", "excel"] = Field(
         default="excel",
-        description="Output format: 'excel' (default) or 'json'",
+        description="Output format: 'excel' (always the default) or 'json' if explicitly requested",
     )
 
 
