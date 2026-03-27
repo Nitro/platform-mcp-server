@@ -2,9 +2,8 @@
 
 """File extraction tools for MCP server"""
 
-import json
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, Field
@@ -12,7 +11,7 @@ from pydantic import BaseModel, Field
 from app.context import CoreContext, get_dep
 from app.handlers.platform_handler import ExtractionDataType, ExtractionParams
 from app.models import SingleFileOutputBase
-from app.utils import create_forms_excel, create_tables_excel
+from app.utils import FormsResult, TablesResult, create_forms_excel, create_tables_excel
 
 
 class PDFMetadataRequest(BaseModel):
@@ -97,19 +96,19 @@ def extract_pdf_data(  # noqa: C901
     result = platform_handler.extract_pdf_data(input_bytes, request.data_type, params)
 
     if request.output_format == "excel":
-        parsed: dict[str, Any] = json.loads(result)
         excel_bytes: bytes | None = None
         if request.data_type == "forms":
-            fields: list[dict[str, Any]] = parsed.get("fields", [])
-            if fields:
-                avg_confidence: float = parsed.get("averageConfidence", 0)
+            forms_result = FormsResult.model_validate_json(result)
+            if forms_result.fields:
                 excel_bytes = create_forms_excel(
-                    fields, str(request.input_filename), avg_confidence
+                    forms_result.fields,
+                    str(request.input_filename),
+                    forms_result.average_confidence,
                 )
         elif request.data_type == "tables":
-            tables: list[dict[str, Any]] = parsed.get("tables", [])
-            if tables:
-                excel_bytes = create_tables_excel(tables, str(request.input_filename))
+            tables_result = TablesResult.model_validate_json(result)
+            if tables_result.tables:
+                excel_bytes = create_tables_excel(tables_result.tables, str(request.input_filename))
         if excel_bytes is None:
             msg = "No data available to generate Excel output"
             raise ValueError(msg)

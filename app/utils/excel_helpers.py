@@ -9,6 +9,50 @@ import openpyxl as pxl
 from openpyxl.cell.cell import Cell
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
+from pydantic import BaseModel, ConfigDict
+from pydantic.alias_generators import to_camel
+
+
+class JsonSchema(BaseModel):
+    """Base model with camelCase alias generator for parsing API JSON responses."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
+class FormField(JsonSchema):
+    """A single extracted form field."""
+
+    name: str
+    value: str
+    confidence: float
+
+
+class FormsResult(JsonSchema):
+    """Top-level response from the forms extraction endpoint."""
+
+    fields: list[FormField]
+    average_confidence: float
+
+
+class TableData(JsonSchema):
+    """Data for a single extracted table."""
+
+    title: str | None
+    cells: list[list[Any]]
+    average_confidence: float
+
+
+class ExtractedTable(JsonSchema):
+    """A table entry in the tables extraction response."""
+
+    table_data: TableData
+    page_indices: list[int] = []
+
+
+class TablesResult(JsonSchema):
+    """Top-level response from the tables extraction endpoint."""
+
+    tables: list[ExtractedTable]
 
 
 def _auto_adjust_columns(ws: Worksheet, min_width: int, max_width: int) -> None:
@@ -25,7 +69,7 @@ def _workbook_to_bytes(workbook: pxl.Workbook) -> bytes:
     return buffer.getvalue()
 
 
-def create_forms_excel(fields: list[dict[str, Any]], filename: str, avg_confidence: float) -> bytes:
+def create_forms_excel(fields: list[FormField], filename: str, avg_confidence: float) -> bytes:
     """Create Excel bytes from extracted forms data."""
     workbook = pxl.Workbook()
     if "Sheet" in workbook.sheetnames:
@@ -35,16 +79,13 @@ def create_forms_excel(fields: list[dict[str, Any]], filename: str, avg_confiden
     ws.append(["Document", "Field Name", "Field Value", "Confidence"])
 
     for field in fields:
-        name = field.get("name", "Unknown")
-        raw_value = field.get("value", "None")
-        if raw_value in ("NOT_SELECTED", "None"):
+        if field.value in ("NOT_SELECTED", "None"):
             value = "Not filled"
-        elif raw_value == "SELECTED":
+        elif field.value == "SELECTED":
             value = "Selected"
         else:
-            value = raw_value
-        confidence = field.get("confidence", 0)
-        ws.append([filename, name, value, f"{confidence:.1%}"])
+            value = field.value
+        ws.append([filename, field.name, value, f"{field.confidence:.1%}"])
 
     ws.append([
         filename,
@@ -58,7 +99,7 @@ def create_forms_excel(fields: list[dict[str, Any]], filename: str, avg_confiden
 
 
 def create_tables_excel(  # pylint: disable=too-many-locals
-    tables: list[dict[str, Any]], filename: str
+    tables: list[ExtractedTable], filename: str
 ) -> bytes:
     """Create Excel bytes from extracted tables data."""
     workbook = pxl.Workbook()
@@ -69,16 +110,13 @@ def create_tables_excel(  # pylint: disable=too-many-locals
     contents_sheet.append(["Sheet", "Document", "Table", "Title", "Confidence", "Pages"])
 
     for i, table in enumerate(tables, 1):
-        table_data: dict[str, Any] = table.get("tableData", {})
-        title = table_data.get("title", f"Table {i}")
-        avg_confidence: float = table_data.get("averageConfidence", 0)
-        cells: list[list[Any]] = table_data.get("cells", [])
-        page_indices: list[int] = table.get("pageIndices", [])
+        title = table.table_data.title or ""
+        page_indices = table.page_indices
 
         sheet_name = f"Table {i}" if len(f"Table {i}") <= 31 else f"T{i}"
         ws: Worksheet = workbook.create_sheet(sheet_name)
 
-        for row in cells:
+        for row in table.table_data.cells:
             ws.append(row)
 
         _auto_adjust_columns(ws, min_width=10, max_width=50)
@@ -91,7 +129,7 @@ def create_tables_excel(  # pylint: disable=too-many-locals
             filename,
             f"Table {i}",
             title,
-            f"{avg_confidence:.1%}",
+            f"{table.table_data.average_confidence:.1%}",
             pages_text,
         ])
 

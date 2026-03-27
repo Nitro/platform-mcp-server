@@ -2,6 +2,11 @@
 
 """Utility helpers for MCP tools"""
 
-from app.utils.excel_helpers import create_forms_excel, create_tables_excel
+from app.utils.excel_helpers import (
+    FormsResult,
+    TablesResult,
+    create_forms_excel,
+    create_tables_excel,
+)
 
-__all__ = ["create_forms_excel", "create_tables_excel"]
+__all__ = ["FormsResult", "TablesResult", "create_forms_excel", "create_tables_excel"]
