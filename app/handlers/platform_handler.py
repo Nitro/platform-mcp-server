@@ -139,6 +139,10 @@ class PlatformHandler:
             to == FileFormat.PDF and file_type in self.supported_conversions.to_pdf_from
         )
 
+    def _extract_result(self, content: bytes) -> bytes:
+        parsed: dict[str, Any] = json.loads(content)
+        return json.dumps(parsed["result"], indent=2).encode()
+
     def merge_pdfs(self, file_contents: list[bytes]) -> bytes:
         """
         Merge multiple PDFs into a single PDF.
@@ -201,10 +205,6 @@ class PlatformHandler:
             raise RuntimeError(msg)
 
         return response.content
-
-    def _extract_result(self, content: bytes) -> bytes:
-        parsed: dict[str, Any] = json.loads(content)
-        return json.dumps(parsed["result"], indent=2).encode()
 
     def get_pdf_metadata(self, file_content: bytes) -> bytes:
         """Get PDF metadata properties and return as JSON result."""

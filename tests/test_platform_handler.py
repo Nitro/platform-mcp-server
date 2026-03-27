@@ -35,10 +35,10 @@ def test_from_auth_token(mocker: MockerFixture) -> None:
 
 def test_from_client_credentials(mocker: MockerFixture) -> None:
     """from_client_credentials exchanges credentials for a token then creates handler."""
-    get_token_mock = mocker.patch(
-        "app.handlers.platform_handler._get_token", return_value="exchanged-token"
-    )
+    token_response_mock = mocker.MagicMock()
+    token_response_mock.json.return_value = {"accessToken": "exchanged-token"}
     httpx_client_mock = mocker.create_autospec(httpx.Client, instance=True, spec_set=True)
+    httpx_client_mock.post.return_value = token_response_mock
     mocker.patch("httpx.Client", return_value=httpx_client_mock)
 
     handler = PlatformHandler.from_client_credentials(
@@ -46,8 +46,9 @@ def test_from_client_credentials(mocker: MockerFixture) -> None:
     )
 
     assert isinstance(handler, PlatformHandler)
-    get_token_mock.assert_called_once_with(
-        httpx_client_mock, "https://api.example.com", "client-id", "client-secret"
+    httpx_client_mock.post.assert_called_once_with(
+        "https://api.example.com/oauth/token",
+        json={"clientID": "client-id", "clientSecret": "client-secret"},
     )
 
 
