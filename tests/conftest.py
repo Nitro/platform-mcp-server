@@ -30,7 +30,6 @@ if TYPE_CHECKING:
 def mock_settings(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Settings:
     """Settings backed by a temporary workspace."""
     monkeypatch.setenv("NITRO_AUTH_TOKEN", "test-token-123")
-    monkeypatch.setenv("PLATFORM_API_URL", "https://test-api.example.com")
     monkeypatch.setenv("NITRO_MCP_WORKSPACE", str(tmp_path))
     monkeypatch.setenv("MCP_SERVER_VERSION", "0.0.0-test")
     return Settings()

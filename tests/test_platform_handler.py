@@ -2,6 +2,7 @@
 
 from unittest.mock import MagicMock
 
+import httpx
 import pytest
 from pytest_mock import MockerFixture
 
@@ -20,6 +21,35 @@ def _platform_client_mock(mocker: MockerFixture) -> MagicMock:
 @pytest.fixture(name="platform_handler")
 def _platform_handler(platform_client_mock: MagicMock) -> PlatformHandler:
     return PlatformHandler(platform_client_mock)
+
+
+def test_from_auth_token(mocker: MockerFixture) -> None:
+    """from_auth_token creates handler with Bearer token header."""
+    httpx_client_mock = mocker.create_autospec(httpx.Client, instance=True, spec_set=True)
+    mocker.patch("httpx.Client", return_value=httpx_client_mock)
+
+    handler = PlatformHandler.from_auth_token("https://api.example.com", "my-token")
+
+    assert isinstance(handler, PlatformHandler)
+    httpx.Client.assert_called_once_with(  # type: ignore[attr-defined]  # pylint: disable=no-member
+        headers={"Authorization": "Bearer my-token"}
+    )
+
+
+def test_from_client_credentials(mocker: MockerFixture) -> None:
+    """from_client_credentials exchanges credentials for a token then creates handler."""
+    get_token_mock = mocker.patch(
+        "app.handlers.platform_handler._get_token", return_value="exchanged-token"
+    )
+    httpx_client_mock = mocker.create_autospec(httpx.Client, instance=True, spec_set=True)
+    mocker.patch("httpx.Client", return_value=httpx_client_mock)
+
+    handler = PlatformHandler.from_client_credentials(
+        "https://api.example.com", ("client-id", "client-secret")
+    )
+
+    assert isinstance(handler, PlatformHandler)
+    get_token_mock.assert_called_once_with(httpx_client_mock, "client-id", "client-secret")
 
 
 def test_merge_pdfs(

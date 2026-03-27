@@ -12,8 +12,7 @@ from app.client.platform_client import (
     AcceptFormat,
     BytesFile,
     File,
-    InvalidRequestError,
-    JobFailedError,
+    GenericFailedError,
     PlatformApiClient,
     URLFile,
 )
@@ -127,7 +126,7 @@ def test_run_client_error_raises(
     pdf_file: BytesFile,
     httpx_mock: HTTPXMock,
 ) -> None:
-    """4xx on job submission raises InvalidRequestError."""
+    """4xx on job submission raises GenericFailedError."""
     httpx_mock.add_response(
         method="POST",
         url="https://api.example.com/conversions",
@@ -135,7 +134,7 @@ def test_run_client_error_raises(
         json={"error": "bad-request"},
     )
 
-    with pytest.raises(InvalidRequestError):
+    with pytest.raises(GenericFailedError):
         platform_client.run(
             "conversions", pdf_file, method=None, params={}, accept_format=AcceptFormat.BYTES
         )
@@ -146,10 +145,10 @@ def test_run_server_error_raises(
     pdf_file: BytesFile,
     httpx_mock: HTTPXMock,
 ) -> None:
-    """5xx on result fetch raises RuntimeError."""
+    """5xx on result fetch raises GenericFailedError."""
     _mock_job(httpx_mock, result_status=500, result_content=b'{"error": "server-error"}')
 
-    with pytest.raises(RuntimeError, match=r"Platform operation failed: \[500\]"):
+    with pytest.raises(GenericFailedError):
         platform_client.run(
             "conversions", pdf_file, method=None, params={}, accept_format=AcceptFormat.BYTES
         )
@@ -218,7 +217,7 @@ def test_run_job_failed_raises(
     pdf_file: BytesFile,
     httpx_mock: HTTPXMock,
 ) -> None:
-    """job-failed SSE event raises error"""
+    """failed SSE event raises GenericFailedError after fetching error details."""
     httpx_mock.add_response(
         method="POST",
         url="https://api.example.com/conversions",
@@ -231,16 +230,22 @@ def test_run_job_failed_raises(
         status_code=200,
         headers={"Content-Type": "text/event-stream"},
         content=_sse_stream({
-            "event": "job-failed",
+            "event": "redirect",
             "data": json.dumps({
                 "jobID": "job-id",
                 "status": "failed",
-                "error": {"type": "type", "title": "title"},
+                "location": "https://api.example.com/results/job-id",
             }),
         }),
     )
+    httpx_mock.add_response(
+        method="GET",
+        url="https://api.example.com/results/job-id",
+        status_code=200,
+        json={"error": {"type": "type", "title": "title"}},
+    )
 
-    with pytest.raises(JobFailedError):
+    with pytest.raises(GenericFailedError):
         platform_client.run(
             "conversions", pdf_file, method=None, params={}, accept_format=AcceptFormat.BYTES
         )

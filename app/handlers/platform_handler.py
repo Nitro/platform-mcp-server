@@ -83,6 +83,16 @@ class SupportedConversions:
     })
 
 
+def _get_token(http_client: httpx.Client, client_id: str, client_secret: str) -> str:
+    """Exchange client credentials for a bearer token."""
+    response = http_client.post(
+        "https://public-api.gonitrodev.com/oauth/token",
+        json={"clientID": client_id, "clientSecret": client_secret},
+    )
+    response.raise_for_status()
+    return response.json()["accessToken"]
+
+
 @dataclass
 class PlatformHandler:
     """High-level handler for platform document operations"""
@@ -92,22 +102,18 @@ class PlatformHandler:
     _platform_client: PlatformApiClient
 
     @classmethod
-    def create(cls, base_url: str, auth_token: str, timeout: float = 120.0) -> PlatformHandler:
-        """
-        Factory method to create handler with all dependencies.
+    def from_auth_token(cls, base_url: str, auth_token: str) -> PlatformHandler:
+        """Create a PlatformHandler authenticated with a bearer token."""
+        httpx_client = httpx.Client(headers={"Authorization": f"Bearer {auth_token}"})
+        return cls(PlatformApiClient(httpx_client, base_url))
 
-        Args:
-            base_url: Platform API base URL
-            auth_token: Bearer token for authentication
-            timeout: Timeout for job completion in seconds (default 120s)
-
-        Returns:
-            PlatformHandler instance with configured dependencies
-        """
-        headers = {"Authorization": f"Bearer {auth_token}"}
-        httpx_client = httpx.Client(headers=headers, timeout=60.0)
-        platform_client = PlatformApiClient(httpx_client, base_url, timeout)
-        return cls(platform_client)
+    @classmethod
+    def from_client_credentials(
+        cls, base_url: str, client_credentials: tuple[str, str]
+    ) -> PlatformHandler:
+        """Create a PlatformHandler by exchanging client credentials for a bearer token."""
+        auth_token = _get_token(httpx.Client(), *client_credentials)
+        return cls.from_auth_token(base_url, auth_token)
 
     def _is_valid_conversion(self, file_type: FileFormat, to: FileFormat) -> bool:
         return (file_type == FileFormat.PDF and to in self.supported_conversions.from_pdf_to) or (
