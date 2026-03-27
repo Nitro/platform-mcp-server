@@ -7,18 +7,27 @@ from collections.abc import AsyncGenerator
 
 from mcp.server.fastmcp import FastMCP
 
+from app.auth import resolve_token
 from app.config import settings
 from app.context import AppContext
 from app.handlers import FilesHandler, PlatformHandler
 from app.tools import register as register_tools
 
+_AUTH_REQUIRED_MSG = (
+    "Not authenticated. Please sign in to Nitro by visiting:\n\n"
+    "{auth_url}\n\n"
+    "Once signed in, retry your request."
+)
+
 
 @contextlib.asynccontextmanager
 async def lifespan(_: FastMCP) -> AsyncGenerator[AppContext]:
     """Lifespan handler for MCP server"""
+    token = resolve_token(settings.auth_url) or settings.auth_token
     yield AppContext(
-        platform_handler=PlatformHandler.create(settings.api_url, settings.auth_token),
+        platform_handler=PlatformHandler.create(settings.api_url, token),
         files_handler=FilesHandler(settings.files_folder),
+        auth_url=settings.auth_url,
     )
 
 
@@ -42,11 +51,6 @@ def welcome_message() -> str:
 
 def main() -> None:
     """Entry point for the MCP server"""
-    # Validate required configuration
-    if not settings.auth_token:
-        msg = "NITRO_AUTH_TOKEN environment variable is required"
-        raise ValueError(msg)
-
     mcp.run()
 
 

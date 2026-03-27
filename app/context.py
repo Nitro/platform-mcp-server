@@ -5,6 +5,8 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal, overload
 
+from app.auth import resolve_token, start_auth_flow
+
 from mcp.server.fastmcp import Context
 from mcp.server.session import ServerSession
 
@@ -18,6 +20,7 @@ class AppContext:
 
     platform_handler: PlatformHandler
     files_handler: FilesHandler
+    auth_url: str
 
 
 CoreContext = Context[ServerSession, AppContext]
@@ -45,3 +48,17 @@ def get_dep(
     if thing == "files-handler":
         return _get_app_context(ctx).files_handler
     return _get_app_context(ctx).platform_handler
+
+
+def require_auth(ctx: CoreContext) -> str:
+    """Return a valid access token, or raise if the user is not authenticated."""
+    app_ctx = _get_app_context(ctx)
+    token = resolve_token(app_ctx.auth_url)
+    if not token:
+        auth_url = app_ctx.auth_url
+        msg = (
+            f"Not authenticated. Please sign in to Nitro by visiting:\n\n{start_auth_flow(auth_url)}\n\n"
+            "Once signed in, retry your request."
+        )
+        raise PermissionError(msg)
+    return token

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, Field
 
-from app.context import CoreContext, get_dep
+from app.context import CoreContext, get_dep, require_auth
 
 if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
@@ -37,6 +37,7 @@ class FileListResult(BaseModel):
 def list_files(ctx: CoreContext, file_type: FileType | None = "pdf") -> FileListResult:
     """List files available for processing in the configured workspace folder, pass
     file_type=None to list all files regardless of type"""
+    require_auth(ctx)
     files_handler = get_dep(ctx, "files-handler")
 
     file_paths = files_handler.list_files(file_type)

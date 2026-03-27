@@ -17,6 +17,11 @@ class Settings(BaseSettings):
         description="Nitro Platform API authentication token",
         validation_alias="NITRO_AUTH_TOKEN",
     )
+    auth_url: str = Field(
+        default="https://account.gonitro.com",
+        description="Nitro authorization server URL",
+        validation_alias="NITRO_AUTH_URL",
+    )
     api_url: str = Field(
         default="https://api.gonitrodev.com/idp/platform",
         description="Platform API base URL",

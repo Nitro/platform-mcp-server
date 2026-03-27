@@ -57,6 +57,12 @@ tasks:
         silent: true
       - uv run pytest --cov --cov-config=pyproject.toml --cov-report=xml -s -vv -rA {{.CLI_ARGS}}
 
+  pack:
+    desc: Pack and reinstall the MCP extension in Claude Desktop
+    cmds:
+      - mcpb pack
+      - open mcp.mcpb
+
   build:
     desc: Build distribution package
     cmds:
