@@ -26,14 +26,10 @@ def _platform_handler(platform_client_mock: MagicMock) -> PlatformHandler:
 def test_from_auth_token(mocker: MockerFixture) -> None:
     """from_auth_token creates handler with Bearer token header."""
     httpx_client_mock = mocker.create_autospec(httpx.Client, instance=True, spec_set=True)
-    mocker.patch("httpx.Client", return_value=httpx_client_mock)
-
+    httpx_client_class_mock = mocker.patch("httpx.Client", return_value=httpx_client_mock)
     handler = PlatformHandler.from_auth_token("https://api.example.com", "my-token")
-
     assert isinstance(handler, PlatformHandler)
-    httpx.Client.assert_called_once_with(  # type: ignore[attr-defined]  # pylint: disable=no-member
-        headers={"Authorization": "Bearer my-token"}
-    )
+    httpx_client_class_mock.assert_called_once_with(headers={"Authorization": "Bearer my-token"})
 
 
 def test_from_client_credentials(mocker: MockerFixture) -> None:
