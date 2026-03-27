@@ -36,7 +36,6 @@ dev = [
     "pytest-socket>=0.7.0",
     "pytest-mock>=3.15.0",
     "pytest-httpx>=0.36.0",
-    "freezegun>=1.5.5",
 ]
 build = [
     "pyinstaller>=6.0.0",
