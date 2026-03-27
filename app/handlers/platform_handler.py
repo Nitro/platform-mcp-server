@@ -102,9 +102,17 @@ class PlatformHandler:
     _platform_client: PlatformApiClient
 
     @classmethod
-    def from_auth_token(cls, base_url: str, auth_token: str) -> PlatformHandler:
+    def from_auth_token(
+        cls,
+        base_url: str,
+        auth_token: str,
+        httpx_client: httpx.Client | None = None,
+    ) -> PlatformHandler:
         """Create a PlatformHandler authenticated with a bearer token."""
-        httpx_client = httpx.Client(headers={"Authorization": f"Bearer {auth_token}"})
+        if httpx_client is None:
+            httpx_client = httpx.Client(headers={"Authorization": f"Bearer {auth_token}"})
+        else:
+            httpx_client.headers["Authorization"] = f"Bearer {auth_token}"
         return cls(PlatformApiClient(httpx_client, base_url))
 
     @classmethod
@@ -112,8 +120,9 @@ class PlatformHandler:
         cls, base_url: str, client_credentials: tuple[str, str]
     ) -> PlatformHandler:
         """Create a PlatformHandler by exchanging client credentials for a bearer token."""
-        auth_token = _get_token(httpx.Client(), *client_credentials)
-        return cls.from_auth_token(base_url, auth_token)
+        httpx_client = httpx.Client()
+        auth_token = _get_token(httpx_client, *client_credentials)
+        return cls.from_auth_token(base_url, auth_token, httpx_client=httpx_client)
 
     def _is_valid_conversion(self, file_type: FileFormat, to: FileFormat) -> bool:
         return (file_type == FileFormat.PDF and to in self.supported_conversions.from_pdf_to) or (

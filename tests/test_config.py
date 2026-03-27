@@ -24,6 +24,8 @@ def test_settings_creates_workspace_folder(mock_settings: Settings) -> None:
 
 def test_settings_uses_default_api_url(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that default API URL is derived from target_env and auth_mode"""
+    monkeypatch.setenv("NITRO_AUTH_MODE", "token-auth")
+    monkeypatch.setenv("NITRO_TARGET_ENV", "dev")
     monkeypatch.setenv("NITRO_MCP_WORKSPACE", str(tmp_path))
 
     settings = Settings()
@@ -34,6 +36,7 @@ def test_settings_auth_token_raises_when_not_set(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test that auth_token raises ValueError when not provided"""
+    monkeypatch.setenv("NITRO_AUTH_MODE", "token-auth")
     monkeypatch.delenv("NITRO_AUTH_TOKEN", raising=False)
     monkeypatch.setenv("NITRO_MCP_WORKSPACE", str(tmp_path))
 
