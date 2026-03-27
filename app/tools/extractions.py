@@ -210,7 +210,8 @@ def register_extraction_tools(mcp: FastMCP) -> None:
     mcp.tool(
         description=(
             "Use this tool to extract form fields from a PDF file. "
-            "Output formats: 'excel' (default) or 'json'. "
+            "Output formats: 'excel' (always the default) "
+            "or a 'json' if explicitly requested. "
             "Parameters: language (default 'en')."
         )
     )(extract_pdf_forms)
@@ -218,7 +219,8 @@ def register_extraction_tools(mcp: FastMCP) -> None:
     mcp.tool(
         description=(
             "Use this tool to extract tables from a PDF file. "
-            "Output formats: 'excel' (default) or 'json'. "
+            "Output formats: 'excel' (always the default) "
+            "or a 'json' if explicitly requested. "
             "Parameters: page_indices (optional, zero-based)."
         )
     )(extract_pdf_tables)
