@@ -40,12 +40,18 @@ class FilesHandler:
         if not candidate.exists():
             return candidate
 
-        counter = 1
-        while True:
+        # Try incremental suffixes: (1), (2), (3), etc.
+        max_attempts = 1000
+        for counter in range(1, max_attempts + 1):
             candidate = self._resolve(Path(f"{stem}({counter}).{extension}"))
             if not candidate.exists():
                 return candidate
-            counter += 1
+
+        msg = (
+            f"Could not find available filename for '{stem}.{extension}' "
+            f"after {max_attempts} attempts"
+        )
+        raise FileExistsError(msg)
 
     def write(  # pylint: disable=too-many-arguments
         self,
