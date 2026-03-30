@@ -36,6 +36,7 @@ def test_from_auth_token(mocker: MockerFixture) -> None:
 def test_from_client_credentials(mocker: MockerFixture) -> None:
     """from_client_credentials exchanges credentials for a token then creates handler."""
     token_response_mock = mocker.MagicMock()
+    token_response_mock.status_code = 200
     token_response_mock.json.return_value = {"accessToken": "exchanged-token"}
     httpx_client_mock = mocker.create_autospec(httpx.Client, instance=True, spec_set=True)
     httpx_client_mock.post.return_value = token_response_mock

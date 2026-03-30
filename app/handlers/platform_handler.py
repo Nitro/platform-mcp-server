@@ -10,6 +10,7 @@ import httpx
 
 from app.client.enums import CompressionLevel, ContentType, FileFormat
 from app.client.platform_client import AcceptFormat, BytesFile, PlatformApiClient
+from app.utils.utils import check_http_response
 
 
 class PageRotation(TypedDict):
@@ -99,7 +100,7 @@ def _get_token(http_client: httpx.Client, base_url: str, client_id: str, client_
         f"{base_url}/oauth/token",
         json={"clientID": client_id, "clientSecret": client_secret},
     )
-    response.raise_for_status()
+    check_http_response(response)
     return response.json()["accessToken"]
 
 
