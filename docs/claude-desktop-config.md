@@ -48,8 +48,7 @@ Edit this file and add the Nitro MCP server configuration:
       "command": "/usr/local/bin/nitro-mcp",
       "env": {
         "NITRO_AUTH_TOKEN": "your-api-token-here",
-        "PLATFORM_API_URL": "https://api.gonitrodev.com/idp/platform",
-        "NITRO_MCP_WORKSPACE": "/Users/yourname/nitro_mcp_workspace"
+        "PLATFORM_API_URL": "https://api.gonitrodev.com/idp/platform"
       }
     }
   }
@@ -64,8 +63,7 @@ Edit this file and add the Nitro MCP server configuration:
       "command": "C:\\Program Files\\Nitro\\nitro-mcp.exe",
       "env": {
         "NITRO_AUTH_TOKEN": "your-api-token-here",
-        "PLATFORM_API_URL": "https://api.gonitrodev.com/idp/platform",
-        "NITRO_MCP_WORKSPACE": "C:\\Users\\yourname\\nitro_mcp_workspace"
+        "PLATFORM_API_URL": "https://api.gonitrodev.com/idp/platform"
       }
     }
   }
@@ -83,11 +81,22 @@ Edit this file and add the Nitro MCP server configuration:
 - **`PLATFORM_API_URL`**: Platform API endpoint
   - Default: `https://api.gonitrodev.com/idp/platform`
 
-- **`NITRO_MCP_WORKSPACE`**: Local folder for PDF files
-  - Default: `~/nitro_mcp_workspace` (macOS/Linux) or `%USERPROFILE%\nitro_mcp_workspace` (Windows)
-  - This is where you'll place PDFs to process and where outputs will be saved
+### 4. Using Folders (Dynamic Workspace)
 
-### 4. Restart Claude Desktop
+Nitro MCP uses **dynamic workspace management** - no folder configuration needed! Simply specify the folder in your conversation:
+
+**Examples:**
+- "List files from Downloads"
+- "Compress files in Desktop/project"
+- "Merge PDFs from Documents/invoices"
+
+**How it works:**
+- First operation sets the workspace for your session
+- Subsequent operations use the same folder automatically
+- Switch folders anytime by specifying a new location
+- Common folders automatically recognized: Downloads, Documents, Desktop, Pictures
+
+### 5. Restart Claude Desktop
 
 After saving the configuration file, restart Claude Desktop for the changes to take effect.
 
@@ -113,10 +122,11 @@ Once Claude Desktop restarts, you can verify the server is working:
 - **Verify auth token**: Ensure `NITRO_AUTH_TOKEN` is set correctly in the configuration
 - **Check token validity**: Confirm your token hasn't expired
 
-### Workspace Issues
+### File Access Issues
 
-- **Folder permissions**: Ensure the workspace folder is writable
-- **Path format**: Use absolute paths, not relative paths or `~` (expand to full path)
+- **Folder permissions**: Ensure Claude has permission to access the folders you specify
+- **Folder exists**: Verify the folder exists before trying to access it
+- **Use common names**: Try using common folder names like "Downloads" or "Documents"
 
 ### View Server Logs
 
@@ -139,12 +149,11 @@ For developers working on the MCP server:
       "args": ["run", "nitro-mcp"],
       "cwd": "/path/to/platform-mcp-server",
       "env": {
-        "NITRO_AUTH_TOKEN": "dev-token",
-        "NITRO_MCP_WORKSPACE": "/tmp/nitro-mcp-dev"
+        "NITRO_AUTH_TOKEN": "dev-token"
       }
     }
   }
 }
 ```
 
-This runs the server directly from source using `uv run`.
+This runs the server directly from source using `uv run`. Files will be accessed from folders you specify in conversation (e.g., "list files from Downloads").

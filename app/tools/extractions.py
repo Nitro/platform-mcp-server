@@ -8,6 +8,7 @@ from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 
 from app.context import CoreContext, get_dep
+from app.handlers import ensure_workspace_from_path
 from app.handlers.platform_handler import ExtractionDataType, ExtractionParams
 from app.models import SingleFileInputBase, SingleFileOutputBase
 from app.utils import FormsResult, TablesResult, create_forms_excel, create_tables_excel
@@ -72,11 +73,11 @@ def get_pdf_metadata(ctx: CoreContext, request: PDFMetadataRequest) -> PDFMetada
     platform_handler = get_dep(ctx, "platform-handler")
     files_handler = get_dep(ctx, "files-handler")
 
-    input_bytes = files_handler.read(request.input_filename)
+    filename = ensure_workspace_from_path(files_handler, request.input_filename)
+
+    input_bytes = files_handler.read(filename)
     metadata = platform_handler.get_pdf_metadata(input_bytes)
-    output_path = files_handler.write(
-        request.input_filename, metadata, stem_suffix="metadata", ext="json"
-    )
+    output_path = files_handler.write(filename, metadata, stem_suffix="metadata", ext="json")
     return PDFMetadataResult(output_filename=output_path.name)
 
 
@@ -85,7 +86,9 @@ def extract_pdf_forms(ctx: CoreContext, request: ExtractPDFFormsRequest) -> Extr
     platform_handler = get_dep(ctx, "platform-handler")
     files_handler = get_dep(ctx, "files-handler")
 
-    input_bytes = files_handler.read(request.input_filename)
+    filename = ensure_workspace_from_path(files_handler, request.input_filename)
+
+    input_bytes = files_handler.read(filename)
     result = platform_handler.extract_pdf_data(
         input_bytes, "forms", ExtractionParams(language=request.language)
     )
@@ -97,16 +100,12 @@ def extract_pdf_forms(ctx: CoreContext, request: ExtractPDFFormsRequest) -> Extr
             raise ValueError(msg)
         excel_bytes = create_forms_excel(
             forms_result.fields,
-            str(request.input_filename),
+            str(filename),
             forms_result.average_confidence,
         )
-        output_path = files_handler.write(
-            request.input_filename, excel_bytes, stem_suffix="forms", ext="xlsx"
-        )
+        output_path = files_handler.write(filename, excel_bytes, stem_suffix="forms", ext="xlsx")
     else:
-        output_path = files_handler.write(
-            request.input_filename, result, stem_suffix="forms", ext="json"
-        )
+        output_path = files_handler.write(filename, result, stem_suffix="forms", ext="json")
 
     return ExtractPDFDataResult(output_filename=output_path.name, data_type="forms")
 
@@ -116,7 +115,9 @@ def extract_pdf_tables(ctx: CoreContext, request: ExtractPDFTablesRequest) -> Ex
     platform_handler = get_dep(ctx, "platform-handler")
     files_handler = get_dep(ctx, "files-handler")
 
-    input_bytes = files_handler.read(request.input_filename)
+    filename = ensure_workspace_from_path(files_handler, request.input_filename)
+
+    input_bytes = files_handler.read(filename)
     params = ExtractionParams()
     if request.page_indices is not None:
         params["pageIndices"] = request.page_indices
@@ -127,14 +128,10 @@ def extract_pdf_tables(ctx: CoreContext, request: ExtractPDFTablesRequest) -> Ex
         if not tables_result.tables:
             msg = "No data available to generate Excel output"
             raise ValueError(msg)
-        excel_bytes = create_tables_excel(tables_result.tables, str(request.input_filename))
-        output_path = files_handler.write(
-            request.input_filename, excel_bytes, stem_suffix="tables", ext="xlsx"
-        )
+        excel_bytes = create_tables_excel(tables_result.tables, str(filename))
+        output_path = files_handler.write(filename, excel_bytes, stem_suffix="tables", ext="xlsx")
     else:
-        output_path = files_handler.write(
-            request.input_filename, result, stem_suffix="tables", ext="json"
-        )
+        output_path = files_handler.write(filename, result, stem_suffix="tables", ext="json")
 
     return ExtractPDFDataResult(output_filename=output_path.name, data_type="tables")
 
@@ -144,15 +141,16 @@ def extract_pdf_text(ctx: CoreContext, request: ExtractPDFTextRequest) -> Extrac
     platform_handler = get_dep(ctx, "platform-handler")
     files_handler = get_dep(ctx, "files-handler")
 
-    input_bytes = files_handler.read(request.input_filename)
+    filename = ensure_workspace_from_path(files_handler, request.input_filename)
+
+    input_bytes = files_handler.read(filename)
     params = ExtractionParams(readingOrder=request.reading_order)
     if request.page_indices is not None:
         params["pageIndices"] = request.page_indices
     result = platform_handler.extract_pdf_data(input_bytes, "text", params)
 
-    output_path = files_handler.write(
-        request.input_filename, result, stem_suffix="text", ext="json"
-    )
+    output_path = files_handler.write(filename, result, stem_suffix="text", ext="json")
+
     return ExtractPDFDataResult(output_filename=output_path.name, data_type="text")
 
 
@@ -163,12 +161,13 @@ def extract_pdf_accessibility(
     platform_handler = get_dep(ctx, "platform-handler")
     files_handler = get_dep(ctx, "files-handler")
 
-    input_bytes = files_handler.read(request.input_filename)
+    filename = ensure_workspace_from_path(files_handler, request.input_filename)
+
+    input_bytes = files_handler.read(filename)
     result = platform_handler.extract_pdf_data(input_bytes, "accessibility", ExtractionParams())
 
-    output_path = files_handler.write(
-        request.input_filename, result, stem_suffix="accessibility", ext="json"
-    )
+    output_path = files_handler.write(filename, result, stem_suffix="accessibility", ext="json")
+
     return ExtractPDFDataResult(output_filename=output_path.name, data_type="accessibility")
 
 

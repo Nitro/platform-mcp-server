@@ -5,6 +5,7 @@
 # pylint: disable=redefined-outer-name,protected-access
 
 import contextlib
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -18,7 +19,6 @@ from app.server import mcp
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
-    from pathlib import Path
     from unittest.mock import MagicMock
 
     from mcp import ClientSession
@@ -27,12 +27,11 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture
-def mock_settings(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Settings:
-    """Settings backed by a temporary workspace."""
+def mock_settings(monkeypatch: pytest.MonkeyPatch) -> Settings:
+    """Settings with test configuration."""
     monkeypatch.setenv("NITRO_AUTH_MODE", "token-auth")
     monkeypatch.setenv("NITRO_TARGET_ENV", "dev")
     monkeypatch.setenv("NITRO_AUTH_TOKEN", "test-token-123")
-    monkeypatch.setenv("NITRO_MCP_WORKSPACE", str(tmp_path))
     monkeypatch.setenv("MCP_SERVER_VERSION", "0.0.0-test")
     return Settings()
 
@@ -43,8 +42,49 @@ def _platform_handler_mock(mocker: MockerFixture) -> MagicMock:
 
 
 @pytest.fixture(name="files_handler_mock")
-def _files_handler_mock(mocker: MockerFixture) -> MagicMock:
-    return mocker.create_autospec(FilesHandler, instance=True, spec_set=True)
+def _files_handler_mock(mocker: MockerFixture, tmp_path: Path) -> MagicMock:
+    """Create a FilesHandler mock with workspace already set to tmp_path."""
+
+    # Patch ensure_workspace_from_path to accept bare filenames in tests
+    def mock_ensure_workspace(_handler: object, input_path: Path | str) -> Path:
+        # In tests, just return the path as-is (treating it as a filename)
+        return Path(input_path) if isinstance(input_path, str) else input_path
+
+    # Patch extract_workspace_and_filename for merge_files
+    def mock_extract_workspace(input_path: Path | str) -> tuple[Path, Path]:
+        # In tests, return tmp_path as workspace and input as filename
+        path = Path(input_path) if isinstance(input_path, str) else input_path
+        return tmp_path, path
+
+    # Patch in all tool modules
+    mocker.patch(
+        "app.tools.transformations.ensure_workspace_from_path",
+        side_effect=mock_ensure_workspace,
+    )
+    mocker.patch(
+        "app.tools.transformations.extract_workspace_and_filename",
+        side_effect=mock_extract_workspace,
+    )
+    mocker.patch(
+        "app.tools.conversions.ensure_workspace_from_path",
+        side_effect=mock_ensure_workspace,
+    )
+    mocker.patch(
+        "app.tools.extractions.ensure_workspace_from_path",
+        side_effect=mock_ensure_workspace,
+    )
+
+    # Create a real FilesHandler with workspace set for tests
+    handler = FilesHandler(tmp_path)
+
+    # But mock the read/write/list_files methods
+    mock = mocker.create_autospec(FilesHandler, instance=True, spec_set=True)
+    # Copy workspace state from real handler
+    mock.has_workspace = handler.has_workspace
+    mock.workspace = handler.workspace
+    mock.set_workspace = mocker.MagicMock()  # Mock set_workspace
+
+    return mock
 
 
 @pytest.fixture(name="app_context")

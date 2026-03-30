@@ -2,7 +2,14 @@
 
 """Handlers for file I/O and platform API operations"""
 
-from app.handlers.files_handler import FilesHandler, PathTraversalError
+from app.handlers.files_handler import (
+    FilesHandler,
+    PathTraversalError,
+    WorkspaceNotSetError,
+    ensure_workspace_from_path,
+    get_common_folders,
+    search_folder_in_home,
+)
 from app.handlers.platform_handler import (
     ConversionNotSupportedError,
     PlatformHandler,
@@ -15,4 +22,8 @@ __all__ = [
     "PathTraversalError",
     "PlatformHandler",
     "SupportedConversions",
+    "WorkspaceNotSetError",
+    "ensure_workspace_from_path",
+    "get_common_folders",
+    "search_folder_in_home",
 ]

@@ -24,7 +24,7 @@ async def lifespan(_: FastMCP) -> AsyncGenerator[AppContext]:
         )
     yield AppContext(
         platform_handler=platform_handler,
-        files_handler=FilesHandler(settings.files_folder),
+        files_handler=FilesHandler(None),
     )
 
 
@@ -39,10 +39,10 @@ def welcome_message() -> str:
     """Welcome message with server info"""
     return (
         f"# Nitro MCP\n\n"
-        f"Version: {settings.version}\n"
-        f"Workspace folder: {settings.files_folder}\n\n"
-        "PDF processing tools powered by Nitro's Document Intelligence Platform.\n"
-        "Tools will be added in upcoming releases.\n"
+        f"Version: {settings.version}\n\n"
+        "PDF processing tools powered by Nitro's Document Intelligence Platform.\n\n"
+        "Specify folders naturally (e.g., 'list files from Downloads') or use full paths.\n"
+        "Common folders: Downloads, Documents, Desktop, Pictures\n"
     )
 
 

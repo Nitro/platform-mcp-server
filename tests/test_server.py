@@ -30,16 +30,6 @@ def test_welcome_message_contains_version(
     assert mock_settings.version in message
 
 
-def test_welcome_message_contains_workspace(
-    mock_settings: Settings, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Test that welcome message contains workspace path"""
-    monkeypatch.setattr(server, "settings", mock_settings)
-
-    message = welcome_message()
-    assert str(mock_settings.files_folder) in message
-
-
 def test_welcome_message_is_markdown() -> None:
     """Test that welcome message is formatted as markdown"""
     message = welcome_message()

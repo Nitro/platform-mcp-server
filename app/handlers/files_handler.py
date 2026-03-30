@@ -13,13 +13,198 @@ class PathTraversalError(Exception):
         super().__init__(f"Path '{path}' escapes the workspace and is not allowed")
 
 
+class WorkspaceNotSetError(Exception):
+    """Raised when attempting file operations without a configured workspace."""
+
+    def __init__(self) -> None:
+        common_folders = get_common_folders()
+        folders_list = "\n  - ".join(str(f) for f in common_folders)
+        msg = (
+            "Workspace not set. Please specify a folder location.\n\n"
+            f"Common folders you can use:\n  - {folders_list}\n\n"
+            "You can specify a folder by name (e.g., 'Downloads') or full path."
+        )
+        super().__init__(msg)
+
+
+def get_common_folders() -> list[Path]:
+    """Get list of common folders in the home directory."""
+    home = Path.home()
+    return [
+        home / "Downloads",
+        home / "Documents",
+        home / "Desktop",
+        home / "Pictures",
+    ]
+
+
+def search_folder_in_home(folder_name: str) -> Path | None:
+    """
+    Search for a folder by name in the home directory.
+
+    Args:
+        folder_name: Name of the folder to search for (e.g., "Downloads")
+
+    Returns:
+        Full path to the folder if found, None otherwise
+
+    Example:
+        search_folder_in_home("Downloads") -> Path("/Users/john/Downloads")
+    """
+    home = Path.home()
+    candidate = home / folder_name
+
+    if candidate.exists() and candidate.is_dir():
+        return candidate
+
+    # Try case-insensitive search in common folders
+    for common_folder in get_common_folders():
+        if common_folder.name.lower() == folder_name.lower() and common_folder.exists():
+            return common_folder
+
+    return None
+
+
+def extract_workspace_and_filename(input_path: Path | str) -> tuple[Path, Path]:
+    """
+    Extract workspace directory and filename from input path.
+
+    Args:
+        input_path: Path to a file (absolute, relative with directories, or bare filename)
+
+    Returns:
+        Tuple of (workspace_directory, filename)
+
+    Raises:
+        ValueError: If input is a bare filename without directory information
+
+    Rules:
+        - Absolute path: workspace = parent dir, filename = name
+        - Relative path with dirs: workspace = resolved parent, filename = name
+        - Folder name (e.g., "Downloads"): search in home directory first
+        - Bare filename: raise error with helpful message
+
+    Examples:
+        - "/home/user/docs/file.pdf" -> (Path("/home/user/docs"), Path("file.pdf"))
+        - "Downloads/file.pdf" -> (Path("/Users/john/Downloads"), Path("file.pdf"))
+        - "./docs/file.pdf" -> (Path("/current/dir/docs"), Path("file.pdf"))
+        - "file.pdf" -> raises ValueError
+    """
+    path = Path(input_path) if isinstance(input_path, str) else input_path
+
+    # Bare filename without directory information
+    if len(path.parts) == 1:
+        msg = (
+            f"Please provide full path including directory. "
+            f"Got: {path}. "
+            f"Expected: /full/path/to/{path}"
+        )
+        raise ValueError(msg)
+
+    # Check if first part might be a folder name in home directory
+    if not path.is_absolute() and len(path.parts) >= 2:
+        first_part = str(path.parts[0])
+        found_folder = search_folder_in_home(first_part)
+        if found_folder:
+            # Reconstruct the path using the found folder
+            remaining_parts = path.parts[1:]
+            full_path = found_folder.joinpath(*remaining_parts)
+            return full_path.parent, Path(full_path.name)
+
+    # Resolve to absolute path
+    abs_path = path.resolve()
+
+    return abs_path.parent, Path(abs_path.name)
+
+
+def ensure_workspace_from_path(files_handler: FilesHandler, input_path: Path | str) -> Path:
+    """
+    Extract workspace from input path and set it on the handler.
+
+    This is a convenience function for single-file operations. It extracts the workspace
+    directory from the input path, updates the files_handler workspace if needed,
+    and returns just the filename for use with FilesHandler.read/write.
+
+    Args:
+        files_handler: The FilesHandler instance to configure
+        input_path: Full path to a file, or bare filename if workspace already set
+
+    Returns:
+        The filename component only (for use with files_handler.read/write)
+
+    Raises:
+        WorkspaceNotSetError: If input_path is a bare filename and workspace not set
+
+    Example:
+        filename = ensure_workspace_from_path(handler, "/home/docs/file.pdf")
+        content = handler.read(filename)  # reads from /home/docs/file.pdf
+
+        # After workspace is set:
+        filename = ensure_workspace_from_path(handler, "file.pdf")
+        content = handler.read(filename)  # reads from workspace/file.pdf
+    """
+    path = Path(input_path) if isinstance(input_path, str) else input_path
+
+    # If it's a bare filename and workspace is already set, use it
+    if len(path.parts) == 1:
+        if files_handler.has_workspace:
+            return path
+        raise WorkspaceNotSetError
+
+    # Otherwise extract workspace from path
+    workspace, filename = extract_workspace_and_filename(input_path)
+    if not files_handler.has_workspace or workspace != files_handler.workspace:
+        files_handler.set_workspace(workspace)
+    return filename
+
+
 @dataclass
 class FilesHandler:
     """Handles file I/O within a confined workspace folder."""
 
-    _root: Path
+    _root: Path | None
+
+    def set_workspace(self, path: Path) -> None:
+        """
+        Set the workspace directory for file operations.
+
+        Args:
+            path: Path to the workspace directory
+
+        Raises:
+            ValueError: If path is not a directory
+        """
+        abs_path = path.resolve()
+
+        # Create directory if it doesn't exist
+        abs_path.mkdir(parents=True, exist_ok=True)
+
+        if not abs_path.is_dir():
+            msg = f"Workspace path must be a directory, got: {path}"
+            raise ValueError(msg)
+
+        self._root = abs_path
+
+    @property
+    def has_workspace(self) -> bool:
+        """Check if workspace has been configured."""
+        return self._root is not None
+
+    @property
+    def workspace(self) -> Path:
+        """
+        Get the current workspace directory.
+
+        Raises:
+            WorkspaceNotSetError: If workspace has not been configured
+        """
+        if self._root is None:
+            raise WorkspaceNotSetError
+        return self._root
 
     def _resolve(self, path: Path) -> Path:
+        if self._root is None:
+            raise WorkspaceNotSetError
         resolved = (self._root / path).resolve()
         if not resolved.is_relative_to(self._root.resolve()):
             raise PathTraversalError(path)
@@ -86,6 +271,8 @@ class FilesHandler:
 
     def list_files(self, extension: str | None = None) -> list[Path]:
         """List files in the workspace, optionally filtered by extension (without leading dot)."""
+        if self._root is None:
+            raise WorkspaceNotSetError
         if not self._root.exists():
             msg = f"Workspace folder does not exist: {self._root}"
             raise FileNotFoundError(msg)
@@ -96,4 +283,4 @@ class FilesHandler:
     @property
     def root_path(self) -> Path:
         """Path to the workspace folder."""
-        return self._root
+        return self.workspace

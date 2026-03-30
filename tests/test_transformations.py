@@ -136,6 +136,47 @@ async def test_merge_files_custom_output_filename(
     platform_handler_mock.merge_pdfs.assert_called_once_with([b"pdf-a-content", b"pdf-b-content"])
 
 
+@pytest.mark.anyio
+async def test_merge_files_with_bare_filenames_and_workspace_set(
+    client: ClientSession,
+    files_handler_mock: MagicMock,
+    platform_handler_mock: MagicMock,
+    tmp_path: Path,
+) -> None:
+    """Merge works with bare filenames when workspace is already set."""
+    # Simulate workspace already set
+    files_handler_mock.has_workspace = True
+    files_handler_mock.workspace = tmp_path
+
+    files_handler_mock.read.side_effect = [b"pdf-a-content", b"pdf-b-content", b"pdf-c-content"]
+    platform_handler_mock.merge_pdfs.return_value = b"merged"
+    files_handler_mock.write.return_value = Path("merged.pdf")
+
+    response = await client.call_tool(
+        "merge_files",
+        {"request": MergeRequest(input_filenames=["a.pdf", "b.pdf", "c.pdf"]).model_dump()},
+    )
+
+    expected = MergeResult(
+        output_filename="merged.pdf",
+        input_filenames=["a.pdf", "b.pdf", "c.pdf"],
+        input_count=3,
+        total_input_size_bytes=39,
+        output_size_bytes=6,
+    ).model_dump()
+    assert response.structuredContent == expected
+    files_handler_mock.read.assert_has_calls([
+        call(Path("a.pdf")),
+        call(Path("b.pdf")),
+        call(Path("c.pdf")),
+    ])
+    platform_handler_mock.merge_pdfs.assert_called_once_with([
+        b"pdf-a-content",
+        b"pdf-b-content",
+        b"pdf-c-content",
+    ])
+
+
 # Compress File Tests
 
 

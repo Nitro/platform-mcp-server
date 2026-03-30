@@ -7,7 +7,7 @@ from pydantic import Field
 
 from app.client import FileFormat
 from app.context import CoreContext, get_dep
-from app.handlers import PlatformHandler
+from app.handlers import PlatformHandler, ensure_workspace_from_path
 from app.models import SingleFileInputBase, SingleFileOutputBase
 
 
@@ -29,14 +29,16 @@ async def convert_file(ctx: CoreContext, request: ConversionRequest) -> Conversi
     platform_handler = get_dep(ctx, "platform-handler")
     files_handler = get_dep(ctx, "files-handler")
 
-    input_bytes = files_handler.read(request.input_filename)
+    filename = ensure_workspace_from_path(files_handler, request.input_filename)
+
+    input_bytes = files_handler.read(filename)
     converted_bytes = platform_handler.convert_file(
         input_bytes,
-        FileFormat(request.input_filename.suffix.lstrip(".").lower()),
+        FileFormat(filename.suffix.lstrip(".").lower()),
         FileFormat(request.to),
     )
     output_path = files_handler.write(
-        request.input_filename, converted_bytes, stem_suffix="converted", ext=request.to
+        filename, converted_bytes, stem_suffix="converted", ext=request.to
     )
     return ConversionResult(output_filename=output_path.name)
 

@@ -3,7 +3,6 @@
 """Configuration settings for the MCP server"""
 
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Literal
 
 from pydantic import Field
@@ -20,10 +19,6 @@ class EnvVars(BaseSettings):
     auth_token: str | None = Field(default=None, validation_alias="NITRO_AUTH_TOKEN")
     client_id: str | None = Field(default=None, validation_alias="NITRO_CLIENT_ID")
     client_secret: str | None = Field(default=None, validation_alias="NITRO_CLIENT_SECRET")
-    files_folder: Path = Field(
-        default_factory=lambda: Path.home() / "nitro_mcp_workspace",
-        validation_alias="NITRO_MCP_WORKSPACE",
-    )
     version: str = Field(default="0.0.0-dev", validation_alias="MCP_SERVER_VERSION")
 
 
@@ -71,12 +66,6 @@ class Settings:
             ("prod", "token-auth"): "https://api.gonitro.com/idp/platform",
             ("prod", "client-credentials"): "https://api.gonitro.dev",
         }[(self._env.target_env, self._env.auth_mode)]
-
-    @property
-    def files_folder(self) -> Path:
-        """Workspace folder for input/output files."""
-        self._env.files_folder.mkdir(parents=True, exist_ok=True)
-        return self._env.files_folder
 
     @property
     def version(self) -> str:
