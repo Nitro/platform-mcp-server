@@ -10,7 +10,6 @@ import httpx
 
 from app.client.enums import CompressionLevel, ContentType, FileFormat
 from app.client.platform_client import AcceptFormat, BytesFile, PlatformApiClient
-from app.utils.utils import check_http_response
 
 
 class PageRotation(TypedDict):
@@ -177,7 +176,6 @@ class PlatformHandler:
             accept_format=AcceptFormat.BYTES,
         )
 
-        check_http_response(response)
         return response.content
 
     def convert_file(self, file_bytes: bytes, file_type: FileFormat, to: FileFormat) -> bytes:
@@ -198,7 +196,6 @@ class PlatformHandler:
             accept_format=AcceptFormat.BYTES,
         )
 
-        check_http_response(response)
         return response.content
 
     def get_pdf_metadata(self, file_content: bytes) -> bytes:
@@ -215,7 +212,6 @@ class PlatformHandler:
             accept_format=AcceptFormat.JSON,
         )
 
-        check_http_response(response)
         return self._extract_result(response.content)
 
     def compress_pdf(self, file_bytes: bytes, level: CompressionLevel) -> bytes:
@@ -249,7 +245,6 @@ class PlatformHandler:
             accept_format=AcceptFormat.BYTES,
         )
 
-        check_http_response(response)
         return response.content
 
     def split_pdf(self, file_bytes: bytes, page_ranges: list[list[int]]) -> bytes:
@@ -281,7 +276,6 @@ class PlatformHandler:
             accept_format=AcceptFormat.BYTES,
         )
 
-        check_http_response(response)
         return response.content
 
     def rotate_pdf(self, file_bytes: bytes, rotations: list[PageRotation]) -> bytes:
@@ -314,7 +308,6 @@ class PlatformHandler:
             accept_format=AcceptFormat.BYTES,
         )
 
-        check_http_response(response)
         return response.content
 
     def protect_pdf(
@@ -363,7 +356,6 @@ class PlatformHandler:
             accept_format=AcceptFormat.BYTES,
         )
 
-        check_http_response(response)
         return response.content
 
     def unprotect_pdf(
@@ -407,7 +399,6 @@ class PlatformHandler:
             accept_format=AcceptFormat.BYTES,
         )
 
-        check_http_response(response)
         return response.content
 
     def delete_pdf_pages(self, file_bytes: bytes, page_indices: list[int]) -> bytes:
@@ -439,7 +430,6 @@ class PlatformHandler:
             accept_format=AcceptFormat.BYTES,
         )
 
-        check_http_response(response)
         return response.content
 
     def set_pdf_metadata(self, file_bytes: bytes, metadata: PdfMetadata) -> bytes:
@@ -473,7 +463,6 @@ class PlatformHandler:
             accept_format=AcceptFormat.BYTES,
         )
 
-        check_http_response(response)
         return response.content
 
     def flatten_pdf(self, file_bytes: bytes) -> bytes:
@@ -502,7 +491,6 @@ class PlatformHandler:
             accept_format=AcceptFormat.BYTES,
         )
 
-        check_http_response(response)
         return response.content
 
     def extract_pdf_data(
@@ -531,5 +519,4 @@ class PlatformHandler:
             accept_format=AcceptFormat.JSON,
         )
 
-        check_http_response(response)
         return self._extract_result(response.content)
