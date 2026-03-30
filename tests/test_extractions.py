@@ -37,10 +37,7 @@ async def test_get_pdf_metadata(
         {"request": PDFMetadataRequest(input_filename=Path("a.pdf")).model_dump(mode="json")},
     )
 
-    expected = PDFMetadataResult(
-        input_filename="a.pdf",
-        output_filename="a_metadata.json",
-    ).model_dump()
+    expected = PDFMetadataResult(output_filename="a_metadata.json").model_dump()
     assert response.structuredContent == expected
     files_handler_mock.read.assert_called_once_with(Path("a.pdf"))
     platform_handler_mock.get_pdf_metadata.assert_called_once_with(b"pdf-a-content")
@@ -65,10 +62,7 @@ async def test_get_pdf_metadata_empty(
         {"request": PDFMetadataRequest(input_filename=Path("empty.pdf")).model_dump(mode="json")},
     )
 
-    expected = PDFMetadataResult(
-        input_filename="empty.pdf",
-        output_filename="empty_metadata.json",
-    ).model_dump()
+    expected = PDFMetadataResult(output_filename="empty_metadata.json").model_dump()
     assert response.structuredContent == expected
     files_handler_mock.read.assert_called_once_with(Path("empty.pdf"))
     platform_handler_mock.get_pdf_metadata.assert_called_once_with(b"pdf-content")
@@ -101,11 +95,7 @@ async def test_extract_pdf_forms_excel(
         },
     )
 
-    expected = ExtractPDFDataResult(
-        input_filename="a.pdf",
-        output_filename="a-forms.xlsx",
-        data_type="forms",
-    ).model_dump()
+    expected = ExtractPDFDataResult(output_filename="a-forms.xlsx", data_type="forms").model_dump()
     assert response.structuredContent == expected
     platform_handler_mock.extract_pdf_data.assert_called_once_with(
         b"pdf-content", "forms", ExtractionParams(language="fr")
@@ -140,11 +130,7 @@ async def test_extract_pdf_forms_json(
         },
     )
 
-    expected = ExtractPDFDataResult(
-        input_filename="a.pdf",
-        output_filename="a-forms.json",
-        data_type="forms",
-    ).model_dump()
+    expected = ExtractPDFDataResult(output_filename="a-forms.json", data_type="forms").model_dump()
     assert response.structuredContent == expected
     platform_handler_mock.extract_pdf_data.assert_called_once_with(
         b"pdf-content", "forms", ExtractionParams(language="fr")
@@ -187,9 +173,7 @@ async def test_extract_pdf_tables_excel(
     )
 
     expected = ExtractPDFDataResult(
-        input_filename="a.pdf",
-        output_filename="a-tables.xlsx",
-        data_type="tables",
+        output_filename="a-tables.xlsx", data_type="tables"
     ).model_dump()
     assert response.structuredContent == expected
     platform_handler_mock.extract_pdf_data.assert_called_once_with(
@@ -234,9 +218,7 @@ async def test_extract_pdf_tables_json(
     )
 
     expected = ExtractPDFDataResult(
-        input_filename="a.pdf",
-        output_filename="a-tables.json",
-        data_type="tables",
+        output_filename="a-tables.json", data_type="tables"
     ).model_dump()
     assert response.structuredContent == expected
     platform_handler_mock.extract_pdf_data.assert_called_once_with(
@@ -269,9 +251,7 @@ async def test_extract_pdf_text(
         },
     )
 
-    expected = ExtractPDFDataResult(
-        input_filename="a.pdf", output_filename="a-text.json", data_type="text"
-    ).model_dump()
+    expected = ExtractPDFDataResult(output_filename="a-text.json", data_type="text").model_dump()
     assert response.structuredContent == expected
     platform_handler_mock.extract_pdf_data.assert_called_once_with(
         b"pdf-content", "text", ExtractionParams(pageIndices=[0], readingOrder=True)
@@ -302,9 +282,7 @@ async def test_extract_pdf_accessibility(
     )
 
     expected = ExtractPDFDataResult(
-        input_filename="a.pdf",
-        output_filename="a-accessibility.json",
-        data_type="accessibility",
+        output_filename="a-accessibility.json", data_type="accessibility"
     ).model_dump()
     assert response.structuredContent == expected
     platform_handler_mock.extract_pdf_data.assert_called_once_with(

@@ -2,21 +2,17 @@
 
 """File conversion tools for MCP server"""
 
-from pathlib import Path
-
 from mcp.server.fastmcp import FastMCP
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from app.client import FileFormat
 from app.context import CoreContext, get_dep
 from app.handlers import PlatformHandler
-from app.models import SingleFileOutputBase
+from app.models import SingleFileInputBase, SingleFileOutputBase
 
 
-class ConversionRequest(BaseModel):
+class ConversionRequest(SingleFileInputBase):
     """Request to convert a file to a different format"""
-
-    input_filename: Path = Field(description="Filename of the source file in the workspace")
 
     # We deliberately don't use `to` as an enum here. We have to explain to the LLM in the
     # description the supported conversion matrix. So we enumerate all the allowed values there.
@@ -26,8 +22,6 @@ class ConversionRequest(BaseModel):
 
 class ConversionResult(SingleFileOutputBase):
     """Result of a file conversion operation"""
-
-    input_filename: str = Field(description="Filename of the source file in the workspace")
 
 
 async def convert_file(ctx: CoreContext, request: ConversionRequest) -> ConversionResult:
@@ -44,9 +38,7 @@ async def convert_file(ctx: CoreContext, request: ConversionRequest) -> Conversi
     output_path = files_handler.write(
         request.input_filename, converted_bytes, stem_suffix="converted", ext=request.to
     )
-    return ConversionResult(
-        input_filename=str(request.input_filename), output_filename=output_path.name
-    )
+    return ConversionResult(output_filename=output_path.name)
 
 
 def register_conversion_tool(mcp: FastMCP) -> None:

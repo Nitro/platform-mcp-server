@@ -48,10 +48,7 @@ async def test_convert_file_pdf_to_docx(
         "convert_file",
         {"request": ConversionRequest(input_filename=Path("a.pdf"), to="docx").model_dump()},
     )
-    expected = ConversionResult(
-        input_filename="a.pdf",
-        output_filename="a-converted.docx",
-    ).model_dump()
+    expected = ConversionResult(output_filename="a-converted.docx").model_dump()
     assert response.structuredContent == expected
     files_handler_mock.read.assert_called_once_with(Path("a.pdf"))
     platform_handler_mock.convert_file.assert_called_once_with(
@@ -78,10 +75,7 @@ async def test_convert_file_docx_to_pdf(
         "convert_file",
         {"request": ConversionRequest(input_filename=Path("doc.docx"), to="pdf").model_dump()},
     )
-    expected = ConversionResult(
-        input_filename="doc.docx",
-        output_filename="doc-converted.pdf",
-    ).model_dump()
+    expected = ConversionResult(output_filename="doc-converted.pdf").model_dump()
     assert response.structuredContent == expected
     files_handler_mock.read.assert_called_once_with(Path("doc.docx"))
     platform_handler_mock.convert_file.assert_called_once_with(

@@ -2,34 +2,28 @@
 
 """File extraction tools for MCP server"""
 
-from pathlib import Path
 from typing import Literal
 
 from mcp.server.fastmcp import FastMCP
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from app.context import CoreContext, get_dep
 from app.handlers.platform_handler import ExtractionDataType, ExtractionParams
-from app.models import SingleFileOutputBase
+from app.models import SingleFileInputBase, SingleFileOutputBase
 from app.utils import FormsResult, TablesResult, create_forms_excel, create_tables_excel
 
 
-class PDFMetadataRequest(BaseModel):
+class PDFMetadataRequest(SingleFileInputBase):
     """Request model for PDF metadata extraction"""
-
-    input_filename: Path = Field(description="Filename of the source file in the workspace")
 
 
 class PDFMetadataResult(SingleFileOutputBase):
     """Result of a PDF metadata extraction operation"""
 
-    input_filename: str = Field(description="Filename of the source file in the workspace")
 
-
-class ExtractPDFFormsRequest(BaseModel):
+class ExtractPDFFormsRequest(SingleFileInputBase):
     """Request model for PDF forms extraction"""
 
-    input_filename: Path = Field(description="Filename of the source PDF file in the workspace")
     language: str = Field(default="en", description="Language code for form extraction")
     output_format: Literal["json", "excel"] = Field(
         default="excel",
@@ -37,10 +31,9 @@ class ExtractPDFFormsRequest(BaseModel):
     )
 
 
-class ExtractPDFTablesRequest(BaseModel):
+class ExtractPDFTablesRequest(SingleFileInputBase):
     """Request model for PDF tables extraction"""
 
-    input_filename: Path = Field(description="Filename of the source PDF file in the workspace")
     page_indices: list[int] | None = Field(
         default=None,
         description="Zero-based page indices to extract from",
@@ -51,10 +44,9 @@ class ExtractPDFTablesRequest(BaseModel):
     )
 
 
-class ExtractPDFTextRequest(BaseModel):
+class ExtractPDFTextRequest(SingleFileInputBase):
     """Request model for PDF text extraction"""
 
-    input_filename: Path = Field(description="Filename of the source PDF file in the workspace")
     page_indices: list[int] | None = Field(
         default=None,
         description="Zero-based page indices to extract from",
@@ -65,16 +57,13 @@ class ExtractPDFTextRequest(BaseModel):
     )
 
 
-class ExtractPDFAccessibilityRequest(BaseModel):
+class ExtractPDFAccessibilityRequest(SingleFileInputBase):
     """Request model for PDF accessibility data extraction"""
-
-    input_filename: Path = Field(description="Filename of the source PDF file in the workspace")
 
 
 class ExtractPDFDataResult(SingleFileOutputBase):
     """Result of a PDF data extraction operation"""
 
-    input_filename: str = Field(description="Filename of the source file in the workspace")
     data_type: ExtractionDataType = Field(description="Type of data that was extracted")
 
 
@@ -88,9 +77,7 @@ def get_pdf_metadata(ctx: CoreContext, request: PDFMetadataRequest) -> PDFMetada
     output_path = files_handler.write(
         request.input_filename, metadata, stem_suffix="metadata", ext="json"
     )
-    return PDFMetadataResult(
-        input_filename=str(request.input_filename), output_filename=output_path.name
-    )
+    return PDFMetadataResult(output_filename=output_path.name)
 
 
 def extract_pdf_forms(ctx: CoreContext, request: ExtractPDFFormsRequest) -> ExtractPDFDataResult:
@@ -121,11 +108,7 @@ def extract_pdf_forms(ctx: CoreContext, request: ExtractPDFFormsRequest) -> Extr
             request.input_filename, result, stem_suffix="forms", ext="json"
         )
 
-    return ExtractPDFDataResult(
-        input_filename=str(request.input_filename),
-        output_filename=output_path.name,
-        data_type="forms",
-    )
+    return ExtractPDFDataResult(output_filename=output_path.name, data_type="forms")
 
 
 def extract_pdf_tables(ctx: CoreContext, request: ExtractPDFTablesRequest) -> ExtractPDFDataResult:
@@ -153,11 +136,7 @@ def extract_pdf_tables(ctx: CoreContext, request: ExtractPDFTablesRequest) -> Ex
             request.input_filename, result, stem_suffix="tables", ext="json"
         )
 
-    return ExtractPDFDataResult(
-        input_filename=str(request.input_filename),
-        output_filename=output_path.name,
-        data_type="tables",
-    )
+    return ExtractPDFDataResult(output_filename=output_path.name, data_type="tables")
 
 
 def extract_pdf_text(ctx: CoreContext, request: ExtractPDFTextRequest) -> ExtractPDFDataResult:
@@ -174,11 +153,7 @@ def extract_pdf_text(ctx: CoreContext, request: ExtractPDFTextRequest) -> Extrac
     output_path = files_handler.write(
         request.input_filename, result, stem_suffix="text", ext="json"
     )
-    return ExtractPDFDataResult(
-        input_filename=str(request.input_filename),
-        output_filename=output_path.name,
-        data_type="text",
-    )
+    return ExtractPDFDataResult(output_filename=output_path.name, data_type="text")
 
 
 def extract_pdf_accessibility(
@@ -194,11 +169,7 @@ def extract_pdf_accessibility(
     output_path = files_handler.write(
         request.input_filename, result, stem_suffix="accessibility", ext="json"
     )
-    return ExtractPDFDataResult(
-        input_filename=str(request.input_filename),
-        output_filename=output_path.name,
-        data_type="accessibility",
-    )
+    return ExtractPDFDataResult(output_filename=output_path.name, data_type="accessibility")
 
 
 def register_extraction_tools(mcp: FastMCP) -> None:
@@ -207,34 +178,12 @@ def register_extraction_tools(mcp: FastMCP) -> None:
         get_pdf_metadata
     )
 
-    mcp.tool(
-        description=(
-            "Use this tool to extract form fields from a PDF file. "
-            "Output formats: 'excel' (always the default) "
-            "or a 'json' if explicitly requested. "
-            "Parameters: language (default 'en')."
-        )
-    )(extract_pdf_forms)
+    mcp.tool(description="Use this tool to extract form fields from a PDF file.")(extract_pdf_forms)
 
-    mcp.tool(
-        description=(
-            "Use this tool to extract tables from a PDF file. "
-            "Output formats: 'excel' (always the default) "
-            "or a 'json' if explicitly requested. "
-            "Parameters: page_indices (optional, zero-based)."
-        )
-    )(extract_pdf_tables)
+    mcp.tool(description="Use this tool to extract tables from a PDF file.")(extract_pdf_tables)
 
-    mcp.tool(
-        description=(
-            "Use this tool to extract text from a PDF file. "
-            "Output is always JSON. "
-            "Parameters: page_indices (optional, zero-based), reading_order (default False)."
-        )
-    )(extract_pdf_text)
+    mcp.tool(description="Use this tool to extract text from a PDF file.")(extract_pdf_text)
 
-    mcp.tool(
-        description=(
-            "Use this tool to extract accessibility data from a PDF file. Output is always JSON."
-        )
-    )(extract_pdf_accessibility)
+    mcp.tool(description="Use this tool to extract accessibility data from a PDF file.")(
+        extract_pdf_accessibility
+    )

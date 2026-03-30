@@ -15,6 +15,7 @@ from httpx_sse import connect_sse
 from pydantic import BaseModel, Field, TypeAdapter
 
 from app.client.enums import ContentType
+from app.utils.utils import GenericFailedError, check_http_response
 
 logger = logging.getLogger("PlatformAPI")
 
@@ -83,15 +84,6 @@ class BytesFile:
 File = URLFile | BytesFile
 
 
-class GenericFailedError(Exception):
-    """Raised when a platform operation fails due to a developer or platform issue."""
-
-    def __init__(self) -> None:
-        super().__init__(
-            "Platform operation failed. Try again or contact Nitro support if the issue persists."
-        )
-
-
 @dataclasses.dataclass
 class PlatformApiClient:
     """Low-level client for invoking Nitro Platform operations with async job polling"""
@@ -127,14 +119,6 @@ class PlatformApiClient:
 
         msg = f"SSE stream closed before job finished at {status_url}"
         raise RuntimeError(msg)
-
-    def _check_error_response(self, url: str, response: httpx.Response) -> None:
-        """Check response for errors and raise appropriate exceptions"""
-        if response.status_code not in (200, 202):
-            logger.error(
-                "Error response from %s, [%d]: %s", url, response.status_code, response.text[:200]
-            )
-            raise GenericFailedError()
 
     def run(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
         self,
@@ -193,7 +177,7 @@ class PlatformApiClient:
             headers={"Prefer": "respond-async"},
             timeout=self._default_timeout,
         )
-        self._check_error_response(trigger_url, response)
+        check_http_response(response)
 
         # Job should be accepted (202)
         assert response.status_code == 202
@@ -208,7 +192,7 @@ class PlatformApiClient:
         if is_failed:
             logger.info("Platform operation [%s/%s] failed after %.2fs", path, method, elapsed)
             result_response = self._httpx_client.get(result_url, timeout=self._default_timeout)
-            self._check_error_response(result_url, result_response)
+            check_http_response(result_response)
             job = result_response.json()
             logger.error("Job failed with error: %s", json.dumps(job["error"], indent=2))
             raise GenericFailedError()
@@ -223,6 +207,6 @@ class PlatformApiClient:
         result_response = self._httpx_client.get(
             result_url, headers=accept_header, timeout=self._default_timeout
         )
-        self._check_error_response(result_url, result_response)
+        check_http_response(result_response)
         logger.info("Platform operation [%s/%s] completed in %.2fs", path, method, elapsed)
         return result_response

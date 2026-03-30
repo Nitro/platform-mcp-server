@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from app.client import CompressionLevel
 from app.context import CoreContext, get_dep
 from app.handlers.platform_handler import PageRotation, PdfMetadata, PdfPermission
-from app.models import SingleFileOutputBase
+from app.models import SingleFileInputBase, SingleFileOutputBase
 
 if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
@@ -64,10 +64,9 @@ def merge_files(ctx: CoreContext, request: MergeRequest) -> MergeResult:
     )
 
 
-class CompressRequest(BaseModel):
+class CompressRequest(SingleFileInputBase):
     """Request to compress a PDF file"""
 
-    input_filename: Path = Field(description="Filename of the source PDF in the workspace")
     level: str = Field(
         default="medium",
         description='Compression level: "light", "medium", or "heavy"',
@@ -77,7 +76,6 @@ class CompressRequest(BaseModel):
 class CompressResult(SingleFileOutputBase):
     """Result of compressing a PDF file"""
 
-    input_filename: str = Field(description="Filename of the source file in the workspace")
     original_size_bytes: int = Field(description="Size of original file in bytes")
     compressed_size_bytes: int = Field(description="Size of compressed file in bytes")
     reduction_percent: float = Field(description="Percentage reduction in file size")
@@ -110,7 +108,6 @@ async def compress_file(ctx: CoreContext, request: CompressRequest) -> CompressR
     )
 
     return CompressResult(
-        input_filename=str(request.input_filename),
         output_filename=written.name,
         original_size_bytes=original_size,
         compressed_size_bytes=compressed_size,
@@ -118,10 +115,9 @@ async def compress_file(ctx: CoreContext, request: CompressRequest) -> CompressR
     )
 
 
-class SplitRequest(BaseModel):
+class SplitRequest(SingleFileInputBase):
     """Request to split a PDF by page ranges"""
 
-    input_filename: Path = Field(description="Filename of the source PDF in the workspace")
     page_ranges: list[str] = Field(
         description='Page ranges to split (e.g., ["1-3", "5", "7-9"]). Pages are 1-indexed.',
     )
@@ -130,7 +126,6 @@ class SplitRequest(BaseModel):
 class SplitResult(SingleFileOutputBase):
     """Result of splitting a PDF file"""
 
-    input_filename: str = Field(description="Filename of the source file in the workspace")
     split_count: int = Field(description="Number of PDF files created")
 
 
@@ -154,11 +149,7 @@ async def split_pdf(ctx: CoreContext, request: SplitRequest) -> SplitResult:
 
     written = files_handler.write(request.input_filename, zip_bytes, stem_suffix="split", ext="zip")
 
-    return SplitResult(
-        input_filename=str(request.input_filename),
-        output_filename=written.name,
-        split_count=len(parsed_ranges),
-    )
+    return SplitResult(output_filename=written.name, split_count=len(parsed_ranges))
 
 
 class Rotation(BaseModel):
@@ -168,10 +159,9 @@ class Rotation(BaseModel):
     amount: Literal[-270, -180, -90, 90, 180, 270] = Field(description="Rotation amount in degrees")
 
 
-class RotateRequest(BaseModel):
+class RotateRequest(SingleFileInputBase):
     """Request to rotate specific pages in a PDF"""
 
-    input_filename: Path = Field(description="Filename of the source PDF in the workspace")
     rotations: list[Rotation] = Field(
         description="List of page rotations to apply. Pages are 1-indexed."
     )
@@ -180,7 +170,6 @@ class RotateRequest(BaseModel):
 class RotateResult(SingleFileOutputBase):
     """Result of rotating pages in a PDF"""
 
-    input_filename: str = Field(description="Filename of the source file in the workspace")
     rotation_count: int = Field(description="Number of pages rotated")
 
 
@@ -200,17 +189,12 @@ async def rotate_pdf(ctx: CoreContext, request: RotateRequest) -> RotateResult:
 
     written = files_handler.write(request.input_filename, rotated_bytes, stem_suffix="rotated")
 
-    return RotateResult(
-        input_filename=str(request.input_filename),
-        output_filename=written.name,
-        rotation_count=len(page_rotations),
-    )
+    return RotateResult(output_filename=written.name, rotation_count=len(page_rotations))
 
 
-class ProtectRequest(BaseModel):
+class ProtectRequest(SingleFileInputBase):
     """Request to password-protect a PDF"""
 
-    input_filename: Path = Field(description="Filename of the source PDF in the workspace")
     owner_password: str | None = Field(
         default=None,
         description="Owner password for full access (optional)",
@@ -228,7 +212,6 @@ class ProtectRequest(BaseModel):
 class ProtectResult(SingleFileOutputBase):
     """Result of protecting a PDF"""
 
-    input_filename: str = Field(description="Filename of the source file in the workspace")
     has_owner_password: bool = Field(description="Whether owner password was set")
     has_user_password: bool = Field(description="Whether user password was set")
 
@@ -248,17 +231,15 @@ async def protect_pdf(ctx: CoreContext, request: ProtectRequest) -> ProtectResul
     written = files_handler.write(request.input_filename, protected_bytes, stem_suffix="protected")
 
     return ProtectResult(
-        input_filename=str(request.input_filename),
         output_filename=written.name,
         has_owner_password=request.owner_password is not None,
         has_user_password=request.user_password is not None,
     )
 
 
-class UnprotectRequest(BaseModel):
+class UnprotectRequest(SingleFileInputBase):
     """Request to remove password protection from a PDF"""
 
-    input_filename: Path = Field(description="Filename of the source PDF in the workspace")
     owner_password: str | None = Field(
         default=None,
         description="Owner password to remove protection (optional)",
@@ -271,8 +252,6 @@ class UnprotectRequest(BaseModel):
 
 class UnprotectResult(SingleFileOutputBase):
     """Result of removing password protection from a PDF"""
-
-    input_filename: str = Field(description="Filename of the source file in the workspace")
 
 
 async def unprotect_pdf(ctx: CoreContext, request: UnprotectRequest) -> UnprotectResult:
@@ -290,16 +269,12 @@ async def unprotect_pdf(ctx: CoreContext, request: UnprotectRequest) -> Unprotec
         request.input_filename, unprotected_bytes, stem_suffix="unprotected"
     )
 
-    return UnprotectResult(
-        input_filename=str(request.input_filename),
-        output_filename=written.name,
-    )
+    return UnprotectResult(output_filename=written.name)
 
 
-class DeletePagesRequest(BaseModel):
+class DeletePagesRequest(SingleFileInputBase):
     """Request to delete specific pages from a PDF"""
 
-    input_filename: Path = Field(description="Filename of the source PDF in the workspace")
     page_numbers: list[str] = Field(
         description=(
             'Page numbers to delete (e.g., ["1", "3", "5"] or ["2", "4-6", "8"]). '
@@ -311,7 +286,6 @@ class DeletePagesRequest(BaseModel):
 class DeletePagesResult(SingleFileOutputBase):
     """Result of deleting pages from a PDF"""
 
-    input_filename: str = Field(description="Filename of the source file in the workspace")
     pages_deleted: int = Field(description="Number of pages deleted")
 
 
@@ -348,17 +322,12 @@ async def delete_pdf_pages(ctx: CoreContext, request: DeletePagesRequest) -> Del
         request.input_filename, modified_bytes, stem_suffix="pages-deleted"
     )
 
-    return DeletePagesResult(
-        input_filename=str(request.input_filename),
-        output_filename=written.name,
-        pages_deleted=len(parsed_pages),
-    )
+    return DeletePagesResult(output_filename=written.name, pages_deleted=len(parsed_pages))
 
 
-class SetMetadataRequest(BaseModel):
+class SetMetadataRequest(SingleFileInputBase):
     """Request to set PDF metadata"""
 
-    input_filename: Path = Field(description="Filename of the source PDF in the workspace")
     title: str | None = Field(default=None, description="Document title")
     author: str | None = Field(default=None, description="Document author")
     subject: str | None = Field(default=None, description="Document subject")
@@ -377,7 +346,6 @@ class SetMetadataRequest(BaseModel):
 class SetMetadataResult(SingleFileOutputBase):
     """Result of setting PDF metadata"""
 
-    input_filename: str = Field(description="Filename of the source file in the workspace")
     fields_updated: int = Field(description="Number of metadata fields updated")
 
 
@@ -407,23 +375,15 @@ async def set_pdf_metadata(ctx: CoreContext, request: SetMetadataRequest) -> Set
         request.input_filename, modified_bytes, stem_suffix="metadata-updated"
     )
 
-    return SetMetadataResult(
-        input_filename=str(request.input_filename),
-        output_filename=written.name,
-        fields_updated=len(metadata),
-    )
+    return SetMetadataResult(output_filename=written.name, fields_updated=len(metadata))
 
 
-class FlattenRequest(BaseModel):
+class FlattenRequest(SingleFileInputBase):
     """Request to flatten a PDF"""
-
-    input_filename: Path = Field(description="Filename of the source PDF in the workspace")
 
 
 class FlattenResult(SingleFileOutputBase):
     """Result of flattening a PDF"""
-
-    input_filename: str = Field(description="Filename of the source file in the workspace")
 
 
 async def flatten_pdf(ctx: CoreContext, request: FlattenRequest) -> FlattenResult:
@@ -440,10 +400,7 @@ async def flatten_pdf(ctx: CoreContext, request: FlattenRequest) -> FlattenResul
 
     written = files_handler.write(request.input_filename, flattened_bytes, stem_suffix="flattened")
 
-    return FlattenResult(
-        input_filename=str(request.input_filename),
-        output_filename=written.name,
-    )
+    return FlattenResult(output_filename=written.name)
 
 
 def register_transformation_tools(mcp: FastMCP) -> None:

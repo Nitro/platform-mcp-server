@@ -12,10 +12,10 @@ from app.client.platform_client import (
     AcceptFormat,
     BytesFile,
     File,
-    GenericFailedError,
     PlatformApiClient,
     URLFile,
 )
+from app.utils.utils import GenericFailedError
 
 type Path = Literal["conversions", "extractions", "transformations"]
 

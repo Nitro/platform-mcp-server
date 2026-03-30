@@ -156,7 +156,6 @@ async def test_compress_file_medium(
     )
 
     expected = CompressResult(
-        input_filename="a.pdf",
         output_filename="a-compressed-medium.pdf",
         original_size_bytes=11,
         compressed_size_bytes=10,
@@ -211,11 +210,7 @@ async def test_split_pdf_success(
         },
     )
 
-    expected = SplitResult(
-        input_filename="a.pdf",
-        output_filename="a-split.zip",
-        split_count=2,
-    ).model_dump()
+    expected = SplitResult(output_filename="a-split.zip", split_count=2).model_dump()
     assert response.structuredContent == expected
     files_handler_mock.read.assert_called_once_with(Path("a.pdf"))
     platform_handler_mock.split_pdf.assert_called_once_with(b"pdf-content", [[0, 1], [3]])
@@ -248,11 +243,7 @@ async def test_rotate_pdf_success(
         },
     )
 
-    expected = RotateResult(
-        input_filename="a.pdf",
-        output_filename="a-rotated.pdf",
-        rotation_count=2,
-    ).model_dump()
+    expected = RotateResult(output_filename="a-rotated.pdf", rotation_count=2).model_dump()
     assert response.structuredContent == expected
     files_handler_mock.read.assert_called_once_with(Path("a.pdf"))
     platform_handler_mock.rotate_pdf.assert_called_once_with(
@@ -307,7 +298,6 @@ async def test_protect_pdf_success(
     )
 
     expected = ProtectResult(
-        input_filename="a.pdf",
         output_filename="a-protected.pdf",
         has_owner_password=True,
         has_user_password=True,
@@ -348,10 +338,7 @@ async def test_unprotect_pdf_success(
         },
     )
 
-    expected = UnprotectResult(
-        input_filename="a.pdf",
-        output_filename="a-unprotected.pdf",
-    ).model_dump()
+    expected = UnprotectResult(output_filename="a-unprotected.pdf").model_dump()
     assert response.structuredContent == expected
     files_handler_mock.read.assert_called_once_with(Path("a.pdf"))
     platform_handler_mock.unprotect_pdf.assert_called_once_with(
@@ -388,9 +375,7 @@ async def test_delete_pdf_pages_success(
     )
 
     expected = DeletePagesResult(
-        input_filename="a.pdf",
-        output_filename="a-pages-deleted.pdf",
-        pages_deleted=5,
+        output_filename="a-pages-deleted.pdf", pages_deleted=5
     ).model_dump()
     assert response.structuredContent == expected
     files_handler_mock.read.assert_called_once_with(Path("a.pdf"))
@@ -449,9 +434,7 @@ async def test_set_pdf_metadata_success(
     )
 
     expected = SetMetadataResult(
-        input_filename="a.pdf",
-        output_filename="a-metadata-updated.pdf",
-        fields_updated=2,
+        output_filename="a-metadata-updated.pdf", fields_updated=2
     ).model_dump()
     assert response.structuredContent == expected
     files_handler_mock.read.assert_called_once_with(Path("a.pdf"))
@@ -483,10 +466,7 @@ async def test_flatten_pdf_success(
         {"request": FlattenRequest(input_filename=Path("a.pdf")).model_dump()},
     )
 
-    expected = FlattenResult(
-        input_filename="a.pdf",
-        output_filename="a-flattened.pdf",
-    ).model_dump()
+    expected = FlattenResult(output_filename="a-flattened.pdf").model_dump()
     assert response.structuredContent == expected
     files_handler_mock.read.assert_called_once_with(Path("a.pdf"))
     platform_handler_mock.flatten_pdf.assert_called_once_with(b"pdf-content")
