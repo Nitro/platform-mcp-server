@@ -93,6 +93,16 @@ class SupportedConversions:
     })
 
 
+def _get_token(http_client: httpx.Client, base_url: str, client_id: str, client_secret: str) -> str:
+    """Exchange client credentials for a bearer token."""
+    response = http_client.post(
+        f"{base_url}/oauth/token",
+        json={"clientID": client_id, "clientSecret": client_secret},
+    )
+    response.raise_for_status()
+    return response.json()["accessToken"]
+
+
 @dataclass
 class PlatformHandler:
     """High-level handler for platform document operations"""
@@ -102,27 +112,36 @@ class PlatformHandler:
     _platform_client: PlatformApiClient
 
     @classmethod
-    def create(cls, base_url: str, auth_token: str, timeout: float = 120.0) -> PlatformHandler:
-        """
-        Factory method to create handler with all dependencies.
+    def from_auth_token(
+        cls,
+        base_url: str,
+        auth_token: str,
+        httpx_client: httpx.Client | None = None,
+    ) -> PlatformHandler:
+        """Create a PlatformHandler authenticated with a bearer token."""
+        if httpx_client is None:
+            httpx_client = httpx.Client(headers={"Authorization": f"Bearer {auth_token}"})
+        else:
+            httpx_client.headers["Authorization"] = f"Bearer {auth_token}"
+        return cls(PlatformApiClient(httpx_client, base_url))
 
-        Args:
-            base_url: Platform API base URL
-            auth_token: Bearer token for authentication
-            timeout: Timeout for job completion in seconds (default 120s)
-
-        Returns:
-            PlatformHandler instance with configured dependencies
-        """
-        headers = {"Authorization": f"Bearer {auth_token}"}
-        httpx_client = httpx.Client(headers=headers, timeout=60.0)
-        platform_client = PlatformApiClient(httpx_client, base_url, timeout)
-        return cls(platform_client)
+    @classmethod
+    def from_client_credentials(
+        cls, base_url: str, client_credentials: tuple[str, str]
+    ) -> PlatformHandler:
+        """Create a PlatformHandler by exchanging client credentials for a bearer token."""
+        httpx_client = httpx.Client()
+        auth_token = _get_token(httpx_client, base_url, *client_credentials)
+        return cls.from_auth_token(base_url, auth_token, httpx_client=httpx_client)
 
     def _is_valid_conversion(self, file_type: FileFormat, to: FileFormat) -> bool:
         return (file_type == FileFormat.PDF and to in self.supported_conversions.from_pdf_to) or (
             to == FileFormat.PDF and file_type in self.supported_conversions.to_pdf_from
         )
+
+    def _extract_result(self, content: bytes) -> bytes:
+        parsed: dict[str, Any] = json.loads(content)
+        return json.dumps(parsed["result"], indent=2).encode()
 
     def merge_pdfs(self, file_contents: list[bytes]) -> bytes:
         """
@@ -186,10 +205,6 @@ class PlatformHandler:
             raise RuntimeError(msg)
 
         return response.content
-
-    def _extract_result(self, content: bytes) -> bytes:
-        parsed: dict[str, Any] = json.loads(content)
-        return json.dumps(parsed["result"], indent=2).encode()
 
     def get_pdf_metadata(self, file_content: bytes) -> bytes:
         """Get PDF metadata properties and return as JSON result."""

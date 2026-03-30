@@ -31,16 +31,19 @@ jobs:
                   track_progress: true
                   claude_args: '--allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(cat:*)"'
                   prompt: |
-                      REPO: ${{ github.repository }}
-                      PR NUMBER: ${{ github.event.pull_request.number }}
+                    REPO: ${{ github.repository }}
+                    PR NUMBER: ${{ github.event.pull_request.number }}
 
-                      Perform a code review for this PR. Start by reading CLAUDE.md and style-guide.md for project context — do not flag patterns listed there as intentional choices.
+                    Perform a code review for this PR. Start by reading CLAUDE.md and style-guide.md for project context — do not flag patterns listed there as intentional choices.
 
-                      Be pragmatic: strike a good balance between code quality and utility. Follow the YAGNI principle — simple is better than complex. Do not flag things that don't matter in practice.
+                    Be pragmatic: strike a good balance between code quality and utility. Follow the YAGNI principle — simple is better than complex. Do not flag things that don't matter in practice.
 
-                      Focus on:
-                      - Bugs, security vulnerabilities
-                      - Race conditions, memory leaks, misplaced business logic
-                      - Significant structural issues
+                    Focus on:
+                    - Bugs, security vulnerabilities
+                    - Race conditions, memory leaks, misplaced business logic
+                    - Significant structural issues
 
-                      Use inline comments for specific line-level issues. Use a top-level comment only for a brief overall summary or if there are no issues.
+                    Use inline comments for specific line-level issues. Use a top-level comment only for a brief overall summary or if there are no issues.
+
+                    For each inline comment, include a concise prompt that can be copied and pasted to another agent to fix it.
+                    Provide the the files and line numbers for this. Put in a code block so it can be easily copied.

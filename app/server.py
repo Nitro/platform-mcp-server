@@ -16,8 +16,14 @@ from app.tools import register as register_tools
 @contextlib.asynccontextmanager
 async def lifespan(_: FastMCP) -> AsyncGenerator[AppContext]:
     """Lifespan handler for MCP server"""
+    if settings.auth_mode == "token-auth":
+        platform_handler = PlatformHandler.from_auth_token(settings.api_url, settings.auth_token)
+    else:
+        platform_handler = PlatformHandler.from_client_credentials(
+            settings.api_url, settings.client_credentials
+        )
     yield AppContext(
-        platform_handler=PlatformHandler.create(settings.api_url, settings.auth_token),
+        platform_handler=platform_handler,
         files_handler=FilesHandler(settings.files_folder),
     )
 
@@ -42,11 +48,6 @@ def welcome_message() -> str:
 
 def main() -> None:
     """Entry point for the MCP server"""
-    # Validate required configuration
-    if not settings.auth_token:
-        msg = "NITRO_AUTH_TOKEN environment variable is required"
-        raise ValueError(msg)
-
     mcp.run()
 
 
