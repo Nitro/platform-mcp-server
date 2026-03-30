@@ -8,5 +8,13 @@ from app.utils.excel_helpers import (
     create_forms_excel,
     create_tables_excel,
 )
+from app.utils.utils import GenericFailedError, check_http_response
 
-__all__ = ["FormsResult", "TablesResult", "create_forms_excel", "create_tables_excel"]
+__all__ = [
+    "FormsResult",
+    "GenericFailedError",
+    "TablesResult",
+    "check_http_response",
+    "create_forms_excel",
+    "create_tables_excel",
+]

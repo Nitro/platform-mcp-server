@@ -10,6 +10,7 @@ import httpx
 
 from app.client.enums import CompressionLevel, ContentType, FileFormat
 from app.client.platform_client import AcceptFormat, BytesFile, PlatformApiClient
+from app.utils.utils import check_http_response
 
 
 class PageRotation(TypedDict):
@@ -176,10 +177,7 @@ class PlatformHandler:
             accept_format=AcceptFormat.BYTES,
         )
 
-        if response.status_code != 200:
-            msg = f"Merge failed with status code: {response.status_code}"
-            raise RuntimeError(msg)
-
+        check_http_response(response)
         return response.content
 
     def convert_file(self, file_bytes: bytes, file_type: FileFormat, to: FileFormat) -> bytes:
@@ -200,10 +198,7 @@ class PlatformHandler:
             accept_format=AcceptFormat.BYTES,
         )
 
-        if response.status_code != 200:
-            msg = f"Conversion failed with status code: {response.status_code}"
-            raise RuntimeError(msg)
-
+        check_http_response(response)
         return response.content
 
     def get_pdf_metadata(self, file_content: bytes) -> bytes:
@@ -220,10 +215,7 @@ class PlatformHandler:
             accept_format=AcceptFormat.JSON,
         )
 
-        if response.status_code != 200:
-            msg = f"Metadata extraction failed with status code: {response.status_code}"
-            raise RuntimeError(msg)
-
+        check_http_response(response)
         return self._extract_result(response.content)
 
     def compress_pdf(self, file_bytes: bytes, level: CompressionLevel) -> bytes:
@@ -257,10 +249,7 @@ class PlatformHandler:
             accept_format=AcceptFormat.BYTES,
         )
 
-        if response.status_code != 200:
-            msg = f"Compression failed with status code: {response.status_code}"
-            raise RuntimeError(msg)
-
+        check_http_response(response)
         return response.content
 
     def split_pdf(self, file_bytes: bytes, page_ranges: list[list[int]]) -> bytes:
@@ -292,10 +281,7 @@ class PlatformHandler:
             accept_format=AcceptFormat.BYTES,
         )
 
-        if response.status_code != 200:
-            msg = f"Split failed with status code: {response.status_code}"
-            raise RuntimeError(msg)
-
+        check_http_response(response)
         return response.content
 
     def rotate_pdf(self, file_bytes: bytes, rotations: list[PageRotation]) -> bytes:
@@ -328,10 +314,7 @@ class PlatformHandler:
             accept_format=AcceptFormat.BYTES,
         )
 
-        if response.status_code != 200:
-            msg = f"Rotation failed with status code: {response.status_code}"
-            raise RuntimeError(msg)
-
+        check_http_response(response)
         return response.content
 
     def protect_pdf(
@@ -380,10 +363,7 @@ class PlatformHandler:
             accept_format=AcceptFormat.BYTES,
         )
 
-        if response.status_code != 200:
-            msg = f"Protection failed with status code: {response.status_code}"
-            raise RuntimeError(msg)
-
+        check_http_response(response)
         return response.content
 
     def unprotect_pdf(
@@ -427,10 +407,7 @@ class PlatformHandler:
             accept_format=AcceptFormat.BYTES,
         )
 
-        if response.status_code != 200:
-            msg = f"Unprotection failed with status code: {response.status_code}"
-            raise RuntimeError(msg)
-
+        check_http_response(response)
         return response.content
 
     def delete_pdf_pages(self, file_bytes: bytes, page_indices: list[int]) -> bytes:
@@ -462,10 +439,7 @@ class PlatformHandler:
             accept_format=AcceptFormat.BYTES,
         )
 
-        if response.status_code != 200:
-            msg = f"Page deletion failed with status code: {response.status_code}"
-            raise RuntimeError(msg)
-
+        check_http_response(response)
         return response.content
 
     def set_pdf_metadata(self, file_bytes: bytes, metadata: PdfMetadata) -> bytes:
@@ -499,10 +473,7 @@ class PlatformHandler:
             accept_format=AcceptFormat.BYTES,
         )
 
-        if response.status_code != 200:
-            msg = f"Metadata update failed with status code: {response.status_code}"
-            raise RuntimeError(msg)
-
+        check_http_response(response)
         return response.content
 
     def flatten_pdf(self, file_bytes: bytes) -> bytes:
@@ -531,10 +502,7 @@ class PlatformHandler:
             accept_format=AcceptFormat.BYTES,
         )
 
-        if response.status_code != 200:
-            msg = f"Flatten failed with status code: {response.status_code}"
-            raise RuntimeError(msg)
-
+        check_http_response(response)
         return response.content
 
     def extract_pdf_data(
@@ -563,8 +531,5 @@ class PlatformHandler:
             accept_format=AcceptFormat.JSON,
         )
 
-        if response.status_code != 200:
-            msg = f"Data extraction failed with status code: {response.status_code}"
-            raise RuntimeError(msg)
-
+        check_http_response(response)
         return self._extract_result(response.content)
