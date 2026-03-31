@@ -60,6 +60,8 @@ tasks:
   build:
     desc: Build mcpb package
     cmds:
+      - cmd: echo "🚀 Building binary with PyInstaller..."
+        silent: true
       - mcpb pack
       - rm ~/Desktop/nitro.mcpb
       - cp ./mcp.mcpb ~/Desktop/nitro.mcpb
