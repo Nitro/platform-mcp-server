@@ -60,7 +60,7 @@ tasks:
   build:
     desc: Build mcpb package
     cmds:
-      - cmd: echo "🚀 Building binary with PyInstaller..."
+      - cmd: echo "🚀 Building binary with https://github.com/modelcontextprotocol/mcpb..."
         silent: true
       - mcpb pack
 
