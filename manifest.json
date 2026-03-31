@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "nitro-mcp",
   "display_name": "Nitro Document Automation",
-  "version": "0.0.1",
+  "version": "2026.03.31.01",
   "description": "Nitro Document Automation MCP server",
   "author": {
     "name": "Nitro Software Inc."
