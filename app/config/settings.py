@@ -22,6 +22,11 @@ class Settings(BaseSettings):
         description="Nitro authorization server URL",
         validation_alias="NITRO_AUTH_URL",
     )
+    client_id: str = Field(
+        default="nitro-mcp",
+        description="OAuth client ID",
+        validation_alias="NITRO_CLIENT_ID",
+    )
     api_url: str = Field(
         default="https://api.gonitrodev.com/idp/platform",
         description="Platform API base URL",

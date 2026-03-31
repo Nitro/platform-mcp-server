@@ -21,6 +21,7 @@ class AppContext:
     platform_handler: PlatformHandler
     files_handler: FilesHandler
     auth_url: str
+    client_id: str
 
 
 CoreContext = Context[ServerSession, AppContext]
@@ -53,12 +54,10 @@ def get_dep(
 def require_auth(ctx: CoreContext) -> str:
     """Return a valid access token, or raise if the user is not authenticated."""
     app_ctx = _get_app_context(ctx)
-    token = resolve_token(app_ctx.auth_url)
+    token = resolve_token(app_ctx.auth_url, app_ctx.client_id)
     if not token:
-        auth_url = app_ctx.auth_url
-        msg = (
-            f"Not authenticated. Please sign in to Nitro by visiting:\n\n{start_auth_flow(auth_url)}\n\n"
-            "Once signed in, retry your request."
+        url = start_auth_flow(app_ctx.auth_url, app_ctx.client_id)
+        raise PermissionError(
+            f"Not authenticated. Please sign in to Nitro by visiting:\n\n{url}\n\nOnce signed in, retry your request. Just tell the user they are not signed in or the session has expired."
         )
-        raise PermissionError(msg)
     return token

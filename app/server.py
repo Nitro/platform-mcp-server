@@ -23,11 +23,12 @@ _AUTH_REQUIRED_MSG = (
 @contextlib.asynccontextmanager
 async def lifespan(_: FastMCP) -> AsyncGenerator[AppContext]:
     """Lifespan handler for MCP server"""
-    token = resolve_token(settings.auth_url) or settings.auth_token
+    token = resolve_token(settings.auth_url, settings.client_id) or settings.auth_token
     yield AppContext(
         platform_handler=PlatformHandler.create(settings.api_url, token),
         files_handler=FilesHandler(settings.files_folder),
         auth_url=settings.auth_url,
+        client_id=settings.client_id,
     )
 
 
