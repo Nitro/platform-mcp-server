@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from app.client import CompressionLevel
 from app.context import CoreContext, get_dep
-from app.handlers import ensure_workspace_from_path, extract_workspace_and_filename
+from app.handlers import extract_workspace_and_filename
 from app.handlers.platform_handler import PageRotation, PdfMetadata, PdfPermission
 from app.models import SingleFileInputBase, SingleFileOutputBase
 
@@ -115,7 +115,7 @@ async def compress_file(ctx: CoreContext, request: CompressRequest) -> CompressR
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
-    filename = ensure_workspace_from_path(files_handler, request.input_filename)
+    filename = files_handler.ensure_workspace_from_path(request.input_filename)
 
     level_map = {
         "light": CompressionLevel.LIGHT,
@@ -165,7 +165,7 @@ async def split_pdf(ctx: CoreContext, request: SplitRequest) -> SplitResult:
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
-    filename = ensure_workspace_from_path(files_handler, request.input_filename)
+    filename = files_handler.ensure_workspace_from_path(request.input_filename)
 
     parsed_ranges: list[list[int]] = []
     for range_str in request.page_ranges:
@@ -212,7 +212,7 @@ async def rotate_pdf(ctx: CoreContext, request: RotateRequest) -> RotateResult:
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
-    filename = ensure_workspace_from_path(files_handler, request.input_filename)
+    filename = files_handler.ensure_workspace_from_path(request.input_filename)
 
     page_rotations: list[PageRotation] = [
         {"pageIndex": rotation.page_number - 1, "amount": rotation.amount}
@@ -258,7 +258,7 @@ async def protect_pdf(ctx: CoreContext, request: ProtectRequest) -> ProtectResul
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
-    filename = ensure_workspace_from_path(files_handler, request.input_filename)
+    filename = files_handler.ensure_workspace_from_path(request.input_filename)
 
     protected_bytes = platform_handler.protect_pdf(
         files_handler.read(filename),
@@ -298,7 +298,7 @@ async def unprotect_pdf(ctx: CoreContext, request: UnprotectRequest) -> Unprotec
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
-    filename = ensure_workspace_from_path(files_handler, request.input_filename)
+    filename = files_handler.ensure_workspace_from_path(request.input_filename)
 
     unprotected_bytes = platform_handler.unprotect_pdf(
         files_handler.read(filename),
@@ -308,9 +308,7 @@ async def unprotect_pdf(ctx: CoreContext, request: UnprotectRequest) -> Unprotec
 
     written = files_handler.write(filename, unprotected_bytes, stem_suffix="unprotected")
 
-    return UnprotectResult(
-        output_filename=written.name,
-    )
+    return UnprotectResult(output_filename=written.name)
 
 
 class DeletePagesRequest(SingleFileInputBase):
@@ -335,7 +333,7 @@ async def delete_pdf_pages(ctx: CoreContext, request: DeletePagesRequest) -> Del
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
-    filename = ensure_workspace_from_path(files_handler, request.input_filename)
+    filename = files_handler.ensure_workspace_from_path(request.input_filename)
 
     parsed_pages: list[int] = []
     for page_part in request.page_numbers:
@@ -361,10 +359,7 @@ async def delete_pdf_pages(ctx: CoreContext, request: DeletePagesRequest) -> Del
 
     written = files_handler.write(filename, modified_bytes, stem_suffix="pages-deleted")
 
-    return DeletePagesResult(
-        output_filename=written.name,
-        pages_deleted=len(parsed_pages),
-    )
+    return DeletePagesResult(output_filename=written.name, pages_deleted=len(parsed_pages))
 
 
 class SetMetadataRequest(SingleFileInputBase):
@@ -396,7 +391,7 @@ async def set_pdf_metadata(ctx: CoreContext, request: SetMetadataRequest) -> Set
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
-    filename = ensure_workspace_from_path(files_handler, request.input_filename)
+    filename = files_handler.ensure_workspace_from_path(request.input_filename)
 
     field_mapping = {
         "title": request.title,
@@ -439,7 +434,7 @@ async def flatten_pdf(ctx: CoreContext, request: FlattenRequest) -> FlattenResul
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
-    filename = ensure_workspace_from_path(files_handler, request.input_filename)
+    filename = files_handler.ensure_workspace_from_path(request.input_filename)
 
     flattened_bytes = platform_handler.flatten_pdf(files_handler.read(filename))
 

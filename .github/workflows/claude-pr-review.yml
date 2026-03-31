@@ -38,6 +38,13 @@ jobs:
 
                     Be pragmatic: strike a good balance between code quality and utility. Follow the YAGNI principle — simple is better than complex. Do not flag things that don't matter in practice.
 
+                    IMPORTANT: This project uses multiple linters:
+                    - Ruff (linting/formatting) - suppress with `# noqa: XXXX`
+                    - Pyright (type checking) - suppress with `# type: ignore` or `# pyright: ignore`
+                    - Pylint (additional linting in pre-commit hooks) - suppress with `# pylint: disable=XXXX`
+
+                    Do not flag `# pylint: disable=XXXX` comments as unnecessary - pylint is actively enforced.
+
                     Focus on:
                     - Bugs, security vulnerabilities
                     - Race conditions, memory leaks, misplaced business logic

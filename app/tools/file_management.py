@@ -91,11 +91,13 @@ def list_files(
         files_handler.set_workspace(folder_path)
 
     file_paths = files_handler.list_files(file_type)
-    file_paths.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+
+    # Compute stat once per file for both sorting and info building
+    file_paths_with_stat = [(f, f.stat()) for f in file_paths]
+    file_paths_with_stat.sort(key=lambda x: x[1].st_mtime, reverse=True)
 
     file_infos: list[FileInfo] = []
-    for file_path in file_paths:
-        stat = file_path.stat()
+    for file_path, stat in file_paths_with_stat:
         file_infos.append(
             FileInfo(
                 name=file_path.name,

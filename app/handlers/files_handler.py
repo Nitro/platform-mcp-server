@@ -94,10 +94,11 @@ def extract_workspace_and_filename(input_path: Path | str) -> tuple[Path, Path]:
 
     # Bare filename without directory information
     if len(path.parts) == 1:
+        example_path = Path.home() / "Downloads" / path
         msg = (
             f"Please provide full path including directory. "
             f"Got: {path}. "
-            f"Expected: /full/path/to/{path}"
+            f"Expected example: {example_path}"
         )
         raise ValueError(msg)
 
@@ -118,47 +119,6 @@ def extract_workspace_and_filename(input_path: Path | str) -> tuple[Path, Path]:
     abs_path = path.resolve()
 
     return abs_path.parent, Path(abs_path.name)
-
-
-def ensure_workspace_from_path(files_handler: FilesHandler, input_path: Path | str) -> Path:
-    """
-    Extract workspace from input path and set it on the handler.
-
-    This is a convenience function for single-file operations. It extracts the workspace
-    directory from the input path, updates the files_handler workspace if needed,
-    and returns just the filename for use with FilesHandler.read/write.
-
-    Args:
-        files_handler: The FilesHandler instance to configure
-        input_path: Full path to a file, or bare filename if workspace already set
-
-    Returns:
-        The filename component only (for use with files_handler.read/write)
-
-    Raises:
-        WorkspaceNotSetError: If input_path is a bare filename and workspace not set
-
-    Example:
-        filename = ensure_workspace_from_path(handler, "/home/docs/file.pdf")
-        content = handler.read(filename)  # reads from /home/docs/file.pdf
-
-        # After workspace is set:
-        filename = ensure_workspace_from_path(handler, "file.pdf")
-        content = handler.read(filename)  # reads from workspace/file.pdf
-    """
-    path = Path(input_path) if isinstance(input_path, str) else input_path
-
-    # If it's a bare filename and workspace is already set, use it
-    if len(path.parts) == 1:
-        if files_handler.has_workspace:
-            return path
-        raise WorkspaceNotSetError
-
-    # Otherwise extract workspace from path
-    workspace, filename = extract_workspace_and_filename(input_path)
-    if not files_handler.has_workspace or workspace != files_handler.workspace:
-        files_handler.set_workspace(workspace)
-    return filename
 
 
 @dataclass
@@ -205,6 +165,45 @@ class FilesHandler:
         if self._root is None:
             raise WorkspaceNotSetError
         return self._root
+
+    def ensure_workspace_from_path(self, input_path: Path | str) -> Path:
+        """
+        Extract workspace from input path and set it on the handler.
+
+        This is a convenience method for single-file operations. It extracts the workspace
+        directory from the input path, updates the workspace if needed,
+        and returns just the filename for use with read/write methods.
+
+        Args:
+            input_path: Full path to a file, or bare filename if workspace already set
+
+        Returns:
+            The filename component only (for use with read/write)
+
+        Raises:
+            WorkspaceNotSetError: If input_path is a bare filename and workspace not set
+
+        Example:
+            filename = handler.ensure_workspace_from_path("/home/docs/file.pdf")
+            content = handler.read(filename)  # reads from /home/docs/file.pdf
+
+            # After workspace is set:
+            filename = handler.ensure_workspace_from_path("file.pdf")
+            content = handler.read(filename)  # reads from workspace/file.pdf
+        """
+        path = Path(input_path) if isinstance(input_path, str) else input_path
+
+        # If it's a bare filename and workspace is already set, use it
+        if len(path.parts) == 1:
+            if self.has_workspace:
+                return path
+            raise WorkspaceNotSetError
+
+        # Otherwise extract workspace from path
+        workspace, filename = extract_workspace_and_filename(input_path)
+        if not self.has_workspace or workspace != self.workspace:
+            self.set_workspace(workspace)
+        return filename
 
     def _resolve(self, path: Path) -> Path:
         if self._root is None:

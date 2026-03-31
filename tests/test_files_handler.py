@@ -8,7 +8,6 @@ import pytest
 
 from app.handlers import FilesHandler, PathTraversalError, WorkspaceNotSetError
 from app.handlers.files_handler import (
-    ensure_workspace_from_path,
     extract_workspace_and_filename,
     get_common_folders,
     search_folder_in_home,
@@ -336,7 +335,7 @@ def test_ensure_workspace_from_path_with_bare_filename_when_workspace_set(
     """ensure_workspace_from_path accepts bare filename when workspace already set."""
     handler = FilesHandler(tmp_path)
 
-    filename = ensure_workspace_from_path(handler, "document.pdf")
+    filename = handler.ensure_workspace_from_path("document.pdf")
     assert filename == Path("document.pdf")
 
 
@@ -345,4 +344,4 @@ def test_ensure_workspace_from_path_with_bare_filename_no_workspace_raises() -> 
     handler = FilesHandler(None)
 
     with pytest.raises(WorkspaceNotSetError):
-        ensure_workspace_from_path(handler, "document.pdf")
+        handler.ensure_workspace_from_path("document.pdf")

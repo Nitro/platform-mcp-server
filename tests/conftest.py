@@ -45,33 +45,15 @@ def _platform_handler_mock(mocker: MockerFixture) -> MagicMock:
 def _files_handler_mock(mocker: MockerFixture, tmp_path: Path) -> MagicMock:
     """Create a FilesHandler mock with workspace already set to tmp_path."""
 
-    # Patch ensure_workspace_from_path to accept bare filenames in tests
-    def mock_ensure_workspace(_handler: object, input_path: Path | str) -> Path:
-        # In tests, just return the path as-is (treating it as a filename)
-        return Path(input_path) if isinstance(input_path, str) else input_path
-
-    # Patch extract_workspace_and_filename for merge_files
+    # Patch extract_workspace_and_filename for merge_files to work with bare filenames
     def mock_extract_workspace(input_path: Path | str) -> tuple[Path, Path]:
         # In tests, return tmp_path as workspace and input as filename
         path = Path(input_path) if isinstance(input_path, str) else input_path
         return tmp_path, path
 
-    # Patch in all tool modules
-    mocker.patch(
-        "app.tools.transformations.ensure_workspace_from_path",
-        side_effect=mock_ensure_workspace,
-    )
     mocker.patch(
         "app.tools.transformations.extract_workspace_and_filename",
         side_effect=mock_extract_workspace,
-    )
-    mocker.patch(
-        "app.tools.conversions.ensure_workspace_from_path",
-        side_effect=mock_ensure_workspace,
-    )
-    mocker.patch(
-        "app.tools.extractions.ensure_workspace_from_path",
-        side_effect=mock_ensure_workspace,
     )
 
     # Create a real FilesHandler with workspace set for tests
@@ -83,6 +65,12 @@ def _files_handler_mock(mocker: MockerFixture, tmp_path: Path) -> MagicMock:
     mock.has_workspace = handler.has_workspace
     mock.workspace = handler.workspace
     mock.set_workspace = mocker.MagicMock()  # Mock set_workspace
+
+    # Mock ensure_workspace_from_path to return bare filenames as-is
+    def mock_ensure_workspace(input_path: Path | str) -> Path:
+        return Path(input_path) if isinstance(input_path, str) else input_path
+
+    mock.ensure_workspace_from_path = mocker.MagicMock(side_effect=mock_ensure_workspace)
 
     return mock
 

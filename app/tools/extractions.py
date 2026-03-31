@@ -8,7 +8,6 @@ from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 
 from app.context import CoreContext, get_dep
-from app.handlers import ensure_workspace_from_path
 from app.handlers.platform_handler import ExtractionDataType, ExtractionParams
 from app.models import SingleFileInputBase, SingleFileOutputBase
 from app.utils import FormsResult, TablesResult, create_forms_excel, create_tables_excel
@@ -73,7 +72,7 @@ def get_pdf_metadata(ctx: CoreContext, request: PDFMetadataRequest) -> PDFMetada
     platform_handler = get_dep(ctx, "platform-handler")
     files_handler = get_dep(ctx, "files-handler")
 
-    filename = ensure_workspace_from_path(files_handler, request.input_filename)
+    filename = files_handler.ensure_workspace_from_path(request.input_filename)
 
     input_bytes = files_handler.read(filename)
     metadata = platform_handler.get_pdf_metadata(input_bytes)
@@ -86,7 +85,7 @@ def extract_pdf_forms(ctx: CoreContext, request: ExtractPDFFormsRequest) -> Extr
     platform_handler = get_dep(ctx, "platform-handler")
     files_handler = get_dep(ctx, "files-handler")
 
-    filename = ensure_workspace_from_path(files_handler, request.input_filename)
+    filename = files_handler.ensure_workspace_from_path(request.input_filename)
 
     input_bytes = files_handler.read(filename)
     result = platform_handler.extract_pdf_data(
@@ -115,7 +114,7 @@ def extract_pdf_tables(ctx: CoreContext, request: ExtractPDFTablesRequest) -> Ex
     platform_handler = get_dep(ctx, "platform-handler")
     files_handler = get_dep(ctx, "files-handler")
 
-    filename = ensure_workspace_from_path(files_handler, request.input_filename)
+    filename = files_handler.ensure_workspace_from_path(request.input_filename)
 
     input_bytes = files_handler.read(filename)
     params = ExtractionParams()
@@ -141,7 +140,7 @@ def extract_pdf_text(ctx: CoreContext, request: ExtractPDFTextRequest) -> Extrac
     platform_handler = get_dep(ctx, "platform-handler")
     files_handler = get_dep(ctx, "files-handler")
 
-    filename = ensure_workspace_from_path(files_handler, request.input_filename)
+    filename = files_handler.ensure_workspace_from_path(request.input_filename)
 
     input_bytes = files_handler.read(filename)
     params = ExtractionParams(readingOrder=request.reading_order)
@@ -161,7 +160,7 @@ def extract_pdf_accessibility(
     platform_handler = get_dep(ctx, "platform-handler")
     files_handler = get_dep(ctx, "files-handler")
 
-    filename = ensure_workspace_from_path(files_handler, request.input_filename)
+    filename = files_handler.ensure_workspace_from_path(request.input_filename)
 
     input_bytes = files_handler.read(filename)
     result = platform_handler.extract_pdf_data(input_bytes, "accessibility", ExtractionParams())
