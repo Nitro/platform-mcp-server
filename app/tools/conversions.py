@@ -29,14 +29,16 @@ async def convert_file(ctx: CoreContext, request: ConversionRequest) -> Conversi
     platform_handler = get_dep(ctx, "platform-handler")
     files_handler = get_dep(ctx, "files-handler")
 
-    input_bytes = files_handler.read(request.input_filename)
+    filename = files_handler.ensure_workspace_from_path(request.input_filename)
+
+    input_bytes = files_handler.read(filename)
     converted_bytes = platform_handler.convert_file(
         input_bytes,
-        FileFormat(request.input_filename.suffix.lstrip(".").lower()),
+        FileFormat(filename.suffix.lstrip(".").lower()),
         FileFormat(request.to),
     )
     output_path = files_handler.write(
-        request.input_filename, converted_bytes, stem_suffix="converted", ext=request.to
+        filename, converted_bytes, stem_suffix="converted", ext=request.to
     )
     return ConversionResult(output_filename=output_path.name)
 

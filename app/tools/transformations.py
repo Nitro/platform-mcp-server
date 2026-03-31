@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from app.client import CompressionLevel
 from app.context import CoreContext, get_dep
+from app.handlers import extract_workspace_and_filename
 from app.handlers.platform_handler import PageRotation, PdfMetadata, PdfPermission
 from app.models import SingleFileInputBase, SingleFileOutputBase
 
@@ -38,16 +39,44 @@ class MergeResult(SingleFileOutputBase):
     output_size_bytes: int = Field(description="Size of merged output file in bytes")
 
 
-def merge_files(ctx: CoreContext, request: MergeRequest) -> MergeResult:
+def merge_files(ctx: CoreContext, request: MergeRequest) -> MergeResult:  # pylint: disable=too-many-locals
     """Merge multiple PDF files into one PDF."""
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
+    # Check if all inputs are bare filenames
+    all_bare_filenames = all(len(Path(f).parts) == 1 for f in request.input_filenames)
+
+    if all_bare_filenames and files_handler.has_workspace:
+        # Workspace already set, use bare filenames directly
+        filenames = [Path(f) for f in request.input_filenames]
+    else:
+        # Extract workspace from first file
+        first_path = Path(request.input_filenames[0])
+        workspace, _ = extract_workspace_and_filename(first_path)
+
+        # Set or update workspace
+        if not files_handler.has_workspace or workspace != files_handler.workspace:
+            files_handler.set_workspace(workspace)
+
+        # Validate all files are in same directory and extract filenames
+        filenames: list[Path] = []
+        for filename_str in request.input_filenames:
+            file_path = Path(filename_str)
+            file_workspace, file_name = extract_workspace_and_filename(file_path)
+            if file_workspace != workspace:
+                msg = (
+                    f"All files must be in the same directory. "
+                    f"Expected: {workspace}, Got: {file_workspace} for {filename_str}"
+                )
+                raise ValueError(msg)
+            filenames.append(file_name)
+
     file_contents: list[bytes] = []
     total_size = 0
 
-    for filename in request.input_filenames:
-        content = files_handler.read(Path(filename))
+    for filename in filenames:
+        content = files_handler.read(filename)
         file_contents.append(content)
         total_size += len(content)
 
@@ -57,8 +86,8 @@ def merge_files(ctx: CoreContext, request: MergeRequest) -> MergeResult:
 
     return MergeResult(
         output_filename=written.name,
-        input_filenames=request.input_filenames,
-        input_count=len(request.input_filenames),
+        input_filenames=[str(f) for f in filenames],
+        input_count=len(filenames),
         total_input_size_bytes=total_size,
         output_size_bytes=len(merged_bytes),
     )
@@ -86,6 +115,8 @@ async def compress_file(ctx: CoreContext, request: CompressRequest) -> CompressR
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
+    filename = files_handler.ensure_workspace_from_path(request.input_filename)
+
     level_map = {
         "light": CompressionLevel.LIGHT,
         "medium": CompressionLevel.MEDIUM,
@@ -96,7 +127,7 @@ async def compress_file(ctx: CoreContext, request: CompressRequest) -> CompressR
         msg = f"Invalid compression level: {request.level}. Must be 'light', 'medium', or 'heavy'"
         raise ValueError(msg)
 
-    original_bytes = files_handler.read(request.input_filename)
+    original_bytes = files_handler.read(filename)
     original_size = len(original_bytes)
 
     compressed_bytes = platform_handler.compress_pdf(original_bytes, level)
@@ -104,7 +135,7 @@ async def compress_file(ctx: CoreContext, request: CompressRequest) -> CompressR
     reduction = ((original_size - compressed_size) / original_size) * 100
 
     written = files_handler.write(
-        request.input_filename, compressed_bytes, stem_suffix=f"compressed-{request.level}"
+        filename, compressed_bytes, stem_suffix=f"compressed-{request.level}"
     )
 
     return CompressResult(
@@ -134,6 +165,8 @@ async def split_pdf(ctx: CoreContext, request: SplitRequest) -> SplitResult:
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
+    filename = files_handler.ensure_workspace_from_path(request.input_filename)
+
     parsed_ranges: list[list[int]] = []
     for range_str in request.page_ranges:
         range_str = range_str.strip()
@@ -143,11 +176,9 @@ async def split_pdf(ctx: CoreContext, request: SplitRequest) -> SplitResult:
         else:
             parsed_ranges.append([int(range_str) - 1])
 
-    zip_bytes = platform_handler.split_pdf(
-        files_handler.read(request.input_filename), parsed_ranges
-    )
+    zip_bytes = platform_handler.split_pdf(files_handler.read(filename), parsed_ranges)
 
-    written = files_handler.write(request.input_filename, zip_bytes, stem_suffix="split", ext="zip")
+    written = files_handler.write(filename, zip_bytes, stem_suffix="split", ext="zip")
 
     return SplitResult(output_filename=written.name, split_count=len(parsed_ranges))
 
@@ -178,16 +209,16 @@ async def rotate_pdf(ctx: CoreContext, request: RotateRequest) -> RotateResult:
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
+    filename = files_handler.ensure_workspace_from_path(request.input_filename)
+
     page_rotations: list[PageRotation] = [
         {"pageIndex": rotation.page_number - 1, "amount": rotation.amount}
         for rotation in request.rotations
     ]
 
-    rotated_bytes = platform_handler.rotate_pdf(
-        files_handler.read(request.input_filename), page_rotations
-    )
+    rotated_bytes = platform_handler.rotate_pdf(files_handler.read(filename), page_rotations)
 
-    written = files_handler.write(request.input_filename, rotated_bytes, stem_suffix="rotated")
+    written = files_handler.write(filename, rotated_bytes, stem_suffix="rotated")
 
     return RotateResult(output_filename=written.name, rotation_count=len(page_rotations))
 
@@ -221,14 +252,16 @@ async def protect_pdf(ctx: CoreContext, request: ProtectRequest) -> ProtectResul
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
+    filename = files_handler.ensure_workspace_from_path(request.input_filename)
+
     protected_bytes = platform_handler.protect_pdf(
-        files_handler.read(request.input_filename),
+        files_handler.read(filename),
         owner_password=request.owner_password,
         user_password=request.user_password,
         permissions=request.permissions,
     )
 
-    written = files_handler.write(request.input_filename, protected_bytes, stem_suffix="protected")
+    written = files_handler.write(filename, protected_bytes, stem_suffix="protected")
 
     return ProtectResult(
         output_filename=written.name,
@@ -259,15 +292,15 @@ async def unprotect_pdf(ctx: CoreContext, request: UnprotectRequest) -> Unprotec
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
+    filename = files_handler.ensure_workspace_from_path(request.input_filename)
+
     unprotected_bytes = platform_handler.unprotect_pdf(
-        files_handler.read(request.input_filename),
+        files_handler.read(filename),
         owner_password=request.owner_password,
         user_password=request.user_password,
     )
 
-    written = files_handler.write(
-        request.input_filename, unprotected_bytes, stem_suffix="unprotected"
-    )
+    written = files_handler.write(filename, unprotected_bytes, stem_suffix="unprotected")
 
     return UnprotectResult(output_filename=written.name)
 
@@ -294,6 +327,8 @@ async def delete_pdf_pages(ctx: CoreContext, request: DeletePagesRequest) -> Del
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
+    filename = files_handler.ensure_workspace_from_path(request.input_filename)
+
     parsed_pages: list[int] = []
     for page_part in request.page_numbers:
         page_part = page_part.strip()
@@ -314,13 +349,9 @@ async def delete_pdf_pages(ctx: CoreContext, request: DeletePagesRequest) -> Del
 
     parsed_pages = sorted(set(parsed_pages))
 
-    modified_bytes = platform_handler.delete_pdf_pages(
-        files_handler.read(request.input_filename), parsed_pages
-    )
+    modified_bytes = platform_handler.delete_pdf_pages(files_handler.read(filename), parsed_pages)
 
-    written = files_handler.write(
-        request.input_filename, modified_bytes, stem_suffix="pages-deleted"
-    )
+    written = files_handler.write(filename, modified_bytes, stem_suffix="pages-deleted")
 
     return DeletePagesResult(output_filename=written.name, pages_deleted=len(parsed_pages))
 
@@ -354,6 +385,8 @@ async def set_pdf_metadata(ctx: CoreContext, request: SetMetadataRequest) -> Set
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
+    filename = files_handler.ensure_workspace_from_path(request.input_filename)
+
     field_mapping = {
         "title": request.title,
         "author": request.author,
@@ -367,13 +400,9 @@ async def set_pdf_metadata(ctx: CoreContext, request: SetMetadataRequest) -> Set
     }
     metadata = cast(PdfMetadata, {k: v for k, v in field_mapping.items() if v is not None})
 
-    modified_bytes = platform_handler.set_pdf_metadata(
-        files_handler.read(request.input_filename), metadata
-    )
+    modified_bytes = platform_handler.set_pdf_metadata(files_handler.read(filename), metadata)
 
-    written = files_handler.write(
-        request.input_filename, modified_bytes, stem_suffix="metadata-updated"
-    )
+    written = files_handler.write(filename, modified_bytes, stem_suffix="metadata-updated")
 
     return SetMetadataResult(output_filename=written.name, fields_updated=len(metadata))
 
@@ -396,9 +425,11 @@ async def flatten_pdf(ctx: CoreContext, request: FlattenRequest) -> FlattenResul
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
-    flattened_bytes = platform_handler.flatten_pdf(files_handler.read(request.input_filename))
+    filename = files_handler.ensure_workspace_from_path(request.input_filename)
 
-    written = files_handler.write(request.input_filename, flattened_bytes, stem_suffix="flattened")
+    flattened_bytes = platform_handler.flatten_pdf(files_handler.read(filename))
+
+    written = files_handler.write(filename, flattened_bytes, stem_suffix="flattened")
 
     return FlattenResult(output_filename=written.name)
 
