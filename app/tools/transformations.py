@@ -180,10 +180,7 @@ async def split_pdf(ctx: CoreContext, request: SplitRequest) -> SplitResult:
 
     written = files_handler.write(filename, zip_bytes, stem_suffix="split", ext="zip")
 
-    return SplitResult(
-        output_filename=written.name,
-        split_count=len(parsed_ranges),
-    )
+    return SplitResult(output_filename=written.name, split_count=len(parsed_ranges))
 
 
 class Rotation(BaseModel):
@@ -223,10 +220,7 @@ async def rotate_pdf(ctx: CoreContext, request: RotateRequest) -> RotateResult:
 
     written = files_handler.write(filename, rotated_bytes, stem_suffix="rotated")
 
-    return RotateResult(
-        output_filename=written.name,
-        rotation_count=len(page_rotations),
-    )
+    return RotateResult(output_filename=written.name, rotation_count=len(page_rotations))
 
 
 class ProtectRequest(SingleFileInputBase):
@@ -410,10 +404,7 @@ async def set_pdf_metadata(ctx: CoreContext, request: SetMetadataRequest) -> Set
 
     written = files_handler.write(filename, modified_bytes, stem_suffix="metadata-updated")
 
-    return SetMetadataResult(
-        output_filename=written.name,
-        fields_updated=len(metadata),
-    )
+    return SetMetadataResult(output_filename=written.name, fields_updated=len(metadata))
 
 
 class FlattenRequest(SingleFileInputBase):
@@ -440,9 +431,7 @@ async def flatten_pdf(ctx: CoreContext, request: FlattenRequest) -> FlattenResul
 
     written = files_handler.write(filename, flattened_bytes, stem_suffix="flattened")
 
-    return FlattenResult(
-        output_filename=written.name,
-    )
+    return FlattenResult(output_filename=written.name)
 
 
 def register_transformation_tools(mcp: FastMCP) -> None:
