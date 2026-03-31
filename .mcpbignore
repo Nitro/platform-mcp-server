@@ -13,6 +13,10 @@ docs/
 .github/
 .claude/
 .pre-commit-config.yaml
+*.md
+*.yml
+.env
+.in
 sample-expense.pdf
 client.py
 investigate_sse.py
