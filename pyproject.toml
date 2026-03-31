@@ -1,6 +1,6 @@
 [project]
 name = "platform-mcp-server"
-dynamic = ["version"]
+version = "0"
 description = "MCP server for Nitro Document Intelligence Platform"
 authors = [{name = "rpalekar", email = "rajvardhan.palekar@gonitro.com"}]
 readme = "README.md"
@@ -20,8 +20,11 @@ dependencies = [
 ]
 
 [build-system]
-requires = ["setuptools>=80", "setuptools-scm>=8"]
+requires = ["setuptools>=80"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
 
 [dependency-groups]
 dev = [
@@ -36,9 +39,6 @@ dev = [
     "pytest-socket>=0.7.0",
     "pytest-mock>=3.15.0",
     "pytest-httpx>=0.36.0",
-]
-build = [
-    "pyinstaller>=6.0.0",
 ]
 local-dev = [  # Used for local testing and dev
     "openai-agents>=0.13.0",
@@ -150,11 +150,6 @@ exclude_lines = [
 branch = true
 source = ["app"]
 
-[tool.setuptools.packages.find]
-include = ["app*"]
-
-[tool.setuptools_scm]
-local_scheme = "no-local-version"
 
 [tool.pylint]
 known-third-party = ["mcp"]

@@ -58,16 +58,11 @@ tasks:
       - uv run pytest --cov --cov-config=pyproject.toml --cov-report=xml -s -vv -rA {{.CLI_ARGS}}
 
   build:
-    desc: Build distribution package
+    desc: Build mcpb package
     cmds:
-      - uv build --verbose
-
-  build-binary:
-    desc: Build standalone binary with PyInstaller
-    cmds:
-      - cmd: echo "🚀 Building binary with PyInstaller..."
+      - cmd: echo "🚀 Building binary with https://github.com/modelcontextprotocol/mcpb..."
         silent: true
-      - uv run pyinstaller --onefile --name nitro-mcp platform_mcp_server/server.py
+      - mcpb pack
 
   clean:
     desc: Clean build artifacts

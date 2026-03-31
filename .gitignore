@@ -92,3 +92,5 @@ corpus
 # Local test files
 run_*.py
 tmp*.py
+
+mcp.mcpb
