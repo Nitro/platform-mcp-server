@@ -21,14 +21,12 @@ The style guide is symlinked from the `doc-intelligence-api` repo — if missing
 
 ## Commands
 
-- `task run` — Start the MCP server
 - `task test` — Run all tests with coverage (`uv run pytest` also works)
 - `task check` — Run all quality checks (lint + types + lock)
 - `task check-lint` — Ruff linting only
 - `task check-types` — Pyright type checking only
 - `task autoformat` — Auto-fix linting issues
 - `task pre-commit` — Run all pre-commit hooks
-- `task build-binary` — Build standalone binary with PyInstaller
 
 ## Python
 

@@ -13,7 +13,6 @@ docs/
 .github/
 .claude/
 .pre-commit-config.yaml
-*.md
 *.yml
 *.pdf
 .env
@@ -21,6 +20,5 @@ docs/
 mcp.mcpb
 CLAUDE.md
 style-guide.md
-README.md
 Taskfile.yml
 setup.py
