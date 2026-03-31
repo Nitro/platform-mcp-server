@@ -15,13 +15,9 @@ docs/
 .pre-commit-config.yaml
 *.md
 *.yml
+*.pdf
 .env
 .in
-sample-expense.pdf
-client.py
-investigate_sse.py
-run_ai.py
-tmp.py
 mcp.mcpb
 CLAUDE.md
 style-guide.md
