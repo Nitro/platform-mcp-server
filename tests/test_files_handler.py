@@ -112,14 +112,12 @@ def test_list_files_filters_by_extension(files_handler: FilesHandler, tmp_path: 
 # Workspace management tests
 
 
-def test_set_workspace_creates_directory(tmp_path: Path) -> None:
-    """set_workspace creates the directory if it doesn't exist."""
+def test_set_workspace_raises_for_nonexistent_directory(tmp_path: Path) -> None:
+    """set_workspace raises error if directory doesn't exist."""
     handler = FilesHandler(None)
     workspace = tmp_path / "new_workspace"
-    handler.set_workspace(workspace)
-    assert workspace.exists()
-    assert workspace.is_dir()
-    assert handler.workspace == workspace.resolve()
+    with pytest.raises(ValueError, match="Workspace folder does not exist"):
+        handler.set_workspace(workspace)
 
 
 def test_set_workspace_accepts_existing_directory(tmp_path: Path) -> None:
@@ -127,6 +125,15 @@ def test_set_workspace_accepts_existing_directory(tmp_path: Path) -> None:
     handler = FilesHandler(None)
     handler.set_workspace(tmp_path)
     assert handler.workspace == tmp_path.resolve()
+
+
+def test_set_workspace_raises_for_file_path(tmp_path: Path) -> None:
+    """set_workspace raises error if path is a file, not a directory."""
+    handler = FilesHandler(None)
+    file_path = tmp_path / "file.txt"
+    file_path.touch()
+    with pytest.raises(ValueError, match="Workspace path must be a directory"):
+        handler.set_workspace(file_path)
 
 
 def test_has_workspace_false_when_not_set() -> None:
@@ -181,7 +188,9 @@ def test_set_workspace_can_change_workspace(tmp_path: Path) -> None:
     """set_workspace can change the workspace directory."""
     handler = FilesHandler(None)
     workspace1 = tmp_path / "workspace1"
+    workspace1.mkdir()
     workspace2 = tmp_path / "workspace2"
+    workspace2.mkdir()
 
     handler.set_workspace(workspace1)
     assert handler.workspace == workspace1.resolve()

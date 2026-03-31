@@ -7,6 +7,7 @@ from app.handlers.files_handler import (
     PathTraversalError,
     WorkspaceNotSetError,
     ensure_workspace_from_path,
+    extract_workspace_and_filename,
     get_common_folders,
     search_folder_in_home,
 )
@@ -24,6 +25,7 @@ __all__ = [
     "SupportedConversions",
     "WorkspaceNotSetError",
     "ensure_workspace_from_path",
+    "extract_workspace_and_filename",
     "get_common_folders",
     "search_folder_in_home",
 ]

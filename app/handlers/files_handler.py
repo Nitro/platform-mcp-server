@@ -110,8 +110,11 @@ def extract_workspace_and_filename(input_path: Path | str) -> tuple[Path, Path]:
             remaining_parts = path.parts[1:]
             full_path = found_folder.joinpath(*remaining_parts)
             return full_path.parent, Path(full_path.name)
+        # Not found in common folders, fall back to home directory
+        full_path = Path.home() / path
+        return full_path.parent, Path(full_path.name)
 
-    # Resolve to absolute path
+    # Absolute path or starts with ./
     abs_path = path.resolve()
 
     return abs_path.parent, Path(abs_path.name)
@@ -172,12 +175,13 @@ class FilesHandler:
             path: Path to the workspace directory
 
         Raises:
-            ValueError: If path is not a directory
+            ValueError: If path does not exist or is not a directory
         """
         abs_path = path.resolve()
 
-        # Create directory if it doesn't exist
-        abs_path.mkdir(parents=True, exist_ok=True)
+        if not abs_path.exists():
+            msg = f"Workspace folder does not exist: {path}"
+            raise ValueError(msg)
 
         if not abs_path.is_dir():
             msg = f"Workspace path must be a directory, got: {path}"

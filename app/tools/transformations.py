@@ -9,8 +9,7 @@ from pydantic import BaseModel, Field
 
 from app.client import CompressionLevel
 from app.context import CoreContext, get_dep
-from app.handlers import ensure_workspace_from_path
-from app.handlers.files_handler import extract_workspace_and_filename
+from app.handlers import ensure_workspace_from_path, extract_workspace_and_filename
 from app.handlers.platform_handler import PageRotation, PdfMetadata, PdfPermission
 from app.models import SingleFileInputBase, SingleFileOutputBase
 
