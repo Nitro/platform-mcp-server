@@ -63,8 +63,6 @@ tasks:
       - cmd: echo "🚀 Building binary with PyInstaller..."
         silent: true
       - mcpb pack
-      - rm ~/Desktop/nitro.mcpb
-      - cp ./mcp.mcpb ~/Desktop/nitro.mcpb
 
   clean:
     desc: Clean build artifacts
