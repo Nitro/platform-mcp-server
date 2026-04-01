@@ -170,7 +170,7 @@ def extract_pdf_accessibility(
     return ExtractPDFDataResult(output_filename=output_path.name, data_type="accessibility")
 
 
-def register_extraction_tools(mcp: FastMCP) -> None:
+def register(mcp: FastMCP) -> None:
     """Register extraction tools with the MCP server"""
     mcp.tool(description="Use this tool when the user asks for the metadata of a PDF file.")(
         get_pdf_metadata
