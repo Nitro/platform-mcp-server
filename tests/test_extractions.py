@@ -268,17 +268,17 @@ async def test_search_text_in_pdf(
             {
                 "text": "text-1",
                 "pageIndex": 0,
-                "boundingBox": [100.0, 200.0, 50.0, 20.0],
+                "boundingBox": [0.0, 0.0, 0.0, 0.0],
             },
             {
                 "text": "text-2",
-                "pageIndex": 1,
-                "boundingBox": [150.0, 300.0, 60.0, 25.0],
+                "pageIndex": 0,
+                "boundingBox": [0.0, 0.0, 0.0, 0.0],
             },
             {
                 "text": "text-1",
-                "pageIndex": 2,
-                "boundingBox": [200.0, 400.0, 50.0, 20.0],
+                "pageIndex": 0,
+                "boundingBox": [0.0, 0.0, 0.0, 0.0],
             },
         ]
     }).encode()

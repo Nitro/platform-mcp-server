@@ -9,21 +9,10 @@ from typing import TYPE_CHECKING, Literal
 from pydantic import BaseModel, Field
 
 from app.context import CoreContext, get_dep
-from app.models import SingleFileInputBase, SingleFileOutputBase
+from app.models import BoundingBoxArea, SingleFileInputBase, SingleFileOutputBase
 
 if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
-
-
-class BoundingBoxArea(BaseModel):
-    """Base class for areas with page index and bounding box"""
-
-    page_index: int = Field(alias="pageIndex", description="Page number (0-indexed)", ge=0)
-    bounding_box: tuple[float, float, float, float] = Field(
-        alias="boundingBox", description="Bounding box coordinates [x0, y0, width, height]"
-    )
-
-    model_config = {"populate_by_name": True}
 
 
 class ExtractPIIRequest(SingleFileInputBase):

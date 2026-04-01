@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from app.context import CoreContext, get_dep
 from app.handlers.platform_handler import ExtractionDataType, ExtractionParams
-from app.models import SingleFileInputBase, SingleFileOutputBase
+from app.models import BoundingBoxArea, SingleFileInputBase, SingleFileOutputBase
 from app.utils import FormsResult, TablesResult, create_forms_excel, create_tables_excel
 
 
@@ -75,20 +75,16 @@ class SearchTextInPDFRequest(SingleFileInputBase):
     )
 
 
-class TextBox(BaseModel):
+class _TextBox(BoundingBoxArea):
     """Text box from platform API"""
 
     text: str = Field(description="Found text string")
-    page_index: int = Field(alias="pageIndex", description="Page number (0-indexed)")
-    bounding_box: tuple[float, float, float, float] = Field(
-        alias="boundingBox", description="Bounding box coordinates [x0, y0, width, height]"
-    )
 
 
-class TextBoundingBoxesResult(BaseModel):
+class _TextBoundingBoxesResult(BaseModel):
     """Text bounding boxes result structure from platform API"""
 
-    text_boxes: list[TextBox] = Field(alias="textBoxes", description="List of found text matches")
+    text_boxes: list[_TextBox] = Field(alias="textBoxes", description="List of found text matches")
 
 
 class SearchTextInPDFResult(SingleFileOutputBase):
@@ -217,7 +213,7 @@ def search_text_in_pdf(ctx: CoreContext, request: SearchTextInPDFRequest) -> Sea
     text_boxes_json = platform_handler.extract_text_bounding_boxes(input_bytes, request.texts)
 
     # Parse the result to extract summary statistics
-    text_boxes_result = TextBoundingBoxesResult.model_validate_json(text_boxes_json)
+    text_boxes_result = _TextBoundingBoxesResult.model_validate_json(text_boxes_json)
 
     # Calculate statistics
     total_matches = len(text_boxes_result.text_boxes)
