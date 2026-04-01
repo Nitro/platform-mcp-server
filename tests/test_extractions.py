@@ -15,6 +15,7 @@ from app.tools.extractions import (
     ExtractPDFFormsRequest,
     ExtractPDFTablesRequest,
     ExtractPDFTextRequest,
+    ExtractPDFTextResult,
     PDFMetadataRequest,
     PDFMetadataResult,
     SearchTextInPDFRequest,
@@ -207,10 +208,11 @@ async def test_extract_pdf_text(
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
 ) -> None:
-    """extract_pdf_text writes JSON output."""
+    """extract_pdf_text writes text output with statistics."""
     files_handler_mock.read.return_value = b"pdf-content"
-    platform_handler_mock.extract_pdf_data.return_value = b'{"text": ""}'
-    files_handler_mock.write.return_value = Path("a-text.json")
+    # API returns JSON-encoded string
+    platform_handler_mock.extract_pdf_data.return_value = b'"text-a text-b"'
+    files_handler_mock.write.return_value = Path("a-text.txt")
 
     await tool_caller.call(
         "extract_pdf_text",
@@ -219,13 +221,44 @@ async def test_extract_pdf_text(
             page_indices=[0],
             reading_order=True,
         ),
-        expected_result=ExtractPDFDataResult(output_filename="a-text.json", data_type="text"),
+        expected_result=ExtractPDFTextResult(
+            output_filename="a-text.txt",
+            word_count=2,
+            character_count=13,
+            page_count=1,
+        ),
     )
     platform_handler_mock.extract_pdf_data.assert_called_once_with(
         b"pdf-content", "text", ExtractionParams(pageIndices=[0], readingOrder=True)
     )
     files_handler_mock.write.assert_called_once_with(
-        Path("a.pdf"), b'{"text": ""}', stem_suffix="text", ext="json"
+        Path("a.pdf"), b"text-a text-b", stem_suffix="text", ext="txt"
+    )
+
+
+@pytest.mark.anyio
+async def test_extract_pdf_text_all_pages(
+    tool_caller: ToolCaller,
+    files_handler_mock: MagicMock,
+    platform_handler_mock: MagicMock,
+) -> None:
+    """extract_pdf_text with no page_indices extracts all pages."""
+    files_handler_mock.read.return_value = b"pdf-content"
+    platform_handler_mock.extract_pdf_data.return_value = b'"text"'
+    files_handler_mock.write.return_value = Path("a-text.txt")
+
+    await tool_caller.call(
+        "extract_pdf_text",
+        ExtractPDFTextRequest(input_filename=Path("a.pdf")),
+        expected_result=ExtractPDFTextResult(
+            output_filename="a-text.txt",
+            word_count=1,
+            character_count=4,
+            page_count=0,
+        ),
+    )
+    platform_handler_mock.extract_pdf_data.assert_called_once_with(
+        b"pdf-content", "text", ExtractionParams(readingOrder=False)
     )
 
 

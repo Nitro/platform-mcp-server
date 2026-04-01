@@ -2,6 +2,7 @@
 
 """File extraction tools for MCP server"""
 
+import json
 from typing import Literal
 
 from mcp.server.fastmcp import FastMCP
@@ -65,6 +66,14 @@ class ExtractPDFDataResult(SingleFileOutputBase):
     """Result of a PDF data extraction operation"""
 
     data_type: ExtractionDataType = Field(description="Type of data that was extracted")
+
+
+class ExtractPDFTextResult(SingleFileOutputBase):
+    """Result of PDF text extraction"""
+
+    word_count: int = Field(description="Number of words in extracted text")
+    character_count: int = Field(description="Number of characters in extracted text")
+    page_count: int = Field(description="Number of pages extracted")
 
 
 class SearchTextInPDFRequest(SingleFileInputBase):
@@ -162,8 +171,13 @@ def extract_pdf_tables(ctx: CoreContext, request: ExtractPDFTablesRequest) -> Ex
     return ExtractPDFDataResult(output_filename=output_path.name, data_type="tables")
 
 
-def extract_pdf_text(ctx: CoreContext, request: ExtractPDFTextRequest) -> ExtractPDFDataResult:
-    """Extract text from a PDF file."""
+def extract_pdf_text(ctx: CoreContext, request: ExtractPDFTextRequest) -> ExtractPDFTextResult:
+    """
+    Extract text from a PDF file.
+
+    Returns a text file containing the extracted text along with statistics about
+    the extraction (word count, character count, pages extracted).
+    """
     platform_handler = get_dep(ctx, "platform-handler")
     files_handler = get_dep(ctx, "files-handler")
 
@@ -173,11 +187,27 @@ def extract_pdf_text(ctx: CoreContext, request: ExtractPDFTextRequest) -> Extrac
     params = ExtractionParams(readingOrder=request.reading_order)
     if request.page_indices is not None:
         params["pageIndices"] = request.page_indices
-    result = platform_handler.extract_pdf_data(input_bytes, "text", params)
+    result_json = platform_handler.extract_pdf_data(input_bytes, "text", params)
 
-    output_path = files_handler.write(filename, result, stem_suffix="text", ext="json")
+    # Parse the JSON result - extract-text returns a plain string
+    extracted_text = json.loads(result_json)
 
-    return ExtractPDFDataResult(output_filename=output_path.name, data_type="text")
+    # Calculate statistics
+    word_count = len(extracted_text.split())
+    character_count = len(extracted_text)
+    page_count = len(request.page_indices) if request.page_indices else 0
+
+    # Write the extracted text to a text file
+    output_path = files_handler.write(
+        filename, extracted_text.encode(), stem_suffix="text", ext="txt"
+    )
+
+    return ExtractPDFTextResult(
+        output_filename=output_path.name,
+        word_count=word_count,
+        character_count=character_count,
+        page_count=page_count,
+    )
 
 
 def extract_pdf_accessibility(
