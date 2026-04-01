@@ -17,6 +17,8 @@ from app.tools.extractions import (
     ExtractPDFTextRequest,
     PDFMetadataRequest,
     PDFMetadataResult,
+    SearchTextInPDFRequest,
+    SearchTextInPDFResult,
 )
 from tests.tool_caller import ToolCaller
 
@@ -250,4 +252,57 @@ async def test_extract_pdf_accessibility(
     )
     files_handler_mock.write.assert_called_once_with(
         Path("a.pdf"), b'{"accessibility": {}}', stem_suffix="accessibility", ext="json"
+    )
+
+
+@pytest.mark.anyio
+async def test_search_text_in_pdf(
+    tool_caller: ToolCaller,
+    files_handler_mock: MagicMock,
+    platform_handler_mock: MagicMock,
+) -> None:
+    """search_text_in_pdf calls platform handler and returns result with summary."""
+    # Setup
+    text_boxes_json = json.dumps({
+        "textBoxes": [
+            {
+                "text": "text-1",
+                "pageIndex": 0,
+                "boundingBox": [100.0, 200.0, 50.0, 20.0],
+            },
+            {
+                "text": "text-2",
+                "pageIndex": 1,
+                "boundingBox": [150.0, 300.0, 60.0, 25.0],
+            },
+            {
+                "text": "text-1",
+                "pageIndex": 2,
+                "boundingBox": [200.0, 400.0, 50.0, 20.0],
+            },
+        ]
+    }).encode()
+
+    files_handler_mock.read.return_value = b"pdf-content"
+    platform_handler_mock.extract_text_bounding_boxes.return_value = text_boxes_json
+    files_handler_mock.write.return_value = Path("a-search.json")
+
+    # Call
+    await tool_caller.call(
+        "search_text_in_pdf",
+        SearchTextInPDFRequest(input_filename=Path("a.pdf"), texts=["text-1", "text-2"]),
+        expected_result=SearchTextInPDFResult(
+            output_filename="a-search.json",
+            total_matches=3,
+            unique_texts_found=2,
+        ),
+    )
+
+    # Assert
+    files_handler_mock.read.assert_called_once_with(Path("a.pdf"))
+    platform_handler_mock.extract_text_bounding_boxes.assert_called_once_with(
+        b"pdf-content", ["text-1", "text-2"]
+    )
+    files_handler_mock.write.assert_called_once_with(
+        Path("a.pdf"), text_boxes_json, stem_suffix="search", ext="json"
     )

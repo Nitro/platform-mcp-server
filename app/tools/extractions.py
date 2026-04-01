@@ -5,7 +5,7 @@
 from typing import Literal
 
 from mcp.server.fastmcp import FastMCP
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from app.context import CoreContext, get_dep
 from app.handlers.platform_handler import ExtractionDataType, ExtractionParams
@@ -65,6 +65,37 @@ class ExtractPDFDataResult(SingleFileOutputBase):
     """Result of a PDF data extraction operation"""
 
     data_type: ExtractionDataType = Field(description="Type of data that was extracted")
+
+
+class SearchTextInPDFRequest(SingleFileInputBase):
+    """Request model for searching text in PDF"""
+
+    texts: list[str] = Field(
+        description="List of text strings to search for in the PDF", min_length=1
+    )
+
+
+class TextBox(BaseModel):
+    """Text box from platform API"""
+
+    text: str = Field(description="Found text string")
+    page_index: int = Field(alias="pageIndex", description="Page number (0-indexed)")
+    bounding_box: tuple[float, float, float, float] = Field(
+        alias="boundingBox", description="Bounding box coordinates [x0, y0, width, height]"
+    )
+
+
+class TextBoundingBoxesResult(BaseModel):
+    """Text bounding boxes result structure from platform API"""
+
+    text_boxes: list[TextBox] = Field(alias="textBoxes", description="List of found text matches")
+
+
+class SearchTextInPDFResult(SingleFileOutputBase):
+    """Result of searching text in PDF"""
+
+    total_matches: int = Field(description="Total number of text matches found")
+    unique_texts_found: int = Field(description="Number of unique search texts that were found")
 
 
 def get_pdf_metadata(ctx: CoreContext, request: PDFMetadataRequest) -> PDFMetadataResult:
@@ -170,6 +201,38 @@ def extract_pdf_accessibility(
     return ExtractPDFDataResult(output_filename=output_path.name, data_type="accessibility")
 
 
+def search_text_in_pdf(ctx: CoreContext, request: SearchTextInPDFRequest) -> SearchTextInPDFResult:
+    """
+    Search for specific text strings in a PDF and return their locations.
+
+    Returns a JSON file containing all found text matches with their page locations
+    and bounding box coordinates.
+    """
+    files_handler = get_dep(ctx, "files-handler")
+    platform_handler = get_dep(ctx, "platform-handler")
+
+    filename = files_handler.ensure_workspace_from_path(request.input_filename)
+    input_bytes = files_handler.read(filename)
+
+    text_boxes_json = platform_handler.extract_text_bounding_boxes(input_bytes, request.texts)
+
+    # Parse the result to extract summary statistics
+    text_boxes_result = TextBoundingBoxesResult.model_validate_json(text_boxes_json)
+
+    # Calculate statistics
+    total_matches = len(text_boxes_result.text_boxes)
+    unique_texts = {box.text for box in text_boxes_result.text_boxes}
+    unique_texts_found = len(unique_texts)
+
+    output_path = files_handler.write(filename, text_boxes_json, stem_suffix="search", ext="json")
+
+    return SearchTextInPDFResult(
+        output_filename=output_path.name,
+        total_matches=total_matches,
+        unique_texts_found=unique_texts_found,
+    )
+
+
 def register(mcp: FastMCP) -> None:
     """Register extraction tools with the MCP server"""
     mcp.tool(description="Use this tool when the user asks for the metadata of a PDF file.")(
@@ -185,3 +248,10 @@ def register(mcp: FastMCP) -> None:
     mcp.tool(description="Use this tool to extract accessibility data from a PDF file.")(
         extract_pdf_accessibility
     )
+
+    mcp.tool(
+        description=(
+            "Use this tool to search for specific text strings in a PDF and get their locations. "
+            "Returns a JSON file with bounding box coordinates for each match."
+        )
+    )(search_text_in_pdf)

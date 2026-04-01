@@ -247,6 +247,39 @@ class PlatformHandler:
 
         return self._extract_result(response.content)
 
+    def extract_text_bounding_boxes(self, file_bytes: bytes, texts: list[str]) -> bytes:
+        """
+        Extract specific text strings from PDF with bounding box coordinates.
+
+        Returns JSON with found text matches and their page locations.
+
+        Args:
+            file_bytes: PDF file content as bytes
+            texts: List of text strings to search for in the PDF
+
+        Returns:
+            JSON bytes containing found text with bounding boxes
+
+        Raises:
+            ValueError: If texts list is empty
+            RuntimeError: If text extraction operation fails
+        """
+        if not texts:
+            msg = "At least one text string is required"
+            raise ValueError(msg)
+
+        pdf_file = BytesFile(content_type=ContentType.PDF, content=file_bytes, name="document.pdf")
+
+        response = self._platform_client.run(
+            "extractions",
+            pdf_file,
+            method="extract-text-bounding-boxes",
+            params={"texts": texts},
+            accept_format=AcceptFormat.JSON,
+        )
+
+        return self._extract_result(response.content)
+
     def compress_pdf(self, file_bytes: bytes, level: CompressionLevel) -> bytes:
         """
         Compress a PDF file to reduce its size.
