@@ -2,6 +2,7 @@
 
 """PII detection and redaction tools for MCP server"""
 
+from collections import Counter
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
@@ -103,16 +104,8 @@ async def extract_pii(ctx: CoreContext, request: ExtractPIIRequest) -> ExtractPI
 
     # Calculate statistics
     total_entities = len(pii_result.pii_boxes)
-    entities_by_type: dict[str, int] = {}
-    confidences: list[float] = []
-
-    for box in pii_result.pii_boxes:
-        # Count by type
-        entities_by_type[box.pii_type] = entities_by_type.get(box.pii_type, 0) + 1
-
-        # Collect confidence
-        confidences.append(box.confidence)
-
+    entities_by_type = dict(Counter(box.pii_type for box in pii_result.pii_boxes))
+    confidences = [box.confidence for box in pii_result.pii_boxes]
     average_confidence = sum(confidences) / len(confidences) if confidences else 0.0
 
     output_path = files_handler.write(filename, pii_json, stem_suffix="pii", ext="json")
