@@ -242,8 +242,8 @@ async def test_redact_pdf_with_pii_json(
     platform_handler_mock.redact_pdf.assert_called_once_with(
         b"pdf-content",
         [
-            {"pageIndex": 0, "boundingBox": [100, 200, 50, 20]},
-            {"pageIndex": 1, "boundingBox": [150, 300, 60, 25]},
+            {"pageIndex": 0, "boundingBox": [100.0, 200.0, 50.0, 20.0]},
+            {"pageIndex": 1, "boundingBox": [150.0, 300.0, 60.0, 25.0]},
         ],
     )
 
