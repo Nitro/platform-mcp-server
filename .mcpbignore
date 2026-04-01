@@ -19,6 +19,7 @@ docs/
 .in
 mcp.mcpb
 CLAUDE.md
+DEVELOPMENT.md
 style-guide.md
 Taskfile.yml
 setup.py
