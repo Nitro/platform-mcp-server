@@ -35,7 +35,9 @@ class PIIBox(BaseModel):
     """PII detection box from platform API"""
 
     page_index: int = Field(alias="pageIndex", description="Page number (0-indexed)")
-    bounding_box: list[float] = Field(alias="boundingBox", description="Bounding box coordinates")
+    bounding_box: tuple[float, float, float, float] = Field(
+        alias="boundingBox", description="Bounding box coordinates [x0, y0, width, height]"
+    )
     pii_type: str = Field(alias="PIIType", description="Type of PII detected")
     text: str = Field(description="Detected text")
     confidence: float = Field(description="Detection confidence")
@@ -154,7 +156,7 @@ async def redact_pdf(ctx: CoreContext, request: RedactPDFRequest) -> RedactPDFRe
         redactions = [
             {
                 "pageIndex": box.page_index,
-                "boundingBox": box.bounding_box,
+                "boundingBox": list(box.bounding_box),
             }
             for box in pii_result.pii_boxes
         ]
