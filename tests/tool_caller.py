@@ -1,6 +1,6 @@
 """Test utility for calling MCP tools."""
 
-import dataclasses
+from dataclasses import dataclass
 from typing import Any
 
 from mcp import ClientSession
@@ -8,7 +8,7 @@ from mcp.types import CallToolResult
 from pydantic import BaseModel
 
 
-@dataclasses.dataclass
+@dataclass
 class ToolCaller:
     """Wraps a ClientSession to simplify MCP tool invocations in tests."""
 
