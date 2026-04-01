@@ -8,6 +8,9 @@
     "name": "Nitro Software Inc."
   },
   "license": "Proprietary",
+  "privacy_policies": [
+    "https://www.gonitro.com/legal/privacy-policy"
+  ],
   "server": {
     "type": "uv",
     "entry_point": "app.server",
