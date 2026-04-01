@@ -63,7 +63,7 @@ class RedactPDFRequest(SingleFileInputBase):
         default=None,
         description="List of areas to redact. Each area specifies a page and bounding box.",
     )
-    pii_json_file: str | None = Field(
+    pii_json_file: Path | None = Field(
         default=None,
         description=(
             "Path to PII detection JSON file (from extract_pii tool). "
@@ -142,7 +142,7 @@ async def redact_pdf(ctx: CoreContext, request: RedactPDFRequest) -> RedactPDFRe
     # Determine source of redactions
     if request.pii_json_file:
         # Load redactions from PII JSON file
-        json_filename = Path(request.pii_json_file)
+        json_filename = files_handler.ensure_workspace_from_path(request.pii_json_file)
         json_bytes = files_handler.read(json_filename)
 
         # Parse and validate using Pydantic

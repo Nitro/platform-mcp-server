@@ -31,16 +31,16 @@ async def test_extract_pii(
             {
                 "pageIndex": 0,
                 "boundingBox": [100, 200, 50, 20],
-                "PIIType": "SSN",
-                "text": "123-45-6789",
-                "confidence": 0.95,
+                "PIIType": "type-1",
+                "text": "text-1",
+                "confidence": 0.9,
             },
             {
                 "pageIndex": 1,
                 "boundingBox": [150, 300, 60, 25],
-                "PIIType": "EMAIL",
-                "text": "user@example.com",
-                "confidence": 0.88,
+                "PIIType": "type-2",
+                "text": "text-2",
+                "confidence": 0.8,
             },
         ]
     }).encode()
@@ -63,8 +63,8 @@ async def test_extract_pii(
     expected = ExtractPIIResult(
         output_filename="doc-pii.json",
         total_entities=2,
-        entities_by_type={"SSN": 1, "EMAIL": 1},
-        average_confidence=0.915,
+        entities_by_type={"type-1": 1, "type-2": 1},
+        average_confidence=0.85,
     ).model_dump()
     assert response.structuredContent == expected
 
@@ -198,8 +198,8 @@ async def test_redact_pdf_with_pii_json(
     # Setup - PII JSON with detected entities
     pii_json = json.dumps({
         "PIIBoxes": [
-            {"pageIndex": 0, "boundingBox": [100, 200, 50, 20], "PIIType": "SSN"},
-            {"pageIndex": 1, "boundingBox": [150, 300, 60, 25], "PIIType": "EMAIL"},
+            {"pageIndex": 0, "boundingBox": [100, 200, 50, 20], "PIIType": "type-1"},
+            {"pageIndex": 1, "boundingBox": [150, 300, 60, 25], "PIIType": "type-2"},
         ]
     }).encode()
 
@@ -212,7 +212,7 @@ async def test_redact_pdf_with_pii_json(
         "redact_pdf",
         {
             "request": RedactPDFRequest(
-                input_filename=Path("doc.pdf"), pii_json_file="doc-pii.json"
+                input_filename=Path("doc.pdf"), pii_json_file=Path("doc-pii.json")
             ).model_dump(mode="json")
         },
     )
@@ -280,7 +280,7 @@ async def test_redact_pdf_invalid_pii_json(
         "redact_pdf",
         {
             "request": RedactPDFRequest(
-                input_filename=Path("doc.pdf"), pii_json_file="invalid.json"
+                input_filename=Path("doc.pdf"), pii_json_file=Path("invalid.json")
             ).model_dump(mode="json")
         },
     )

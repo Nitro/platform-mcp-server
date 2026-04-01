@@ -217,7 +217,7 @@ class PlatformHandler:
 
     def extract_pii_bounding_boxes(
         self,
-        file_content: bytes,
+        file_bytes: bytes,
         language: Literal["en", "es"] = "en",
     ) -> bytes:
         """
@@ -226,7 +226,7 @@ class PlatformHandler:
         Returns JSON with detected PII entities and their page locations.
 
         Args:
-            file_content: PDF file content as bytes
+            file_bytes: PDF file content as bytes
             language: Language code for PII detection (en=English, es=Spanish)
 
         Returns:
@@ -235,9 +235,7 @@ class PlatformHandler:
         Raises:
             RuntimeError: If PII extraction operation fails
         """
-        pdf_file = BytesFile(
-            content_type=ContentType.PDF, content=file_content, name="document.pdf"
-        )
+        pdf_file = BytesFile(content_type=ContentType.PDF, content=file_bytes, name="document.pdf")
 
         response = self._platform_client.run(
             "extractions",
@@ -528,14 +526,14 @@ class PlatformHandler:
 
         return response.content
 
-    def redact_pdf(self, file_content: bytes, redactions: list[dict[str, Any]]) -> bytes:
+    def redact_pdf(self, file_bytes: bytes, redactions: list[dict[str, Any]]) -> bytes:
         """
         Redact specific areas of a PDF using bounding box coordinates.
 
         Returns redacted PDF file.
 
         Args:
-            file_content: PDF file content as bytes
+            file_bytes: PDF file content as bytes
             redactions: List of redaction areas, each containing:
                 - page_index: int (0-based)
                 - bounding_box: list of 4 floats [x0, y0, width, height] in PDF points
@@ -551,7 +549,7 @@ class PlatformHandler:
             msg = "At least one redaction area is required"
             raise ValueError(msg)
 
-        file = BytesFile(content_type=ContentType.PDF, content=file_content, name="input.pdf")
+        file = BytesFile(content_type=ContentType.PDF, content=file_bytes, name="input.pdf")
 
         response = self._platform_client.run(
             "transformations",
