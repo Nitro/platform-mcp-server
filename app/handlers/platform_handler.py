@@ -215,6 +215,40 @@ class PlatformHandler:
 
         return self._extract_result(response.content)
 
+    def extract_pii_bounding_boxes(
+        self,
+        file_content: bytes,
+        language: Literal["en", "es"] = "en",
+    ) -> bytes:
+        """
+        Extract PII from PDF with bounding box coordinates.
+
+        Returns JSON with detected PII entities and their page locations.
+
+        Args:
+            file_content: PDF file content as bytes
+            language: Language code for PII detection (en=English, es=Spanish)
+
+        Returns:
+            JSON bytes containing detected PII with bounding boxes
+
+        Raises:
+            RuntimeError: If PII extraction operation fails
+        """
+        pdf_file = BytesFile(
+            content_type=ContentType.PDF, content=file_content, name="document.pdf"
+        )
+
+        response = self._platform_client.run(
+            "extractions",
+            pdf_file,
+            method="extract-pii-bounding-boxes",
+            params={"language": language},
+            accept_format=AcceptFormat.JSON,
+        )
+
+        return self._extract_result(response.content)
+
     def compress_pdf(self, file_bytes: bytes, level: CompressionLevel) -> bytes:
         """
         Compress a PDF file to reduce its size.
@@ -489,6 +523,41 @@ class PlatformHandler:
             file,
             method="flatten",
             params={},
+            accept_format=AcceptFormat.BYTES,
+        )
+
+        return response.content
+
+    def redact_pdf(self, file_content: bytes, redactions: list[dict[str, Any]]) -> bytes:
+        """
+        Redact specific areas of a PDF using bounding box coordinates.
+
+        Returns redacted PDF file.
+
+        Args:
+            file_content: PDF file content as bytes
+            redactions: List of redaction areas, each containing:
+                - page_index: int (0-based)
+                - bounding_box: list of 4 floats [x0, y0, width, height] in PDF points
+
+        Returns:
+            Redacted PDF content as bytes
+
+        Raises:
+            ValueError: If redactions list is empty
+            RuntimeError: If redaction operation fails
+        """
+        if not redactions:
+            msg = "At least one redaction area is required"
+            raise ValueError(msg)
+
+        file = BytesFile(content_type=ContentType.PDF, content=file_content, name="input.pdf")
+
+        response = self._platform_client.run(
+            "transformations",
+            file,
+            method="redact",
+            params={"redactions": redactions},
             accept_format=AcceptFormat.BYTES,
         )
 
