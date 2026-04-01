@@ -59,15 +59,38 @@ task autoformat      # Auto-fix linting issues
 
 ## Building
 
-```bash
-# Build Python distribution package
-task build
+The server is distributed as an `.mcpb` bundle using [mcpb](https://github.com/modelcontextprotocol/mcpb).
 
-# Build standalone binary with PyInstaller
-task build-binary
+```bash
+# Build the mcpb bundle (outputs mcp.mcpb in the project root)
+task build
 ```
 
-The binary will be in `dist/nitro-mcp` (or `dist/nitro-mcp.exe` on Windows).
+This runs `mcpb pack` against the project directory using the `manifest.json` at the root.
+
+### Manifest defaults
+
+The default `manifest.json` is configured for production use:
+
+| Setting | Default |
+|---|---|
+| `NITRO_TARGET_ENV` | `prod` |
+| `NITRO_AUTH_MODE` | `client-credentials` |
+
+Users are prompted for `client_id` and `client_secret` at install time via `user_config`.
+
+### Building for a different environment
+
+To target a different environment, change `NITRO_TARGET_ENV` in `manifest.json` before running `task build`:
+
+```json
+"env": {
+  "NITRO_TARGET_ENV": "prod",
+  ...
+}
+```
+
+Valid values are `dev` and `prod`.
 
 ## Project Structure
 
