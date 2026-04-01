@@ -15,6 +15,17 @@ if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
 
 
+class BoundingBoxArea(BaseModel):
+    """Base class for areas with page index and bounding box"""
+
+    page_index: int = Field(alias="pageIndex", description="Page number (0-indexed)", ge=0)
+    bounding_box: tuple[float, float, float, float] = Field(
+        alias="boundingBox", description="Bounding box coordinates [x0, y0, width, height]"
+    )
+
+    model_config = {"populate_by_name": True}
+
+
 class ExtractPIIRequest(SingleFileInputBase):
     """Request to extract PII with bounding boxes from a PDF"""
 
@@ -32,13 +43,9 @@ class ExtractPIIResult(SingleFileOutputBase):
     average_confidence: float = Field(description="Average detection confidence score (0-1)")
 
 
-class PIIBox(BaseModel):
+class PIIBox(BoundingBoxArea):
     """PII detection box from platform API"""
 
-    page_index: int = Field(alias="pageIndex", description="Page number (0-indexed)")
-    bounding_box: tuple[float, float, float, float] = Field(
-        alias="boundingBox", description="Bounding box coordinates [x0, y0, width, height]"
-    )
     pii_type: str = Field(alias="PIIType", description="Type of PII detected")
     text: str = Field(description="Detected text")
     confidence: float = Field(description="Detection confidence")
@@ -50,13 +57,8 @@ class PIIDetectionResult(BaseModel):
     pii_boxes: list[PIIBox] = Field(alias="PIIBoxes", description="List of detected PII entities")
 
 
-class RedactionArea(BaseModel):
+class RedactionArea(BoundingBoxArea):
     """Represents a single redaction area on a page"""
-
-    page_index: int = Field(description="Page number (0-indexed)", ge=0)
-    bounding_box: tuple[float, float, float, float] = Field(
-        description="Bounding box as [x0, y0, width, height] in PDF points"
-    )
 
 
 class RedactPDFRequest(SingleFileInputBase):

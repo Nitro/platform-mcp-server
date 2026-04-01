@@ -130,8 +130,8 @@ async def test_redact_pdf(
             "request": RedactPDFRequest(
                 input_filename=Path("doc.pdf"),
                 redactions=[
-                    RedactionArea(page_index=0, bounding_box=(100, 200, 50, 20)),
-                    RedactionArea(page_index=1, bounding_box=(150, 300, 60, 25)),
+                    RedactionArea(pageIndex=0, boundingBox=(100, 200, 50, 20)),
+                    RedactionArea(pageIndex=1, boundingBox=(150, 300, 60, 25)),
                 ],
             ).model_dump(mode="json")
         },
@@ -173,7 +173,7 @@ async def test_redact_pdf_single_area(
             "request": RedactPDFRequest(
                 input_filename=Path("doc.pdf"),
                 redactions=[
-                    RedactionArea(page_index=2, bounding_box=(10, 20, 30, 40)),
+                    RedactionArea(pageIndex=2, boundingBox=(10, 20, 30, 40)),
                 ],
             ).model_dump(mode="json")
         },
@@ -315,7 +315,7 @@ async def test_redact_pdf_platform_error(
         {
             "request": RedactPDFRequest(
                 input_filename=Path("doc.pdf"),
-                redactions=[RedactionArea(page_index=0, bounding_box=(1, 2, 3, 4))],
+                redactions=[RedactionArea(pageIndex=0, boundingBox=(1, 2, 3, 4))],
             ).model_dump(mode="json")
         },
     )
