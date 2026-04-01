@@ -26,7 +26,6 @@ class ToolCaller:
         assert not (expected_result is not None and expect_error), (
             "expected_result and expect_error are mutually exclusive"
         )
-
         args = (
             {"request": request.model_dump(mode="json")}
             if isinstance(request, BaseModel)
