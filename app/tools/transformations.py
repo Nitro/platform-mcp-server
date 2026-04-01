@@ -434,7 +434,7 @@ async def flatten_pdf(ctx: CoreContext, request: FlattenRequest) -> FlattenResul
     return FlattenResult(output_filename=written.name)
 
 
-def register_transformation_tools(mcp: FastMCP) -> None:
+def register(mcp: FastMCP) -> None:
     """Register transformation tools with the MCP server"""
     mcp.tool()(merge_files)
     mcp.tool()(compress_file)

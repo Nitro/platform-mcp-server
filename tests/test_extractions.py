@@ -7,7 +7,6 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
-from mcp import ClientSession
 
 from app.handlers.platform_handler import ExtractionParams
 from app.tools.extractions import (
@@ -19,11 +18,12 @@ from app.tools.extractions import (
     PDFMetadataRequest,
     PDFMetadataResult,
 )
+from tests.tool_caller import ToolCaller
 
 
 @pytest.mark.anyio
 async def test_get_pdf_metadata(
-    client: ClientSession,
+    tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
 ) -> None:
@@ -32,13 +32,11 @@ async def test_get_pdf_metadata(
     platform_handler_mock.get_pdf_metadata.return_value = b'{"title": "Test PDF"}'
     files_handler_mock.write.return_value = Path("a_metadata.json")
 
-    response = await client.call_tool(
+    await tool_caller.call(
         "get_pdf_metadata",
-        {"request": PDFMetadataRequest(input_filename=Path("a.pdf")).model_dump(mode="json")},
+        PDFMetadataRequest(input_filename=Path("a.pdf")),
+        expected_result=PDFMetadataResult(output_filename="a_metadata.json"),
     )
-
-    expected = PDFMetadataResult(output_filename="a_metadata.json").model_dump()
-    assert response.structuredContent == expected
     files_handler_mock.read.assert_called_once_with(Path("a.pdf"))
     platform_handler_mock.get_pdf_metadata.assert_called_once_with(b"pdf-a-content")
     files_handler_mock.write.assert_called_once_with(
@@ -48,7 +46,7 @@ async def test_get_pdf_metadata(
 
 @pytest.mark.anyio
 async def test_get_pdf_metadata_empty(
-    client: ClientSession,
+    tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
 ) -> None:
@@ -57,13 +55,11 @@ async def test_get_pdf_metadata_empty(
     platform_handler_mock.get_pdf_metadata.return_value = b"{}"
     files_handler_mock.write.return_value = Path("empty_metadata.json")
 
-    response = await client.call_tool(
+    await tool_caller.call(
         "get_pdf_metadata",
-        {"request": PDFMetadataRequest(input_filename=Path("empty.pdf")).model_dump(mode="json")},
+        PDFMetadataRequest(input_filename=Path("empty.pdf")),
+        expected_result=PDFMetadataResult(output_filename="empty_metadata.json"),
     )
-
-    expected = PDFMetadataResult(output_filename="empty_metadata.json").model_dump()
-    assert response.structuredContent == expected
     files_handler_mock.read.assert_called_once_with(Path("empty.pdf"))
     platform_handler_mock.get_pdf_metadata.assert_called_once_with(b"pdf-content")
     files_handler_mock.write.assert_called_once_with(
@@ -73,7 +69,7 @@ async def test_get_pdf_metadata_empty(
 
 @pytest.mark.anyio
 async def test_extract_pdf_forms_excel(
-    client: ClientSession,
+    tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
 ) -> None:
@@ -86,17 +82,11 @@ async def test_extract_pdf_forms_excel(
     platform_handler_mock.extract_pdf_data.return_value = form_json
     files_handler_mock.write.return_value = Path("a-forms.xlsx")
 
-    response = await client.call_tool(
+    await tool_caller.call(
         "extract_pdf_forms",
-        {
-            "request": ExtractPDFFormsRequest(
-                input_filename=Path("a.pdf"), language="fr"
-            ).model_dump(mode="json")
-        },
+        ExtractPDFFormsRequest(input_filename=Path("a.pdf"), language="fr"),
+        expected_result=ExtractPDFDataResult(output_filename="a-forms.xlsx", data_type="forms"),
     )
-
-    expected = ExtractPDFDataResult(output_filename="a-forms.xlsx", data_type="forms").model_dump()
-    assert response.structuredContent == expected
     platform_handler_mock.extract_pdf_data.assert_called_once_with(
         b"pdf-content", "forms", ExtractionParams(language="fr")
     )
@@ -108,7 +98,7 @@ async def test_extract_pdf_forms_excel(
 
 @pytest.mark.anyio
 async def test_extract_pdf_forms_json(
-    client: ClientSession,
+    tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
 ) -> None:
@@ -121,17 +111,11 @@ async def test_extract_pdf_forms_json(
     platform_handler_mock.extract_pdf_data.return_value = form_json
     files_handler_mock.write.return_value = Path("a-forms.json")
 
-    response = await client.call_tool(
+    await tool_caller.call(
         "extract_pdf_forms",
-        {
-            "request": ExtractPDFFormsRequest(
-                input_filename=Path("a.pdf"), language="fr", output_format="json"
-            ).model_dump(mode="json")
-        },
+        ExtractPDFFormsRequest(input_filename=Path("a.pdf"), language="fr", output_format="json"),
+        expected_result=ExtractPDFDataResult(output_filename="a-forms.json", data_type="forms"),
     )
-
-    expected = ExtractPDFDataResult(output_filename="a-forms.json", data_type="forms").model_dump()
-    assert response.structuredContent == expected
     platform_handler_mock.extract_pdf_data.assert_called_once_with(
         b"pdf-content", "forms", ExtractionParams(language="fr")
     )
@@ -142,7 +126,7 @@ async def test_extract_pdf_forms_json(
 
 @pytest.mark.anyio
 async def test_extract_pdf_tables_excel(
-    client: ClientSession,
+    tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
 ) -> None:
@@ -163,19 +147,11 @@ async def test_extract_pdf_tables_excel(
     platform_handler_mock.extract_pdf_data.return_value = tables_json
     files_handler_mock.write.return_value = Path("a-tables.xlsx")
 
-    response = await client.call_tool(
+    await tool_caller.call(
         "extract_pdf_tables",
-        {
-            "request": ExtractPDFTablesRequest(
-                input_filename=Path("a.pdf"), page_indices=[0, 1]
-            ).model_dump(mode="json")
-        },
+        ExtractPDFTablesRequest(input_filename=Path("a.pdf"), page_indices=[0, 1]),
+        expected_result=ExtractPDFDataResult(output_filename="a-tables.xlsx", data_type="tables"),
     )
-
-    expected = ExtractPDFDataResult(
-        output_filename="a-tables.xlsx", data_type="tables"
-    ).model_dump()
-    assert response.structuredContent == expected
     platform_handler_mock.extract_pdf_data.assert_called_once_with(
         b"pdf-content", "tables", ExtractionParams(pageIndices=[0, 1])
     )
@@ -187,7 +163,7 @@ async def test_extract_pdf_tables_excel(
 
 @pytest.mark.anyio
 async def test_extract_pdf_tables_json(
-    client: ClientSession,
+    tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
 ) -> None:
@@ -208,19 +184,13 @@ async def test_extract_pdf_tables_json(
     platform_handler_mock.extract_pdf_data.return_value = tables_json
     files_handler_mock.write.return_value = Path("a-tables.json")
 
-    response = await client.call_tool(
+    await tool_caller.call(
         "extract_pdf_tables",
-        {
-            "request": ExtractPDFTablesRequest(
-                input_filename=Path("a.pdf"), page_indices=[0, 1], output_format="json"
-            ).model_dump(mode="json")
-        },
+        ExtractPDFTablesRequest(
+            input_filename=Path("a.pdf"), page_indices=[0, 1], output_format="json"
+        ),
+        expected_result=ExtractPDFDataResult(output_filename="a-tables.json", data_type="tables"),
     )
-
-    expected = ExtractPDFDataResult(
-        output_filename="a-tables.json", data_type="tables"
-    ).model_dump()
-    assert response.structuredContent == expected
     platform_handler_mock.extract_pdf_data.assert_called_once_with(
         b"pdf-content", "tables", ExtractionParams(pageIndices=[0, 1])
     )
@@ -231,7 +201,7 @@ async def test_extract_pdf_tables_json(
 
 @pytest.mark.anyio
 async def test_extract_pdf_text(
-    client: ClientSession,
+    tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
 ) -> None:
@@ -240,19 +210,15 @@ async def test_extract_pdf_text(
     platform_handler_mock.extract_pdf_data.return_value = b'{"text": ""}'
     files_handler_mock.write.return_value = Path("a-text.json")
 
-    response = await client.call_tool(
+    await tool_caller.call(
         "extract_pdf_text",
-        {
-            "request": ExtractPDFTextRequest(
-                input_filename=Path("a.pdf"),
-                page_indices=[0],
-                reading_order=True,
-            ).model_dump(mode="json")
-        },
+        ExtractPDFTextRequest(
+            input_filename=Path("a.pdf"),
+            page_indices=[0],
+            reading_order=True,
+        ),
+        expected_result=ExtractPDFDataResult(output_filename="a-text.json", data_type="text"),
     )
-
-    expected = ExtractPDFDataResult(output_filename="a-text.json", data_type="text").model_dump()
-    assert response.structuredContent == expected
     platform_handler_mock.extract_pdf_data.assert_called_once_with(
         b"pdf-content", "text", ExtractionParams(pageIndices=[0], readingOrder=True)
     )
@@ -263,7 +229,7 @@ async def test_extract_pdf_text(
 
 @pytest.mark.anyio
 async def test_extract_pdf_accessibility(
-    client: ClientSession,
+    tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
 ) -> None:
@@ -272,19 +238,13 @@ async def test_extract_pdf_accessibility(
     platform_handler_mock.extract_pdf_data.return_value = b'{"accessibility": {}}'
     files_handler_mock.write.return_value = Path("a-accessibility.json")
 
-    response = await client.call_tool(
+    await tool_caller.call(
         "extract_pdf_accessibility",
-        {
-            "request": ExtractPDFAccessibilityRequest(input_filename=Path("a.pdf")).model_dump(
-                mode="json"
-            )
-        },
+        ExtractPDFAccessibilityRequest(input_filename=Path("a.pdf")),
+        expected_result=ExtractPDFDataResult(
+            output_filename="a-accessibility.json", data_type="accessibility"
+        ),
     )
-
-    expected = ExtractPDFDataResult(
-        output_filename="a-accessibility.json", data_type="accessibility"
-    ).model_dump()
-    assert response.structuredContent == expected
     platform_handler_mock.extract_pdf_data.assert_called_once_with(
         b"pdf-content", "accessibility", ExtractionParams()
     )

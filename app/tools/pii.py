@@ -179,7 +179,7 @@ async def redact_pdf(ctx: CoreContext, request: RedactPDFRequest) -> RedactPDFRe
     )
 
 
-def register_pii_tools(mcp: FastMCP) -> None:
+def register(mcp: FastMCP) -> None:
     """Register PII tools with the MCP server"""
     mcp.tool(
         description=(
