@@ -5,6 +5,7 @@
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
 
+from mcp.types import ToolAnnotations
 from pydantic import BaseModel, Field
 
 from app.client import CompressionLevel
@@ -436,12 +437,44 @@ async def flatten_pdf(ctx: CoreContext, request: FlattenRequest) -> FlattenResul
 
 def register_transformation_tools(mcp: FastMCP) -> None:
     """Register transformation tools with the MCP server"""
-    mcp.tool()(merge_files)
-    mcp.tool()(compress_file)
-    mcp.tool()(split_pdf)
-    mcp.tool()(rotate_pdf)
-    mcp.tool()(protect_pdf)
-    mcp.tool()(unprotect_pdf)
-    mcp.tool()(delete_pdf_pages)
-    mcp.tool()(set_pdf_metadata)
-    mcp.tool()(flatten_pdf)
+    _destructive = ToolAnnotations(destructiveHint=True)
+
+    mcp.tool(
+        description="Use this tool to merge multiple PDF files into a single PDF.",
+        annotations=_destructive,
+    )(merge_files)
+    mcp.tool(
+        description="Use this tool to compress a PDF file to reduce its size.",
+        annotations=_destructive,
+    )(compress_file)
+    mcp.tool(
+        description="Use this tool to split a PDF into separate files by page ranges.",
+        annotations=_destructive,
+    )(split_pdf)
+    mcp.tool(
+        description="Use this tool to rotate specific pages in a PDF file.",
+        annotations=_destructive,
+    )(rotate_pdf)
+    mcp.tool(
+        description="Use this tool to password-protect a PDF file with optional permissions.",
+        annotations=_destructive,
+    )(protect_pdf)
+    mcp.tool(
+        description="Use this tool to remove password protection from a PDF file.",
+        annotations=_destructive,
+    )(unprotect_pdf)
+    mcp.tool(
+        description="Use this tool to delete specific pages from a PDF file.",
+        annotations=_destructive,
+    )(delete_pdf_pages)
+    mcp.tool(
+        description="Use this tool to set or update metadata properties of a PDF file.",
+        annotations=_destructive,
+    )(set_pdf_metadata)
+    mcp.tool(
+        description=(
+            "Use this tool to flatten a PDF, converting all interactive form fields and "
+            "annotations into static, non-editable content."
+        ),
+        annotations=_destructive,
+    )(flatten_pdf)

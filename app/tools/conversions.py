@@ -3,6 +3,7 @@
 """File conversion tools for MCP server"""
 
 from mcp.server.fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from app.client import FileFormat
@@ -58,4 +59,6 @@ def register_conversion_tool(mcp: FastMCP) -> None:
         f"Convert from a {to_pdf_from} to pdf.\n"
         "Use list_files first if you need to discover available files."
     )
-    mcp.tool(description=description)(convert_file)
+    mcp.tool(description=description, annotations=ToolAnnotations(destructiveHint=True))(
+        convert_file
+    )

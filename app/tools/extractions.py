@@ -5,6 +5,7 @@
 from typing import Literal
 
 from mcp.server.fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from app.context import CoreContext, get_dep
@@ -172,16 +173,29 @@ def extract_pdf_accessibility(
 
 def register_extraction_tools(mcp: FastMCP) -> None:
     """Register extraction tools with the MCP server"""
-    mcp.tool(description="Use this tool when the user asks for the metadata of a PDF file.")(
-        get_pdf_metadata
-    )
+    _read_only = ToolAnnotations(readOnlyHint=True)
 
-    mcp.tool(description="Use this tool to extract form fields from a PDF file.")(extract_pdf_forms)
+    mcp.tool(
+        description="Use this tool when the user asks for the metadata of a PDF file.",
+        annotations=_read_only,
+    )(get_pdf_metadata)
 
-    mcp.tool(description="Use this tool to extract tables from a PDF file.")(extract_pdf_tables)
+    mcp.tool(
+        description="Use this tool to extract form fields from a PDF file.",
+        annotations=_read_only,
+    )(extract_pdf_forms)
 
-    mcp.tool(description="Use this tool to extract text from a PDF file.")(extract_pdf_text)
+    mcp.tool(
+        description="Use this tool to extract tables from a PDF file.",
+        annotations=_read_only,
+    )(extract_pdf_tables)
 
-    mcp.tool(description="Use this tool to extract accessibility data from a PDF file.")(
-        extract_pdf_accessibility
-    )
+    mcp.tool(
+        description="Use this tool to extract text from a PDF file.",
+        annotations=_read_only,
+    )(extract_pdf_text)
+
+    mcp.tool(
+        description="Use this tool to extract accessibility data from a PDF file.",
+        annotations=_read_only,
+    )(extract_pdf_accessibility)

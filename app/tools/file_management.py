@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
+from mcp.types import ToolAnnotations
 from pydantic import BaseModel, Field
 
 from app.context import CoreContext, get_dep
@@ -116,4 +117,7 @@ def list_files(
 
 def register_file_management_tool(mcp: FastMCP) -> None:
     """Register file management tools with the MCP server"""
-    mcp.tool()(list_files)
+    mcp.tool(
+        description="Use this tool to list files available in the workspace for processing.",
+        annotations=ToolAnnotations(readOnlyHint=True),
+    )(list_files)
