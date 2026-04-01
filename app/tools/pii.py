@@ -36,9 +36,9 @@ class PIIBox(BaseModel):
 
     page_index: int = Field(alias="pageIndex", description="Page number (0-indexed)")
     bounding_box: list[float] = Field(alias="boundingBox", description="Bounding box coordinates")
-    pii_type: str | None = Field(default=None, alias="PIIType", description="Type of PII detected")
-    text: str | None = Field(default=None, description="Detected text")
-    confidence: float | None = Field(default=None, description="Detection confidence")
+    pii_type: str = Field(alias="PIIType", description="Type of PII detected")
+    text: str = Field(description="Detected text")
+    confidence: float = Field(description="Detection confidence")
 
 
 class PIIDetectionResult(BaseModel):
@@ -106,12 +106,10 @@ async def extract_pii(ctx: CoreContext, request: ExtractPIIRequest) -> ExtractPI
 
     for box in pii_result.pii_boxes:
         # Count by type
-        pii_type = box.pii_type or "Unknown"
-        entities_by_type[pii_type] = entities_by_type.get(pii_type, 0) + 1
+        entities_by_type[box.pii_type] = entities_by_type.get(box.pii_type, 0) + 1
 
-        # Collect confidences
-        if box.confidence is not None:
-            confidences.append(box.confidence)
+        # Collect confidence
+        confidences.append(box.confidence)
 
     average_confidence = sum(confidences) / len(confidences) if confidences else 0.0
 
@@ -155,8 +153,8 @@ async def redact_pdf(ctx: CoreContext, request: RedactPDFRequest) -> RedactPDFRe
         # Convert PII boxes to redaction format
         redactions = [
             {
-                "page_index": box.page_index,
-                "bounding_box": box.bounding_box,
+                "pageIndex": box.page_index,
+                "boundingBox": box.bounding_box,
             }
             for box in pii_result.pii_boxes
         ]
@@ -165,8 +163,8 @@ async def redact_pdf(ctx: CoreContext, request: RedactPDFRequest) -> RedactPDFRe
         # Use manually provided redactions
         redactions = [
             {
-                "page_index": r.page_index,
-                "bounding_box": list(r.bounding_box),
+                "pageIndex": r.page_index,
+                "boundingBox": list(r.bounding_box),
             }
             for r in request.redactions
         ]

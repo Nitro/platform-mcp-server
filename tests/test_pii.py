@@ -145,8 +145,8 @@ async def test_redact_pdf(
     platform_handler_mock.redact_pdf.assert_called_once_with(
         b"pdf-content",
         [
-            {"page_index": 0, "bounding_box": [100.0, 200.0, 50.0, 20.0]},
-            {"page_index": 1, "bounding_box": [150.0, 300.0, 60.0, 25.0]},
+            {"pageIndex": 0, "boundingBox": [100.0, 200.0, 50.0, 20.0]},
+            {"pageIndex": 1, "boundingBox": [150.0, 300.0, 60.0, 25.0]},
         ],
     )
     files_handler_mock.write.assert_called_once_with(
@@ -184,7 +184,7 @@ async def test_redact_pdf_single_area(
     assert response.structuredContent == expected
 
     platform_handler_mock.redact_pdf.assert_called_once_with(
-        b"pdf-content", [{"page_index": 2, "bounding_box": [10.0, 20.0, 30.0, 40.0]}]
+        b"pdf-content", [{"pageIndex": 2, "boundingBox": [10.0, 20.0, 30.0, 40.0]}]
     )
 
 
@@ -198,8 +198,20 @@ async def test_redact_pdf_with_pii_json(
     # Setup - PII JSON with detected entities
     pii_json = json.dumps({
         "PIIBoxes": [
-            {"pageIndex": 0, "boundingBox": [100, 200, 50, 20], "PIIType": "type-1"},
-            {"pageIndex": 1, "boundingBox": [150, 300, 60, 25], "PIIType": "type-2"},
+            {
+                "pageIndex": 0,
+                "boundingBox": [100, 200, 50, 20],
+                "PIIType": "type-1",
+                "text": "text-1",
+                "confidence": 0.9,
+            },
+            {
+                "pageIndex": 1,
+                "boundingBox": [150, 300, 60, 25],
+                "PIIType": "type-2",
+                "text": "text-2",
+                "confidence": 0.8,
+            },
         ]
     }).encode()
 
@@ -230,8 +242,8 @@ async def test_redact_pdf_with_pii_json(
     platform_handler_mock.redact_pdf.assert_called_once_with(
         b"pdf-content",
         [
-            {"page_index": 0, "bounding_box": [100, 200, 50, 20]},
-            {"page_index": 1, "bounding_box": [150, 300, 60, 25]},
+            {"pageIndex": 0, "boundingBox": [100, 200, 50, 20]},
+            {"pageIndex": 1, "boundingBox": [150, 300, 60, 25]},
         ],
     )
 

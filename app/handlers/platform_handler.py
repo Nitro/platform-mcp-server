@@ -535,8 +535,8 @@ class PlatformHandler:
         Args:
             file_bytes: PDF file content as bytes
             redactions: List of redaction areas, each containing:
-                - page_index: int (0-based)
-                - bounding_box: list of 4 floats [x0, y0, width, height] in PDF points
+                - pageIndex: int (0-based)
+                - boundingBox: list of 4 floats [x0, y0, width, height] in PDF points
 
         Returns:
             Redacted PDF content as bytes
