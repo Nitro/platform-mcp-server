@@ -79,10 +79,11 @@ async def test_merge_files_missing_file_raises(
 ) -> None:
     """Missing input file returns an error response."""
     files_handler_mock.read.side_effect = [b"pdf-a-content", FileNotFoundError]
-    response = await tool_caller.call(
-        "merge_files", MergeRequest(input_filenames=["a.pdf", "missing.pdf"])
+    await tool_caller.call(
+        "merge_files",
+        MergeRequest(input_filenames=["a.pdf", "missing.pdf"]),
+        expect_error=True,
     )
-    assert response.isError
     platform_handler_mock.merge_pdfs.assert_not_called()
 
 
@@ -95,10 +96,11 @@ async def test_merge_files_platform_error_raises(
     """Platform handler error returns an error response."""
     files_handler_mock.read.side_effect = [b"pdf-a-content", b"pdf-b-content"]
     platform_handler_mock.merge_pdfs.side_effect = RuntimeError("api-error")
-    response = await tool_caller.call(
-        "merge_files", MergeRequest(input_filenames=["a.pdf", "b.pdf"])
+    await tool_caller.call(
+        "merge_files",
+        MergeRequest(input_filenames=["a.pdf", "b.pdf"]),
+        expect_error=True,
     )
-    assert response.isError
     platform_handler_mock.merge_pdfs.assert_called_once_with([b"pdf-a-content", b"pdf-b-content"])
     files_handler_mock.write.assert_not_called()
 
@@ -206,10 +208,11 @@ async def test_compress_file_invalid_level(
     platform_handler_mock: MagicMock,
 ) -> None:
     """Invalid compression level returns error."""
-    response = await tool_caller.call(
-        "compress_file", CompressRequest(input_filename=Path("a.pdf"), level="invalid")
+    await tool_caller.call(
+        "compress_file",
+        CompressRequest(input_filename=Path("a.pdf"), level="invalid"),
+        expect_error=True,
     )
-    assert response.isError
     platform_handler_mock.compress_pdf.assert_not_called()
     files_handler_mock.write.assert_not_called()
 
@@ -279,11 +282,11 @@ async def test_rotate_pdf_invalid_degrees(
     platform_handler_mock: MagicMock,
 ) -> None:
     """Invalid rotation degrees returns error."""
-    response = await tool_caller.call(
+    await tool_caller.call(
         "rotate_pdf",
         {"input_filename": "a.pdf", "rotations": [{"page_number": 1, "amount": 45}]},
+        expect_error=True,
     )
-    assert response.isError
     platform_handler_mock.rotate_pdf.assert_not_called()
     files_handler_mock.write.assert_not_called()
 
@@ -394,11 +397,11 @@ async def test_delete_pdf_pages_invalid_range(
     platform_handler_mock: MagicMock,
 ) -> None:
     """Invalid page range returns error."""
-    response = await tool_caller.call(
+    await tool_caller.call(
         "delete_pdf_pages",
         DeletePagesRequest(input_filename=Path("a.pdf"), page_numbers=["5-2"]),
+        expect_error=True,
     )
-    assert response.isError
     platform_handler_mock.delete_pdf_pages.assert_not_called()
     files_handler_mock.write.assert_not_called()
 

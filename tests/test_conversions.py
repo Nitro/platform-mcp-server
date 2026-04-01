@@ -20,12 +20,12 @@ async def test_convert_file_invalid_format_raises(
     platform_handler_mock: MagicMock,
 ) -> None:
     """Unknown target format returns an error response."""
-    print(tool_caller)
     files_handler_mock.read.return_value = b"pdf-content"
-    response = await tool_caller.call(
-        "convert_file", ConversionRequest(input_filename=Path("a.pdf"), to="invalid-format")
+    await tool_caller.call(
+        "convert_file",
+        ConversionRequest(input_filename=Path("a.pdf"), to="invalid-format"),
+        expect_error=True,
     )
-    assert response.isError
     platform_handler_mock.convert_file.assert_not_called()
 
 
@@ -90,11 +90,11 @@ async def test_convert_file_path_traversal_raises(
 ) -> None:
     """Path traversal attempt returns an error response."""
     files_handler_mock.read.side_effect = PathTraversalError(Path("../../etc/passwd"))
-    response = await tool_caller.call(
+    await tool_caller.call(
         "convert_file",
         ConversionRequest(input_filename=Path("../../etc/passwd"), to="docx"),
+        expect_error=True,
     )
-    assert response.isError
     platform_handler_mock.convert_file.assert_not_called()
 
 
@@ -106,11 +106,11 @@ async def test_convert_file_missing_input_raises(
 ) -> None:
     """Missing input file returns an error response."""
     files_handler_mock.read.side_effect = FileNotFoundError
-    response = await tool_caller.call(
+    await tool_caller.call(
         "convert_file",
         ConversionRequest(input_filename=Path("missing.pdf"), to="docx"),
+        expect_error=True,
     )
-    assert response.isError
     platform_handler_mock.convert_file.assert_not_called()
 
 
@@ -123,10 +123,11 @@ async def test_convert_file_platform_error_raises(
     """Platform handler error returns an error response."""
     files_handler_mock.read.return_value = b"pdf-content"
     platform_handler_mock.convert_file.side_effect = RuntimeError("api-error")
-    response = await tool_caller.call(
-        "convert_file", ConversionRequest(input_filename=Path("a.pdf"), to="docx")
+    await tool_caller.call(
+        "convert_file",
+        ConversionRequest(input_filename=Path("a.pdf"), to="docx"),
+        expect_error=True,
     )
-    assert response.isError
     platform_handler_mock.convert_file.assert_called_once()
     files_handler_mock.write.assert_not_called()
 

@@ -7,7 +7,6 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
-from mcp import ClientSession
 
 from app.tools.pii import (
     ExtractPIIRequest,
@@ -16,16 +15,17 @@ from app.tools.pii import (
     RedactPDFRequest,
     RedactPDFResult,
 )
+from tests.tool_caller import ToolCaller
 
 
 @pytest.mark.anyio
 async def test_extract_pii(
-    client: ClientSession,
+    tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
 ) -> None:
     """extract_pii calls platform handler and returns JSON result with summary."""
-    # Setup - use PIIBoxes format that matches our Pydantic model
+    # Setup
     pii_json = json.dumps({
         "PIIBoxes": [
             {
@@ -50,24 +50,18 @@ async def test_extract_pii(
     files_handler_mock.write.return_value = Path("doc-pii.json")
 
     # Call
-    response = await client.call_tool(
+    await tool_caller.call(
         "extract_pii",
-        {
-            "request": ExtractPIIRequest(input_filename=Path("doc.pdf"), language="en").model_dump(
-                mode="json"
-            )
-        },
+        ExtractPIIRequest(input_filename=Path("doc.pdf"), language="en"),
+        expected_result=ExtractPIIResult(
+            output_filename="doc-pii.json",
+            total_entities=2,
+            entities_by_type={"type-1": 1, "type-2": 1},
+            average_confidence=0.85,
+        ),
     )
 
     # Assert
-    expected = ExtractPIIResult(
-        output_filename="doc-pii.json",
-        total_entities=2,
-        entities_by_type={"type-1": 1, "type-2": 1},
-        average_confidence=0.85,
-    ).model_dump()
-    assert response.structuredContent == expected
-
     files_handler_mock.read.assert_called_once_with(Path("doc.pdf"))
     platform_handler_mock.extract_pii_bounding_boxes.assert_called_once_with(b"pdf-content", "en")
     files_handler_mock.write.assert_called_once_with(
@@ -77,12 +71,12 @@ async def test_extract_pii(
 
 @pytest.mark.anyio
 async def test_extract_pii_spanish(
-    client: ClientSession,
+    tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
 ) -> None:
     """extract_pii supports Spanish language."""
-    # Setup - empty PII detection result
+    # Setup
     pii_json = json.dumps({"PIIBoxes": []}).encode()
 
     files_handler_mock.read.return_value = b"pdf-content"
@@ -90,30 +84,24 @@ async def test_extract_pii_spanish(
     files_handler_mock.write.return_value = Path("doc-pii.json")
 
     # Call
-    response = await client.call_tool(
+    await tool_caller.call(
         "extract_pii",
-        {
-            "request": ExtractPIIRequest(input_filename=Path("doc.pdf"), language="es").model_dump(
-                mode="json"
-            )
-        },
+        ExtractPIIRequest(input_filename=Path("doc.pdf"), language="es"),
+        expected_result=ExtractPIIResult(
+            output_filename="doc-pii.json",
+            total_entities=0,
+            entities_by_type={},
+            average_confidence=0.0,
+        ),
     )
 
     # Assert
-    expected = ExtractPIIResult(
-        output_filename="doc-pii.json",
-        total_entities=0,
-        entities_by_type={},
-        average_confidence=0.0,
-    ).model_dump()
-    assert response.structuredContent == expected
-
     platform_handler_mock.extract_pii_bounding_boxes.assert_called_once_with(b"pdf-content", "es")
 
 
 @pytest.mark.anyio
 async def test_redact_pdf(
-    client: ClientSession,
+    tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
 ) -> None:
@@ -124,23 +112,19 @@ async def test_redact_pdf(
     files_handler_mock.write.return_value = Path("doc-redacted.pdf")
 
     # Call
-    response = await client.call_tool(
+    await tool_caller.call(
         "redact_pdf",
-        {
-            "request": RedactPDFRequest(
-                input_filename=Path("doc.pdf"),
-                redactions=[
-                    RedactionArea(pageIndex=0, boundingBox=(100, 200, 50, 20)),
-                    RedactionArea(pageIndex=1, boundingBox=(150, 300, 60, 25)),
-                ],
-            ).model_dump(mode="json")
-        },
+        RedactPDFRequest(
+            input_filename=Path("doc.pdf"),
+            redactions=[
+                RedactionArea(pageIndex=0, boundingBox=(100, 200, 50, 20)),
+                RedactionArea(pageIndex=1, boundingBox=(150, 300, 60, 25)),
+            ],
+        ),
+        expected_result=RedactPDFResult(output_filename="doc-redacted.pdf", redaction_count=2),
     )
 
     # Assert
-    expected = RedactPDFResult(output_filename="doc-redacted.pdf", redaction_count=2).model_dump()
-    assert response.structuredContent == expected
-
     files_handler_mock.read.assert_called_once_with(Path("doc.pdf"))
     platform_handler_mock.redact_pdf.assert_called_once_with(
         b"pdf-content",
@@ -156,7 +140,7 @@ async def test_redact_pdf(
 
 @pytest.mark.anyio
 async def test_redact_pdf_single_area(
-    client: ClientSession,
+    tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
 ) -> None:
@@ -167,22 +151,16 @@ async def test_redact_pdf_single_area(
     files_handler_mock.write.return_value = Path("doc-redacted.pdf")
 
     # Call
-    response = await client.call_tool(
+    await tool_caller.call(
         "redact_pdf",
-        {
-            "request": RedactPDFRequest(
-                input_filename=Path("doc.pdf"),
-                redactions=[
-                    RedactionArea(pageIndex=2, boundingBox=(10, 20, 30, 40)),
-                ],
-            ).model_dump(mode="json")
-        },
+        RedactPDFRequest(
+            input_filename=Path("doc.pdf"),
+            redactions=[RedactionArea(pageIndex=2, boundingBox=(10, 20, 30, 40))],
+        ),
+        expected_result=RedactPDFResult(output_filename="doc-redacted.pdf", redaction_count=1),
     )
 
     # Assert
-    expected = RedactPDFResult(output_filename="doc-redacted.pdf", redaction_count=1).model_dump()
-    assert response.structuredContent == expected
-
     platform_handler_mock.redact_pdf.assert_called_once_with(
         b"pdf-content", [{"pageIndex": 2, "boundingBox": [10.0, 20.0, 30.0, 40.0]}]
     )
@@ -190,12 +168,12 @@ async def test_redact_pdf_single_area(
 
 @pytest.mark.anyio
 async def test_redact_pdf_with_pii_json(
-    client: ClientSession,
+    tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
 ) -> None:
     """redact_pdf can read PII JSON file and extract redactions automatically."""
-    # Setup - PII JSON with detected entities
+    # Setup
     pii_json = json.dumps({
         "PIIBoxes": [
             {
@@ -219,26 +197,17 @@ async def test_redact_pdf_with_pii_json(
     platform_handler_mock.redact_pdf.return_value = b"redacted-content"
     files_handler_mock.write.return_value = Path("doc-redacted.pdf")
 
-    # Call with PII JSON file
-    response = await client.call_tool(
+    # Call
+    await tool_caller.call(
         "redact_pdf",
-        {
-            "request": RedactPDFRequest(
-                input_filename=Path("doc.pdf"), pii_json_file=Path("doc-pii.json")
-            ).model_dump(mode="json")
-        },
+        RedactPDFRequest(input_filename=Path("doc.pdf"), pii_json_file=Path("doc-pii.json")),
+        expected_result=RedactPDFResult(output_filename="doc-redacted.pdf", redaction_count=2),
     )
 
     # Assert
-    expected = RedactPDFResult(output_filename="doc-redacted.pdf", redaction_count=2).model_dump()
-    assert response.structuredContent == expected
-
-    # Verify reads: first PDF, then PII JSON
     assert files_handler_mock.read.call_count == 2
     files_handler_mock.read.assert_any_call(Path("doc.pdf"))
     files_handler_mock.read.assert_any_call(Path("doc-pii.json"))
-
-    # Verify redactions were extracted from PII JSON
     platform_handler_mock.redact_pdf.assert_called_once_with(
         b"pdf-content",
         [
@@ -250,74 +219,65 @@ async def test_redact_pdf_with_pii_json(
 
 @pytest.mark.anyio
 async def test_extract_pii_file_not_found(
-    client: ClientSession,
+    tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
 ) -> None:
     """extract_pii raises error when file not found."""
+    # Setup
     files_handler_mock.read.side_effect = FileNotFoundError("File not found")
 
-    response = await client.call_tool(
+    # Call & Assert
+    await tool_caller.call(
         "extract_pii",
-        {"request": ExtractPIIRequest(input_filename=Path("missing.pdf")).model_dump(mode="json")},
+        ExtractPIIRequest(input_filename=Path("missing.pdf")),
+        expect_error=True,
     )
-
-    assert response.isError
 
 
 @pytest.mark.anyio
 async def test_redact_pdf_neither_redactions_nor_json(
-    client: ClientSession,
+    tool_caller: ToolCaller,
 ) -> None:
     """redact_pdf requires either redactions or pii_json_file."""
-    response = await client.call_tool(
-        "redact_pdf",
-        {"request": {"input_filename": "doc.pdf"}},
-    )
-
-    assert response.isError
+    # Call & Assert
+    await tool_caller.call("redact_pdf", {"input_filename": "doc.pdf"}, expect_error=True)
 
 
 @pytest.mark.anyio
 async def test_redact_pdf_invalid_pii_json(
-    client: ClientSession,
+    tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
 ) -> None:
     """redact_pdf raises error when PII JSON format is invalid."""
-    # Setup - invalid JSON structure (missing PIIBoxes)
+    # Setup
     invalid_json = json.dumps({"invalid": "structure"}).encode()
-
     files_handler_mock.read.side_effect = [b"pdf-content", invalid_json]
 
-    response = await client.call_tool(
+    # Call & Assert
+    await tool_caller.call(
         "redact_pdf",
-        {
-            "request": RedactPDFRequest(
-                input_filename=Path("doc.pdf"), pii_json_file=Path("invalid.json")
-            ).model_dump(mode="json")
-        },
+        RedactPDFRequest(input_filename=Path("doc.pdf"), pii_json_file=Path("invalid.json")),
+        expect_error=True,
     )
-
-    assert response.isError
 
 
 @pytest.mark.anyio
 async def test_redact_pdf_platform_error(
-    client: ClientSession,
+    tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
 ) -> None:
     """redact_pdf propagates platform handler errors."""
+    # Setup
     files_handler_mock.read.return_value = b"pdf-content"
     platform_handler_mock.redact_pdf.side_effect = RuntimeError("Platform API error")
 
-    response = await client.call_tool(
+    # Call & Assert
+    await tool_caller.call(
         "redact_pdf",
-        {
-            "request": RedactPDFRequest(
-                input_filename=Path("doc.pdf"),
-                redactions=[RedactionArea(pageIndex=0, boundingBox=(1, 2, 3, 4))],
-            ).model_dump(mode="json")
-        },
+        RedactPDFRequest(
+            input_filename=Path("doc.pdf"),
+            redactions=[RedactionArea(pageIndex=0, boundingBox=(1, 2, 3, 4))],
+        ),
+        expect_error=True,
     )
-
-    assert response.isError
