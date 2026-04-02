@@ -1,10 +1,10 @@
-# Nitro Document Automation
+# Nitro PDF Services
 
 MCP server connecting Claude Desktop to Nitro's Document Intelligence Platform, enabling PDF processing and document automation through natural language.
 
 ## Description
 
-Nitro Document Automation brings the power of Nitro's Document Intelligence Platform directly into Claude Desktop. Perform advanced PDF operations — merging, splitting, converting, compressing, extracting data, and more — simply by describing what you want in natural language. No manual file uploads or external tools required.
+Nitro PDF Services brings the power of Nitro's Document Intelligence Platform directly into Claude Desktop. Perform advanced PDF operations — merging, splitting, converting, compressing, extracting data, and more — simply by describing what you want in natural language. No manual file uploads or external tools required.
 
 ## Features
 
@@ -19,14 +19,14 @@ Nitro Document Automation brings the power of Nitro's Document Intelligence Plat
 
 1. Open **Claude Desktop**
 2. Go to **Settings → Extensions**
-3. Search for **Nitro Document Automation**
+3. Search for **Nitro PDF Services**
 4. Click **Install**
 
 ## Configuration
 
 After installing from the Extensions directory:
 
-1. Open **Settings → Extensions → Nitro Document Automation**
+1. Open **Settings → Extensions → Nitro PDF Services**
 2. Enter your **Nitro Client ID**
 3. Enter your **Nitro Client Secret**
 4. Click **Save**
