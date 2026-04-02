@@ -115,7 +115,7 @@ def list_files(
     )
 
 
-def register_file_management_tool(mcp: FastMCP) -> None:
+def register(mcp: FastMCP) -> None:
     """Register file management tools with the MCP server"""
     mcp.tool(
         description="Use this tool to list files available in the workspace for processing.",

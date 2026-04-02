@@ -5,25 +5,23 @@
 # pylint: disable=redefined-outer-name,protected-access
 
 import contextlib
+from collections.abc import AsyncGenerator, Callable
 from pathlib import Path
-from typing import TYPE_CHECKING
+from unittest.mock import MagicMock
 
 import pytest
+from mcp import ClientSession
+from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.server import lifespan_wrapper
 from mcp.shared.memory import create_connected_server_and_client_session
+from pytest_mock import MockerFixture
 
 from app.config.settings import Settings
 from app.context import AppContext
 from app.handlers import FilesHandler, PlatformHandler
 from app.server import mcp
 
-if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
-    from unittest.mock import MagicMock
-
-    from mcp import ClientSession
-    from mcp.server.fastmcp import FastMCP
-    from pytest_mock import MockerFixture
+from .tool_caller import ToolCaller
 
 
 @pytest.fixture
@@ -80,15 +78,14 @@ def _app_context(platform_handler_mock: MagicMock, files_handler_mock: MagicMock
     return AppContext(platform_handler=platform_handler_mock, files_handler=files_handler_mock)
 
 
-class _FixedLifespan:  # pylint: disable=too-few-public-methods
-    """Lifespan that yields a fixed AppContext for tests."""
-
-    def __init__(self, app_context: AppContext) -> None:
-        self._app_context = app_context
-
+def _fixed_lifespan(
+    app_context: AppContext,
+) -> Callable[[FastMCP], contextlib.AbstractAsyncContextManager[AppContext]]:
     @contextlib.asynccontextmanager
-    async def __call__(self, _: FastMCP) -> AsyncGenerator[AppContext]:
-        yield self._app_context
+    async def _lifespan(_: FastMCP) -> AsyncGenerator[AppContext]:
+        yield app_context
+
+    return _lifespan
 
 
 @pytest.fixture(name="client")
@@ -99,8 +96,14 @@ async def client(
     monkeypatch.setattr(
         mcp._mcp_server,  # pyright: ignore[reportPrivateUsage]
         "lifespan",
-        lifespan_wrapper(mcp, _FixedLifespan(app_context)),
+        lifespan_wrapper(mcp, _fixed_lifespan(app_context)),
     )
 
     async with create_connected_server_and_client_session(mcp) as client:
         yield client
+
+
+@pytest.fixture(name="tool_caller")
+async def tool_caller(client: ClientSession) -> ToolCaller:
+    """Helper to call tools in tests."""
+    return ToolCaller(client)

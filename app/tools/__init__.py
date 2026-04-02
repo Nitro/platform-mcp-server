@@ -4,10 +4,15 @@
 
 from mcp.server.fastmcp import FastMCP
 
-from .conversions import ConversionRequest, ConversionResult, register_conversion_tool
-from .extractions import PDFMetadataRequest, register_extraction_tools
-from .file_management import FileInfo, FileListResult, register_file_management_tool
-from .transformations import MergeRequest, MergeResult, register_transformation_tools
+from .conversions import ConversionRequest, ConversionResult
+from .conversions import register as register_conversion_tool
+from .extractions import PDFMetadataRequest
+from .extractions import register as register_extraction_tools
+from .file_management import FileInfo, FileListResult
+from .file_management import register as register_file_management_tool
+from .pii import register as register_pii_tools
+from .transformations import MergeRequest, MergeResult
+from .transformations import register as register_transformation_tools
 
 
 def register(mcp: FastMCP) -> None:
@@ -16,6 +21,7 @@ def register(mcp: FastMCP) -> None:
     register_file_management_tool(mcp)
     register_conversion_tool(mcp)
     register_extraction_tools(mcp)
+    register_pii_tools(mcp)
 
 
 __all__ = [

@@ -125,7 +125,7 @@ def extract_workspace_and_filename(input_path: Path | str) -> tuple[Path, Path]:
 class FilesHandler:
     """Handles file I/O within a confined workspace folder."""
 
-    _root: Path | None
+    _root: Path | None = None
 
     def set_workspace(self, path: Path) -> None:
         """

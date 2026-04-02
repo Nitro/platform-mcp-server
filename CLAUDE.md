@@ -39,6 +39,7 @@ This codebase is **fully typed**. Every function, method, and variable must have
 - Use PEP 695 `type Foo = ...` over `TypeAlias`
 - Use `@typing.override` where applicable
 - Line length: 100 characters
+- Almost never use nested imports
 
 ## Code Quality
 

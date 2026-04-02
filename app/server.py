@@ -22,15 +22,11 @@ async def lifespan(_: FastMCP) -> AsyncGenerator[AppContext]:
         platform_handler = PlatformHandler.from_client_credentials(
             settings.api_url, settings.client_credentials
         )
-    yield AppContext(
-        platform_handler=platform_handler,
-        files_handler=FilesHandler(None),
-    )
+    yield AppContext(platform_handler=platform_handler, files_handler=FilesHandler())
 
 
 mcp = FastMCP("Nitro MCP", lifespan=lifespan)
 
-# Register tools
 register_tools(mcp)
 
 

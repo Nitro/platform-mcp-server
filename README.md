@@ -1,205 +1,78 @@
-# Nitro MCP
+# Nitro PDF Services
 
-MCP server for Nitro's Document Intelligence Platform, enabling PDF processing tools directly in Claude Desktop.
+MCP server connecting Claude Desktop to Nitro's Document Intelligence Platform, enabling PDF processing and document automation through natural language.
 
-## Overview
+## Description
 
-Nitro MCP provides a Model Context Protocol (MCP) server that connects Claude Desktop to Nitro's Document Intelligence Platform API. Users can perform advanced PDF operations through natural conversation with Claude.
+Nitro PDF Services brings the power of Nitro's Document Intelligence Platform directly into Claude Desktop. Perform advanced PDF operations — merging, splitting, converting, compressing, extracting data, and more — simply by describing what you want in natural language. No manual file uploads or external tools required.
 
-**Key Features:**
-- **Dynamic Workspace Management**: Specify folders naturally in conversation (e.g., "list files from Downloads")
-- **Smart Path Resolution**: Works with folder names, subfolders, or full paths
-- **Session Persistence**: Set workspace once, reuse for all operations in the session
+## Features
 
-## Quick Start
+- **File Management**: List and manage files in your local folders using natural language folder references
+- **PDF Transformations**: Merge, split, compress, rotate, protect, flatten, and manipulate PDFs
+- **File Conversions**: Convert between PDF and Word, Excel, PowerPoint, and image formats
+- **Data Extraction**: Extract text, tables, form fields, metadata, and accessibility data from PDFs
+- **Dynamic Workspace**: Reference folders naturally ("files in Downloads") — no upfront configuration needed
+- **Session Persistence**: Set your workspace once; it's remembered for all operations in the session
 
-### For End Users (Binary Installation)
+## Installation
 
-1. **Download the binary** for your platform from [Releases](https://github.com/gonitro/platform-mcp-server/releases)
-
-2. **Install the binary:**
-
-   **macOS/Linux:**
-   ```bash
-   chmod +x nitro-mcp
-   sudo mv nitro-mcp /usr/local/bin/
-   ```
-
-   **Windows:**
-   - Move `nitro-mcp.exe` to a convenient location (e.g., `C:\Program Files\Nitro\`)
-
-3. **Configure Claude Desktop** - See [Claude Desktop Configuration Guide](docs/claude-desktop-config.md)
-
-4. **Restart Claude Desktop** and start using Nitro MCP tools!
-
-**Note:** No Python installation required - the binary is completely self-contained.
+1. Open **Claude Desktop**
+2. Go to **Settings → Extensions**
+3. Search for **Nitro PDF Services**
+4. Click **Install**
 
 ## Configuration
 
-### Environment Variables
+After installing from the Extensions directory:
 
-- **`NITRO_AUTH_TOKEN`** (required): Your Nitro Platform API authentication token
-- **`PLATFORM_API_URL`** (optional): Platform API base URL
-  - Default: `https://api.gonitrodev.com/idp/platform`
-- **`MCP_SERVER_VERSION`** (optional): Override server version display
+1. Open **Settings → Extensions → Nitro PDF Services**
+2. Enter your **Nitro Client ID**
+3. Enter your **Nitro Client Secret**
+4. Click **Save**
 
-### Workspace Management
+Your credentials are stored securely and used to authenticate with the Nitro Document Intelligence Platform.
 
-Nitro MCP uses a **dynamic workspace** approach - no configuration required! Simply specify the folder location when you need it:
+> To obtain credentials, contact [Nitro Support](https://www.gonitro.com/support).
 
-**Examples:**
-- "List files from Downloads" → Uses `~/Downloads`
-- "Compress files in Desktop/project" → Uses `~/Desktop/project`
-- "List files from /Users/john/Documents" → Uses exact path
+## Examples
 
-**How it works:**
-1. First operation sets the workspace for your session
-2. Subsequent operations use the same workspace automatically
-3. Switch folders anytime by specifying a new location
-
-**Common folders automatically recognized:** Downloads, Documents, Desktop, Pictures
-
-### Claude Desktop Setup
-
-Add to your Claude Desktop configuration file:
-
-**macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-
-**Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
-
-```json
-{
-  "mcpServers": {
-    "nitro-mcp": {
-      "command": "/usr/local/bin/nitro-mcp",
-      "env": {
-        "NITRO_AUTH_TOKEN": "your-api-token-here"
-      }
-    }
-  }
-}
+**Merge multiple PDFs:**
+```
+Merge invoice-jan.pdf, invoice-feb.pdf, and invoice-mar.pdf from my Documents folder into one file
 ```
 
-## Available Tools
-
-### File Management
-- **list_files**: List files in a folder (supports folder names, subfolders, or full paths)
-
-### PDF Transformations
-- **merge_files**: Combine multiple PDFs into one
-- **compress_file**: Reduce PDF file size (light, medium, heavy compression)
-- **split_pdf**: Split PDF by page ranges into separate files
-- **rotate_pdf**: Rotate specific pages by degrees
-- **protect_pdf**: Add password protection and permissions
-- **unprotect_pdf**: Remove password protection
-- **delete_pdf_pages**: Remove specific pages from a PDF
-- **set_pdf_metadata**: Update PDF metadata (title, author, subject, etc.)
-- **flatten_pdf**: Make forms and annotations non-editable
-
-### File Conversions
-- **convert_file**: Convert files between formats
-  - From PDF: Word, Excel, PowerPoint, images (JPG, PNG)
-  - To PDF: Word, Excel, PowerPoint, images
-
-### Data Extraction
-- **get_pdf_metadata**: Extract PDF metadata properties
-- **extract_pdf_forms**: Extract form fields (Excel or JSON output)
-- **extract_pdf_tables**: Extract tables from PDFs (Excel or JSON output)
-- **extract_pdf_text**: Extract text content with optional reading order
-- **extract_pdf_accessibility**: Extract accessibility data
-
-### Usage Examples
-
+**Convert a PDF to Word:**
 ```
-"List files from Downloads"
-"Merge invoice1.pdf and invoice2.pdf from Desktop/invoices"
-"Compress document.pdf with heavy compression"
-"Extract tables from report.pdf in Documents"
-"Convert presentation.pdf to PowerPoint in Desktop"
+Convert report.pdf in my Desktop folder to a Word document
 ```
 
-## Development
-
-### Prerequisites
-
-- Python 3.14+
-- [uv](https://github.com/astral-sh/uv) package manager
-- [Task](https://taskfile.dev/) task runner
-
-### Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/gonitro/platform-mcp-server.git
-cd platform-mcp-server
-
-# Install dependencies and pre-commit hooks
-task install
+**Compress a large PDF:**
+```
+Compress presentation.pdf from Downloads with heavy compression
 ```
 
-### Style Guide
-
-The project style guide lives in [doc-intelligence-api](https://github.com/Nitro/doc-intelligence-api). It is referenced by `CLAUDE.md` and **must be symlinked** into this repo so that Claude can read it:
-
-```bash
-ln -s ../doc-intelligence-api/style-guide.md style-guide.md
+**Extract tables from a PDF:**
+```
+Extract all tables from data-export.pdf in my Documents folder as Excel
 ```
 
-### Running the Server (Development Mode)
-
-```bash
-# Set required environment variables
-export NITRO_AUTH_TOKEN="your-token-here"
-
-# Run the server
-task run
+**Split a PDF by page range:**
+```
+Split contract.pdf into two files: pages 1-5 and pages 6-10
 ```
 
-### Testing
-
-```bash
-# Run all tests with coverage
-task test
-
-# Run specific test file
-task test -- tests/test_config.py
+**Protect a PDF with a password:**
+```
+Add password protection to confidential.pdf in Desktop
 ```
 
-### Code Quality Checks
+## Privacy Policy
 
-```bash
-# Run all checks (linting, type checking, tests)
-task check
+Your data is processed in accordance with the Nitro Privacy Policy:
+[https://www.gonitro.com/legal/privacy-policy](https://www.gonitro.com/legal/privacy-policy)
 
-# Run individual checks
-task check-lint      # Ruff linting
-task check-types     # Pyright type checking
-task autoformat      # Auto-fix linting issues
-```
+## Support
 
-### Building
-
-```bash
-# Build Python distribution package
-task build
-
-# Build standalone binary with PyInstaller
-task build-binary
-```
-
-The binary will be in `dist/nitro-mcp` (or `dist/nitro-mcp.exe` on Windows).
-
-## Project Structure
-
-```
-platform-mcp-server/
-├── platform_mcp_server/     # Source code
-│   ├── server.py           # MCP server entry point
-│   ├── config/             # Configuration management
-│   └── client/             # Platform API client (future)
-├── tests/                  # Test suite
-├── docs/                   # Documentation
-├── pyproject.toml          # Project configuration
-├── Taskfile.yml            # Task automation
-└── README.md              # This file
-```
+For help or to report issues, visit:
+[https://www.gonitro.com/support](https://www.gonitro.com/support)

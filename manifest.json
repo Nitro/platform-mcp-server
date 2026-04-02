@@ -1,13 +1,16 @@
 {
   "manifest_version": "0.4",
   "name": "nitro-mcp",
-  "display_name": "Nitro Document Automation",
+  "display_name": "Nitro PDF Services",
   "version": "2026.03.31.01",
-  "description": "Nitro Document Automation MCP server",
+  "description": "Nitro PDF Services MCP server",
   "author": {
     "name": "Nitro Software Inc."
   },
   "license": "Proprietary",
+  "privacy_policies": [
+    "https://www.gonitro.com/legal/privacy-policy"
+  ],
   "server": {
     "type": "uv",
     "entry_point": "app.server",
@@ -22,7 +25,7 @@
         "app.server"
       ],
       "env": {
-        "NITRO_TARGET_ENV": "dev",
+        "NITRO_TARGET_ENV": "prod",
         "NITRO_AUTH_MODE": "client-credentials",
         "NITRO_CLIENT_ID": "${user_config.client_id}",
         "NITRO_CLIENT_SECRET": "${user_config.client_secret}"
