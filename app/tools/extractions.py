@@ -173,29 +173,29 @@ def extract_pdf_accessibility(
 
 def register_extraction_tools(mcp: FastMCP) -> None:
     """Register extraction tools with the MCP server"""
-    read_only = ToolAnnotations(readOnlyHint=True)
+    destructive = ToolAnnotations(destructiveHint=True)
 
     mcp.tool(
         description="Use this tool when the user asks for the metadata of a PDF file.",
-        annotations=read_only,
+        annotations=destructive,
     )(get_pdf_metadata)
 
     mcp.tool(
         description="Use this tool to extract form fields from a PDF file.",
-        annotations=read_only,
+        annotations=destructive,
     )(extract_pdf_forms)
 
     mcp.tool(
         description="Use this tool to extract tables from a PDF file.",
-        annotations=read_only,
+        annotations=destructive,
     )(extract_pdf_tables)
 
     mcp.tool(
         description="Use this tool to extract text from a PDF file.",
-        annotations=read_only,
+        annotations=destructive,
     )(extract_pdf_text)
 
     mcp.tool(
         description="Use this tool to extract accessibility data from a PDF file.",
-        annotations=read_only,
+        annotations=destructive,
     )(extract_pdf_accessibility)
