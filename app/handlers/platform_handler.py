@@ -4,6 +4,7 @@
 
 import json
 from dataclasses import dataclass
+from logging import getLogger
 from typing import Any, ClassVar, Literal, TypedDict, cast
 
 import httpx
@@ -11,6 +12,8 @@ import httpx
 from app.client.enums import CompressionLevel, ContentType, FileFormat
 from app.client.platform_client import AcceptFormat, BytesFile, PlatformApiClient
 from app.utils.utils import check_http_response
+
+logger = getLogger("PlatformHandler")
 
 
 class PageRotation(TypedDict):
@@ -120,6 +123,7 @@ class PlatformHandler:
         httpx_client: httpx.Client | None = None,
     ) -> PlatformHandler:
         """Create a PlatformHandler authenticated with a bearer token."""
+        logger.info("Creating PlatformHandler with auth token")
         if httpx_client is None:
             httpx_client = httpx.Client(headers={"Authorization": f"Bearer {auth_token}"})
         else:
@@ -131,6 +135,7 @@ class PlatformHandler:
         cls, base_url: str, client_credentials: tuple[str, str]
     ) -> PlatformHandler:
         """Create a PlatformHandler by exchanging client credentials for a bearer token."""
+        logger.info("Creating PlatformHandler with client credentials")
         httpx_client = httpx.Client()
         auth_token = _get_token(httpx_client, base_url, *client_credentials)
         return cls.from_auth_token(base_url, auth_token, httpx_client=httpx_client)
