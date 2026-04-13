@@ -39,7 +39,6 @@ dev = [
     "pytest-socket>=0.7.0",
     "pytest-mock>=3.15.0",
     "pytest-httpx>=0.36.0",
-    "uvloop>=0.22.1",
 ]
 local-dev = [  # Used for local testing and dev
     "openai-agents>=0.13.0",
