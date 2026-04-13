@@ -496,7 +496,7 @@ class PlatformHandler:
         response = self._platform_client.run(
             "transformations",
             file,
-            method="delete",
+            method="delete-pages",
             params={"pageIndices": page_indices},
             accept_format=AcceptFormat.BYTES,
         )
@@ -529,7 +529,7 @@ class PlatformHandler:
         response = self._platform_client.run(
             "transformations",
             file,
-            method="metadata",
+            method="set-properties",
             params=metadata,
             accept_format=AcceptFormat.BYTES,
         )
@@ -614,7 +614,7 @@ class PlatformHandler:
             "forms": "extract-forms",
             "tables": "extract-tables",
             "text": "extract-text",
-            "accessibility": "extract-accessibility",
+            "accessibility": "extract-accessibility-data",
         }
 
         response = self._platform_client.run(
