@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "nitro-mcp",
   "display_name": "Nitro PDF Services",
-  "version": "2026.03.31.01",
+  "version": "0.0.1",
   "description": "Nitro PDF Services MCP server",
   "author": {
     "name": "Nitro Software Inc."
