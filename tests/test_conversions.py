@@ -147,3 +147,57 @@ async def test_convert_file_output_written_to_workspace(
     files_handler_mock.write.assert_called_once_with(
         Path("a.pdf"), b"output-bytes", stem_suffix="converted", ext="docx"
     )
+
+
+@pytest.mark.anyio
+async def test_convert_file_pdf_to_jpeg_writes_zip(
+    tool_caller: ToolCaller,
+    files_handler_mock: MagicMock,
+    platform_handler_mock: MagicMock,
+) -> None:
+    """PDF to JPEG conversion writes ZIP file (API returns one image per page in a ZIP)."""
+    files_handler_mock.read.return_value = b"pdf-content"
+    platform_handler_mock.convert_file.return_value = b"zip-with-images"
+    files_handler_mock.write.return_value = Path("a-converted.zip")
+
+    await tool_caller.call(
+        "convert_file",
+        ConversionRequest(input_filename=Path("a.pdf"), to="jpeg"),
+        expected_result=ConversionResult(output_filename="a-converted.zip"),
+    )
+    files_handler_mock.read.assert_called_once_with(Path("a.pdf"))
+    platform_handler_mock.convert_file.assert_called_once_with(
+        b"pdf-content",
+        FileFormat.PDF,
+        FileFormat.JPEG,
+    )
+    files_handler_mock.write.assert_called_once_with(
+        Path("a.pdf"), b"zip-with-images", stem_suffix="converted", ext="zip"
+    )
+
+
+@pytest.mark.anyio
+async def test_convert_file_pdf_to_png_writes_zip(
+    tool_caller: ToolCaller,
+    files_handler_mock: MagicMock,
+    platform_handler_mock: MagicMock,
+) -> None:
+    """PDF to PNG conversion writes ZIP file (API returns one image per page in a ZIP)."""
+    files_handler_mock.read.return_value = b"pdf-content"
+    platform_handler_mock.convert_file.return_value = b"zip-with-images"
+    files_handler_mock.write.return_value = Path("doc-converted.zip")
+
+    await tool_caller.call(
+        "convert_file",
+        ConversionRequest(input_filename=Path("doc.pdf"), to="png"),
+        expected_result=ConversionResult(output_filename="doc-converted.zip"),
+    )
+    files_handler_mock.read.assert_called_once_with(Path("doc.pdf"))
+    platform_handler_mock.convert_file.assert_called_once_with(
+        b"pdf-content",
+        FileFormat.PDF,
+        FileFormat.PNG,
+    )
+    files_handler_mock.write.assert_called_once_with(
+        Path("doc.pdf"), b"zip-with-images", stem_suffix="converted", ext="zip"
+    )
