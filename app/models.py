@@ -10,7 +10,13 @@ from pydantic import BaseModel, Field
 class SingleFileInputBase(BaseModel):
     """Base model for tool requests that operate on a single input file."""
 
-    input_filename: Path = Field(description="Filename of the source file in the workspace")
+    input_filename: Path = Field(
+        description=(
+            "Full path to the source file (e.g., '~/Downloads/file.pdf' or "
+            "'/home/user/Documents/file.pdf'). Must include the directory — bare filenames "
+            "are not accepted."
+        )
+    )
 
 
 class SingleFileOutputBase(BaseModel):
@@ -23,7 +29,7 @@ class BoundingBoxArea(BaseModel):
     """Base class for areas with page index and bounding box coordinates"""
 
     page_index: int = Field(alias="pageIndex", description="Page number (0-indexed)", ge=0)
-    bounding_box: tuple[float, float, float, float] = Field(
+    bounding_box: list[float] = Field(
         alias="boundingBox", description="Bounding box coordinates [x0, y0, width, height]"
     )
 

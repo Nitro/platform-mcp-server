@@ -4,8 +4,6 @@
 
 from app.handlers.files_handler import (
     FilesHandler,
-    PathTraversalError,
-    WorkspaceNotSetError,
     extract_workspace_and_filename,
     get_common_folders,
     search_folder_in_home,
@@ -19,10 +17,8 @@ from app.handlers.platform_handler import (
 __all__ = [
     "ConversionNotSupportedError",
     "FilesHandler",
-    "PathTraversalError",
     "PlatformHandler",
     "SupportedConversions",
-    "WorkspaceNotSetError",
     "extract_workspace_and_filename",
     "get_common_folders",
     "search_folder_in_home",

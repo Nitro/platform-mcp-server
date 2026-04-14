@@ -59,10 +59,13 @@ tasks:
 
   build:
     desc: Build mcpb package
+    vars:
+      VERSION:
+        sh: uv run python -c "import json; print(json.load(open('manifest.json'))['version'])"
     cmds:
-      - cmd: echo "🚀 Building binary with https://github.com/modelcontextprotocol/mcpb..."
+      - cmd: echo "🚀 Building binary {{.VERSION}}..."
         silent: true
-      - mcpb pack
+      - mcpb pack . nitro-pdf-services-{{.VERSION}}.mcpb
 
   clean:
     desc: Clean build artifacts
