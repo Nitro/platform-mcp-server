@@ -93,4 +93,6 @@ corpus
 run_*.py
 tmp*.py
 
-mcp.mcpb
+*.mcpb
+node-version/dist/
+node-version/node_modules/
