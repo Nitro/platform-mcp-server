@@ -30,7 +30,10 @@ class BoundingBoxArea(BaseModel):
 
     page_index: int = Field(alias="pageIndex", description="Page number (0-indexed)", ge=0)
     bounding_box: list[float] = Field(
-        alias="boundingBox", description="Bounding box coordinates [x0, y0, width, height]"
+        alias="boundingBox",
+        description="Bounding box coordinates [x0, y0, width, height]",
+        min_length=4,
+        max_length=4,
     )
 
     model_config = {"populate_by_name": True}
