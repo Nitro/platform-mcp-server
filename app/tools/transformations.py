@@ -98,8 +98,9 @@ async def compress_file(ctx: CoreContext, request: CompressRequest) -> CompressR
     }
     level = level_map.get(request.level)
     if level is None:
-        msg = f"Invalid compression level: {request.level}. Must be 'light', 'medium', or 'heavy'"
-        raise ValueError(msg)
+        raise ValueError(
+            f"Invalid compression level: {request.level}. Must be 'light', 'medium', or 'heavy'"
+        )
 
     original_bytes = files_handler.read(request.input_path)
     original_size = len(original_bytes)
@@ -303,14 +304,12 @@ async def delete_pdf_pages(ctx: CoreContext, request: DeletePagesRequest) -> Del
             start = int(start_str)
             end = int(end_str)
             if start > end:
-                msg = f"Invalid page range: {page_part}. Start must be <= end"
-                raise ValueError(msg)
+                raise ValueError(f"Invalid page range: {page_part}. Start must be <= end")
             parsed_pages.extend(list(range(start - 1, end)))
         else:
             page_num = int(page_part)
             if page_num <= 0:
-                msg = f"Invalid page number: {page_num}. Pages start from 1"
-                raise ValueError(msg)
+                raise ValueError(f"Invalid page number: {page_num}. Pages start from 1")
             parsed_pages.append(page_num - 1)
 
     parsed_pages = sorted(set(parsed_pages))

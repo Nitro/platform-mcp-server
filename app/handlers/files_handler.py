@@ -22,18 +22,14 @@ class FilesHandler:
             if not candidate.exists():
                 return candidate
 
-        msg = (
-            f"Could not find available filename for '{stem}.{extension}' "
-            f"after {max_attempts} attempts"
-        )
+        msg = f"No available filename for '{stem}.{extension}' after {max_attempts} attempts"
         raise FileExistsError(msg)
 
     def read(self, path: Path) -> bytes:
         """Read and return bytes from a file at the given full path."""
         resolved = path.expanduser().resolve()
         if not resolved.exists():
-            msg = f"File does not exist: {resolved}"
-            raise FileNotFoundError(msg)
+            raise FileNotFoundError(f"File does not exist: {resolved}")
         return resolved.read_bytes()
 
     def write(
@@ -73,8 +69,7 @@ class FilesHandler:
         """List files in the given folder, optionally filtered by extension (no leading dot)."""
         resolved = folder.expanduser().resolve()
         if not resolved.exists():
-            msg = f"Folder does not exist: {resolved}"
-            raise FileNotFoundError(msg)
+            raise FileNotFoundError(f"Folder does not exist: {resolved}")
         if extension is None:
             return [f for f in resolved.iterdir() if f.is_file()]
         return list(resolved.glob(f"*.{extension}"))

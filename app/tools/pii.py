@@ -119,8 +119,7 @@ async def redact_pdf(ctx: CoreContext, request: RedactPDFRequest) -> RedactPDFRe
         pii_result = PIIDetectionResult.model_validate_json(json_bytes)
 
         if not pii_result.pii_boxes:
-            msg = "No PII detections found in JSON file"
-            raise ValueError(msg)
+            raise ValueError("No PII detections found in JSON file")
 
         redactions = [
             {
@@ -139,8 +138,7 @@ async def redact_pdf(ctx: CoreContext, request: RedactPDFRequest) -> RedactPDFRe
             for r in request.redactions
         ]
     else:
-        msg = "Either redactions or pii_json_file must be provided"
-        raise ValueError(msg)
+        raise ValueError("Either redactions or pii_json_file must be provided")
 
     redacted_bytes = platform_handler.redact_pdf(input_bytes, redactions)
 

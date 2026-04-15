@@ -129,8 +129,7 @@ def extract_pdf_forms(ctx: CoreContext, request: ExtractPDFFormsRequest) -> Extr
     if request.output_format == "excel":
         forms_result = FormsResult.model_validate_json(result)
         if not forms_result.fields:
-            msg = "No data available to generate Excel output"
-            raise ValueError(msg)
+            raise ValueError("No data available to generate Excel output")
         excel_bytes = create_forms_excel(
             forms_result.fields,
             str(request.input_path),
@@ -161,8 +160,7 @@ def extract_pdf_tables(ctx: CoreContext, request: ExtractPDFTablesRequest) -> Ex
     if request.output_format == "excel":
         tables_result = TablesResult.model_validate_json(result)
         if not tables_result.tables:
-            msg = "No data available to generate Excel output"
-            raise ValueError(msg)
+            raise ValueError("No data available to generate Excel output")
         excel_bytes = create_tables_excel(tables_result.tables, str(request.input_path))
         output_path = files_handler.write(
             request.input_path, excel_bytes, stem_suffix="tables", ext="xlsx"
