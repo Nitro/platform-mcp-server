@@ -38,7 +38,7 @@ async def test_get_pdf_metadata(
 
     await tool_caller.call(
         "get_pdf_metadata",
-        PDFMetadataRequest(input_filename=tmp_path / "a.pdf"),
+        PDFMetadataRequest(input_path=tmp_path / "a.pdf"),
         expected_result=PDFMetadataResult(output_filename="a_metadata.json"),
     )
     files_handler_mock.read.assert_called_once_with(tmp_path / "a.pdf")
@@ -62,7 +62,7 @@ async def test_get_pdf_metadata_empty(
 
     await tool_caller.call(
         "get_pdf_metadata",
-        PDFMetadataRequest(input_filename=tmp_path / "empty.pdf"),
+        PDFMetadataRequest(input_path=tmp_path / "empty.pdf"),
         expected_result=PDFMetadataResult(output_filename="empty_metadata.json"),
     )
     files_handler_mock.read.assert_called_once_with(tmp_path / "empty.pdf")
@@ -90,7 +90,7 @@ async def test_extract_pdf_forms_excel(
 
     await tool_caller.call(
         "extract_pdf_forms",
-        ExtractPDFFormsRequest(input_filename=tmp_path / "a.pdf", language="fr"),
+        ExtractPDFFormsRequest(input_path=tmp_path / "a.pdf", language="fr"),
         expected_result=ExtractPDFDataResult(output_filename="a-forms.xlsx", data_type="forms"),
     )
     platform_handler_mock.extract_pdf_data.assert_called_once_with(
@@ -120,9 +120,7 @@ async def test_extract_pdf_forms_json(
 
     await tool_caller.call(
         "extract_pdf_forms",
-        ExtractPDFFormsRequest(
-            input_filename=tmp_path / "a.pdf", language="fr", output_format="json"
-        ),
+        ExtractPDFFormsRequest(input_path=tmp_path / "a.pdf", language="fr", output_format="json"),
         expected_result=ExtractPDFDataResult(output_filename="a-forms.json", data_type="forms"),
     )
     platform_handler_mock.extract_pdf_data.assert_called_once_with(
@@ -159,7 +157,7 @@ async def test_extract_pdf_tables_excel(
 
     await tool_caller.call(
         "extract_pdf_tables",
-        ExtractPDFTablesRequest(input_filename=tmp_path / "a.pdf", page_indices=[0, 1]),
+        ExtractPDFTablesRequest(input_path=tmp_path / "a.pdf", page_indices=[0, 1]),
         expected_result=ExtractPDFDataResult(output_filename="a-tables.xlsx", data_type="tables"),
     )
     platform_handler_mock.extract_pdf_data.assert_called_once_with(
@@ -198,7 +196,7 @@ async def test_extract_pdf_tables_json(
     await tool_caller.call(
         "extract_pdf_tables",
         ExtractPDFTablesRequest(
-            input_filename=tmp_path / "a.pdf", page_indices=[0, 1], output_format="json"
+            input_path=tmp_path / "a.pdf", page_indices=[0, 1], output_format="json"
         ),
         expected_result=ExtractPDFDataResult(output_filename="a-tables.json", data_type="tables"),
     )
@@ -225,7 +223,7 @@ async def test_extract_pdf_text(
     await tool_caller.call(
         "extract_pdf_text",
         ExtractPDFTextRequest(
-            input_filename=tmp_path / "a.pdf",
+            input_path=tmp_path / "a.pdf",
             page_indices=[0],
             reading_order=True,
         ),
@@ -258,7 +256,7 @@ async def test_extract_pdf_text_all_pages(
 
     await tool_caller.call(
         "extract_pdf_text",
-        ExtractPDFTextRequest(input_filename=tmp_path / "a.pdf"),
+        ExtractPDFTextRequest(input_path=tmp_path / "a.pdf"),
         expected_result=ExtractPDFTextResult(
             output_filename="a-text.txt",
             word_count=1,
@@ -285,7 +283,7 @@ async def test_extract_pdf_accessibility(
 
     await tool_caller.call(
         "extract_pdf_accessibility",
-        ExtractPDFAccessibilityRequest(input_filename=tmp_path / "a.pdf"),
+        ExtractPDFAccessibilityRequest(input_path=tmp_path / "a.pdf"),
         expected_result=ExtractPDFDataResult(
             output_filename="a-accessibility.json", data_type="accessibility"
         ),
@@ -332,7 +330,7 @@ async def test_search_text_in_pdf(
 
     await tool_caller.call(
         "search_text_in_pdf",
-        SearchTextInPDFRequest(input_filename=tmp_path / "a.pdf", texts=["text-1", "text-2"]),
+        SearchTextInPDFRequest(input_path=tmp_path / "a.pdf", texts=["text-1", "text-2"]),
         expected_result=SearchTextInPDFResult(
             output_filename="a-search.json",
             total_matches=3,

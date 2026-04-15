@@ -46,7 +46,7 @@ async def test_list_files_returns_pdfs(
 
     result = FileListResult.model_validate(response.structuredContent)
     assert result.total_count == 1
-    assert result.files[0].name == "a.pdf"
+    assert Path(result.files[0].path).name == "a.pdf"
     assert result.files[0].file_type == "pdf"
     files_handler_mock.list_files.assert_called_once_with(tmp_path, "pdf")
 
@@ -70,7 +70,7 @@ async def test_list_files_all_types(
     result = FileListResult.model_validate(response.structuredContent)
     assert result.total_count == 2
     assert result.requested_file_type is None
-    assert {f.name for f in result.files} == {"a.pdf", "b.txt"}
+    assert {Path(f.path).name for f in result.files} == {"a.pdf", "b.txt"}
     files_handler_mock.list_files.assert_called_once_with(tmp_path, None)
 
 
@@ -92,7 +92,7 @@ async def test_list_files_sorted_newest_first(
     )
 
     result = FileListResult.model_validate(response.structuredContent)
-    assert [f.name for f in result.files] == ["b.pdf", "a.pdf"]
+    assert [Path(f.path).name for f in result.files] == ["b.pdf", "a.pdf"]
     files_handler_mock.list_files.assert_called_once_with(tmp_path, "pdf")
 
 
@@ -121,7 +121,7 @@ async def test_list_files_with_folder_name(
 
     result = FileListResult.model_validate(response.structuredContent)
     assert result.total_count == 1
-    assert result.files[0].name == "document.pdf"
+    assert Path(result.files[0].path).name == "document.pdf"
     files_handler_mock.list_files.assert_called_once_with(downloads, "pdf")
 
 

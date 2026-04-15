@@ -17,7 +17,7 @@ type FileType = Literal["pdf"]
 class FileInfo(BaseModel):
     """Information about a single file"""
 
-    name: str = Field(description="File name")
+    path: str = Field(description="Full path to the file — use this as input_path for other tools")
     file_type: str = Field(description="File extension/type")
     size_bytes: int = Field(description="File size in bytes")
     modified_time: datetime = Field(description="Last modification time, ISO format, UTC timezone")
@@ -84,7 +84,7 @@ def list_files(ctx: CoreContext, request: ListFilesRequest) -> FileListResult:
     for file_path, stat in file_paths_with_stat:
         file_infos.append(
             FileInfo(
-                name=file_path.name,
+                path=str(file_path),
                 file_type=file_path.suffix.lstrip(".") or "unknown",
                 size_bytes=stat.st_size,
                 modified_time=datetime.fromtimestamp(stat.st_mtime, tz=UTC),

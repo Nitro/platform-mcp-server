@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 class SingleFileInputBase(BaseModel):
     """Base model for tool requests that operate on a single input file."""
 
-    input_filename: Path = Field(
+    input_path: Path = Field(
         description=(
             "Full path to the source file (e.g., '~/Downloads/file.pdf' or "
             "'/home/user/Documents/file.pdf'). Must include the directory — bare filenames "

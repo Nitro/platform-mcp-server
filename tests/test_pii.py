@@ -51,7 +51,7 @@ async def test_extract_pii(
 
     await tool_caller.call(
         "extract_pii",
-        ExtractPIIRequest(input_filename=tmp_path / "doc.pdf", language="en"),
+        ExtractPIIRequest(input_path=tmp_path / "doc.pdf", language="en"),
         expected_result=ExtractPIIResult(
             output_filename="doc-pii.json",
             total_entities=2,
@@ -83,7 +83,7 @@ async def test_extract_pii_spanish(
 
     await tool_caller.call(
         "extract_pii",
-        ExtractPIIRequest(input_filename=tmp_path / "doc.pdf", language="es"),
+        ExtractPIIRequest(input_path=tmp_path / "doc.pdf", language="es"),
         expected_result=ExtractPIIResult(
             output_filename="doc-pii.json",
             total_entities=0,
@@ -110,7 +110,7 @@ async def test_redact_pdf(
     await tool_caller.call(
         "redact_pdf",
         RedactPDFRequest(
-            input_filename=tmp_path / "doc.pdf",
+            input_path=tmp_path / "doc.pdf",
             redactions=[
                 RedactionArea(pageIndex=0, boundingBox=[100, 200, 50, 20]),
                 RedactionArea(pageIndex=1, boundingBox=[150, 300, 60, 25]),
@@ -147,7 +147,7 @@ async def test_redact_pdf_single_area(
     await tool_caller.call(
         "redact_pdf",
         RedactPDFRequest(
-            input_filename=tmp_path / "doc.pdf",
+            input_path=tmp_path / "doc.pdf",
             redactions=[RedactionArea(pageIndex=2, boundingBox=[10, 20, 30, 40])],
         ),
         expected_result=RedactPDFResult(output_filename="doc-redacted.pdf", redaction_count=1),
@@ -192,7 +192,7 @@ async def test_redact_pdf_with_pii_json(
     await tool_caller.call(
         "redact_pdf",
         RedactPDFRequest(
-            input_filename=tmp_path / "doc.pdf",
+            input_path=tmp_path / "doc.pdf",
             pii_json_file=tmp_path / "doc-pii.json",
         ),
         expected_result=RedactPDFResult(output_filename="doc-redacted.pdf", redaction_count=2),
@@ -221,7 +221,7 @@ async def test_extract_pii_file_not_found(
 
     await tool_caller.call(
         "extract_pii",
-        ExtractPIIRequest(input_filename=tmp_path / "missing.pdf"),
+        ExtractPIIRequest(input_path=tmp_path / "missing.pdf"),
         expect_error=True,
     )
 
@@ -234,7 +234,7 @@ async def test_redact_pdf_neither_redactions_nor_json(
     """redact_pdf requires either redactions or pii_json_file."""
     await tool_caller.call(
         "redact_pdf",
-        {"input_filename": str(tmp_path / "doc.pdf")},
+        {"input_path": str(tmp_path / "doc.pdf")},
         expect_error=True,
     )
 
@@ -252,7 +252,7 @@ async def test_redact_pdf_invalid_pii_json(
     await tool_caller.call(
         "redact_pdf",
         RedactPDFRequest(
-            input_filename=tmp_path / "doc.pdf",
+            input_path=tmp_path / "doc.pdf",
             pii_json_file=tmp_path / "invalid.json",
         ),
         expect_error=True,
@@ -273,7 +273,7 @@ async def test_redact_pdf_platform_error(
     await tool_caller.call(
         "redact_pdf",
         RedactPDFRequest(
-            input_filename=tmp_path / "doc.pdf",
+            input_path=tmp_path / "doc.pdf",
             redactions=[RedactionArea(pageIndex=0, boundingBox=[1, 2, 3, 4])],
         ),
         expect_error=True,

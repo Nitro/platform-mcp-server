@@ -80,7 +80,7 @@ async def extract_pii(ctx: CoreContext, request: ExtractPIIRequest) -> ExtractPI
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
-    input_bytes = files_handler.read(request.input_filename)
+    input_bytes = files_handler.read(request.input_path)
 
     pii_json = platform_handler.extract_pii_bounding_boxes(input_bytes, request.language)
 
@@ -91,9 +91,7 @@ async def extract_pii(ctx: CoreContext, request: ExtractPIIRequest) -> ExtractPI
     confidences = [box.confidence for box in pii_result.pii_boxes]
     average_confidence = sum(confidences) / len(confidences) if confidences else 0.0
 
-    output_path = files_handler.write(
-        request.input_filename, pii_json, stem_suffix="pii", ext="json"
-    )
+    output_path = files_handler.write(request.input_path, pii_json, stem_suffix="pii", ext="json")
 
     return ExtractPIIResult(
         output_filename=output_path.name,
@@ -113,7 +111,7 @@ async def redact_pdf(ctx: CoreContext, request: RedactPDFRequest) -> RedactPDFRe
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
-    input_bytes = files_handler.read(request.input_filename)
+    input_bytes = files_handler.read(request.input_path)
 
     if request.pii_json_file:
         json_bytes = files_handler.read(request.pii_json_file)
@@ -146,7 +144,7 @@ async def redact_pdf(ctx: CoreContext, request: RedactPDFRequest) -> RedactPDFRe
 
     redacted_bytes = platform_handler.redact_pdf(input_bytes, redactions)
 
-    written = files_handler.write(request.input_filename, redacted_bytes, stem_suffix="redacted")
+    written = files_handler.write(request.input_path, redacted_bytes, stem_suffix="redacted")
 
     return RedactPDFResult(
         output_filename=written.name,

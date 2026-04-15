@@ -23,7 +23,7 @@ async def test_convert_file_invalid_format_raises(
     files_handler_mock.read.return_value = b"pdf-content"
     await tool_caller.call(
         "convert_file",
-        ConversionRequest(input_filename=tmp_path / "a.pdf", to="invalid-format"),
+        ConversionRequest(input_path=tmp_path / "a.pdf", to="invalid-format"),
         expect_error=True,
     )
     platform_handler_mock.convert_file.assert_not_called()
@@ -43,7 +43,7 @@ async def test_convert_file_pdf_to_docx(
 
     await tool_caller.call(
         "convert_file",
-        ConversionRequest(input_filename=tmp_path / "a.pdf", to="docx"),
+        ConversionRequest(input_path=tmp_path / "a.pdf", to="docx"),
         expected_result=ConversionResult(output_filename="a-converted.docx"),
     )
     files_handler_mock.read.assert_called_once_with(tmp_path / "a.pdf")
@@ -70,7 +70,7 @@ async def test_convert_file_docx_to_pdf(
     files_handler_mock.write.return_value = tmp_path / "doc-converted.pdf"
     await tool_caller.call(
         "convert_file",
-        ConversionRequest(input_filename=tmp_path / "doc.docx", to="pdf"),
+        ConversionRequest(input_path=tmp_path / "doc.docx", to="pdf"),
         expected_result=ConversionResult(output_filename="doc-converted.pdf"),
     )
     files_handler_mock.read.assert_called_once_with(tmp_path / "doc.docx")
@@ -95,7 +95,7 @@ async def test_convert_file_missing_input_raises(
     files_handler_mock.read.side_effect = FileNotFoundError
     await tool_caller.call(
         "convert_file",
-        ConversionRequest(input_filename=tmp_path / "missing.pdf", to="docx"),
+        ConversionRequest(input_path=tmp_path / "missing.pdf", to="docx"),
         expect_error=True,
     )
     platform_handler_mock.convert_file.assert_not_called()
@@ -113,7 +113,7 @@ async def test_convert_file_platform_error_raises(
     platform_handler_mock.convert_file.side_effect = RuntimeError("api-error")
     await tool_caller.call(
         "convert_file",
-        ConversionRequest(input_filename=tmp_path / "a.pdf", to="docx"),
+        ConversionRequest(input_path=tmp_path / "a.pdf", to="docx"),
         expect_error=True,
     )
     platform_handler_mock.convert_file.assert_called_once()
@@ -131,7 +131,7 @@ async def test_convert_file_output_written_to_same_directory(
     files_handler_mock.read.return_value = b"pdf-content"
     platform_handler_mock.convert_file.return_value = b"output-bytes"
     await tool_caller.call(
-        "convert_file", ConversionRequest(input_filename=tmp_path / "a.pdf", to="docx")
+        "convert_file", ConversionRequest(input_path=tmp_path / "a.pdf", to="docx")
     )
     files_handler_mock.write.assert_called_once_with(
         tmp_path / "a.pdf", b"output-bytes", stem_suffix="converted", ext="docx"
@@ -152,7 +152,7 @@ async def test_convert_file_pdf_to_jpeg_writes_zip(
 
     await tool_caller.call(
         "convert_file",
-        ConversionRequest(input_filename=tmp_path / "a.pdf", to="jpeg"),
+        ConversionRequest(input_path=tmp_path / "a.pdf", to="jpeg"),
         expected_result=ConversionResult(output_filename="a-converted.zip"),
     )
     files_handler_mock.read.assert_called_once_with(tmp_path / "a.pdf")
@@ -180,7 +180,7 @@ async def test_convert_file_pdf_to_png_writes_zip(
 
     await tool_caller.call(
         "convert_file",
-        ConversionRequest(input_filename=tmp_path / "doc.pdf", to="png"),
+        ConversionRequest(input_path=tmp_path / "doc.pdf", to="png"),
         expected_result=ConversionResult(output_filename="doc-converted.zip"),
     )
     files_handler_mock.read.assert_called_once_with(tmp_path / "doc.pdf")

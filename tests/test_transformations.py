@@ -36,13 +36,13 @@ from tests.tool_caller import ToolCaller
 def test_merge_request_rejects_empty_list() -> None:
     """Empty input list fails validation."""
     with pytest.raises(ValidationError):
-        MergeRequest(input_filenames=[])
+        MergeRequest(input_paths=[])
 
 
 def test_merge_request_requires_minimum_two_files() -> None:
     """Single file input fails validation."""
     with pytest.raises(ValidationError):
-        MergeRequest(input_filenames=[Path("/tmp/file1.pdf")])  # noqa: S108
+        MergeRequest(input_paths=[Path("/tmp/file1.pdf")])  # noqa: S108
 
 
 @pytest.mark.anyio
@@ -58,10 +58,10 @@ async def test_merge_files(
     files_handler_mock.write.return_value = tmp_path / "merged.pdf"
     await tool_caller.call(
         "merge_files",
-        MergeRequest(input_filenames=[tmp_path / "a.pdf", tmp_path / "b.pdf"]),
+        MergeRequest(input_paths=[tmp_path / "a.pdf", tmp_path / "b.pdf"]),
         expected_result=MergeResult(
             output_filename="merged.pdf",
-            input_filenames=[str(tmp_path / "a.pdf"), str(tmp_path / "b.pdf")],
+            input_paths=[str(tmp_path / "a.pdf"), str(tmp_path / "b.pdf")],
             input_count=2,
             total_input_size_bytes=26,
             output_size_bytes=6,
@@ -86,7 +86,7 @@ async def test_merge_files_missing_file_raises(
     files_handler_mock.read.side_effect = [b"pdf-a-content", FileNotFoundError]
     await tool_caller.call(
         "merge_files",
-        MergeRequest(input_filenames=[tmp_path / "a.pdf", tmp_path / "missing.pdf"]),
+        MergeRequest(input_paths=[tmp_path / "a.pdf", tmp_path / "missing.pdf"]),
         expect_error=True,
     )
     platform_handler_mock.merge_pdfs.assert_not_called()
@@ -104,7 +104,7 @@ async def test_merge_files_platform_error_raises(
     platform_handler_mock.merge_pdfs.side_effect = RuntimeError("api-error")
     await tool_caller.call(
         "merge_files",
-        MergeRequest(input_filenames=[tmp_path / "a.pdf", tmp_path / "b.pdf"]),
+        MergeRequest(input_paths=[tmp_path / "a.pdf", tmp_path / "b.pdf"]),
         expect_error=True,
     )
     platform_handler_mock.merge_pdfs.assert_called_once_with([b"pdf-a-content", b"pdf-b-content"])
@@ -125,12 +125,12 @@ async def test_merge_files_custom_output_filename(
     await tool_caller.call(
         "merge_files",
         MergeRequest(
-            input_filenames=[tmp_path / "a.pdf", tmp_path / "b.pdf"],
+            input_paths=[tmp_path / "a.pdf", tmp_path / "b.pdf"],
             output_filename="out.pdf",
         ),
         expected_result=MergeResult(
             output_filename="out.pdf",
-            input_filenames=[str(tmp_path / "a.pdf"), str(tmp_path / "b.pdf")],
+            input_paths=[str(tmp_path / "a.pdf"), str(tmp_path / "b.pdf")],
             input_count=2,
             total_input_size_bytes=26,
             output_size_bytes=6,
@@ -154,10 +154,10 @@ async def test_merge_files_three_files(
 
     await tool_caller.call(
         "merge_files",
-        MergeRequest(input_filenames=[tmp_path / "a.pdf", tmp_path / "b.pdf", tmp_path / "c.pdf"]),
+        MergeRequest(input_paths=[tmp_path / "a.pdf", tmp_path / "b.pdf", tmp_path / "c.pdf"]),
         expected_result=MergeResult(
             output_filename="merged.pdf",
-            input_filenames=[
+            input_paths=[
                 str(tmp_path / "a.pdf"),
                 str(tmp_path / "b.pdf"),
                 str(tmp_path / "c.pdf"),
@@ -196,7 +196,7 @@ async def test_compress_file_medium(
 
     await tool_caller.call(
         "compress_file",
-        CompressRequest(input_filename=tmp_path / "a.pdf", level="medium"),
+        CompressRequest(input_path=tmp_path / "a.pdf", level="medium"),
         expected_result=CompressResult(
             output_filename="a-compressed-medium.pdf",
             original_size_bytes=11,
@@ -223,7 +223,7 @@ async def test_compress_file_invalid_level(
     """Invalid compression level returns error."""
     await tool_caller.call(
         "compress_file",
-        CompressRequest(input_filename=tmp_path / "a.pdf", level="invalid"),
+        CompressRequest(input_path=tmp_path / "a.pdf", level="invalid"),
         expect_error=True,
     )
     platform_handler_mock.compress_pdf.assert_not_called()
@@ -247,7 +247,7 @@ async def test_split_pdf_success(
 
     await tool_caller.call(
         "split_pdf",
-        SplitRequest(input_filename=tmp_path / "a.pdf", page_ranges=["1-2", "4"]),
+        SplitRequest(input_path=tmp_path / "a.pdf", page_ranges=["1-2", "4"]),
         expected_result=SplitResult(output_filename="a-split.zip", split_count=2),
     )
     files_handler_mock.read.assert_called_once_with(tmp_path / "a.pdf")
@@ -275,7 +275,7 @@ async def test_rotate_pdf_success(
     await tool_caller.call(
         "rotate_pdf",
         RotateRequest(
-            input_filename=tmp_path / "a.pdf",
+            input_path=tmp_path / "a.pdf",
             rotations=[Rotation(page_number=1, amount=90), Rotation(page_number=3, amount=180)],
         ),
         expected_result=RotateResult(output_filename="a-rotated.pdf", rotation_count=2),
@@ -301,7 +301,7 @@ async def test_rotate_pdf_invalid_degrees(
     await tool_caller.call(
         "rotate_pdf",
         {
-            "input_filename": str(tmp_path / "a.pdf"),
+            "input_path": str(tmp_path / "a.pdf"),
             "rotations": [{"page_number": 1, "amount": 45}],
         },
         expect_error=True,
@@ -328,7 +328,7 @@ async def test_protect_pdf_success(
     await tool_caller.call(
         "protect_pdf",
         ProtectRequest(
-            input_filename=tmp_path / "a.pdf",
+            input_path=tmp_path / "a.pdf",
             owner_password="owner-pw",
             user_password="user-pw",
             permissions=["print", "copy"],
@@ -368,7 +368,7 @@ async def test_unprotect_pdf_success(
 
     await tool_caller.call(
         "unprotect_pdf",
-        UnprotectRequest(input_filename=tmp_path / "a.pdf", owner_password="owner-pw"),
+        UnprotectRequest(input_path=tmp_path / "a.pdf", owner_password="owner-pw"),
         expected_result=UnprotectResult(output_filename="a-unprotected.pdf"),
     )
     files_handler_mock.read.assert_called_once_with(tmp_path / "a.pdf")
@@ -399,7 +399,7 @@ async def test_delete_pdf_pages_success(
 
     await tool_caller.call(
         "delete_pdf_pages",
-        DeletePagesRequest(input_filename=tmp_path / "a.pdf", page_numbers=["1", "3", "5-7"]),
+        DeletePagesRequest(input_path=tmp_path / "a.pdf", page_numbers=["1", "3", "5-7"]),
         expected_result=DeletePagesResult(output_filename="a-pages-deleted.pdf", pages_deleted=5),
     )
     files_handler_mock.read.assert_called_once_with(tmp_path / "a.pdf")
@@ -422,7 +422,7 @@ async def test_delete_pdf_pages_invalid_range(
     """Invalid page range returns error."""
     await tool_caller.call(
         "delete_pdf_pages",
-        DeletePagesRequest(input_filename=tmp_path / "a.pdf", page_numbers=["5-2"]),
+        DeletePagesRequest(input_path=tmp_path / "a.pdf", page_numbers=["5-2"]),
         expect_error=True,
     )
     platform_handler_mock.delete_pdf_pages.assert_not_called()
@@ -447,7 +447,7 @@ async def test_set_pdf_metadata_success(
     await tool_caller.call(
         "set_pdf_metadata",
         SetMetadataRequest(
-            input_filename=tmp_path / "a.pdf",
+            input_path=tmp_path / "a.pdf",
             title="title",
             author="author",
         ),
@@ -482,7 +482,7 @@ async def test_flatten_pdf_success(
 
     await tool_caller.call(
         "flatten_pdf",
-        FlattenRequest(input_filename=tmp_path / "a.pdf"),
+        FlattenRequest(input_path=tmp_path / "a.pdf"),
         expected_result=FlattenResult(output_filename="a-flattened.pdf"),
     )
     files_handler_mock.read.assert_called_once_with(tmp_path / "a.pdf")
