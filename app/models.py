@@ -22,7 +22,9 @@ class SingleFileInputBase(BaseModel):
 class SingleFileOutputBase(BaseModel):
     """Base model for tool responses that produce a single output file."""
 
-    output_filename: str = Field(description="Filename of the output file in the workspace")
+    output_filename: str = Field(
+        description="Filename of the output file (written to the same directory as the input)"
+    )
 
 
 class BoundingBoxArea(BaseModel):
