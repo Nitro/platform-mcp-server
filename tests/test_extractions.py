@@ -231,7 +231,6 @@ async def test_extract_pdf_text(
             output_filename="a-text.txt",
             word_count=2,
             character_count=13,
-            page_count=1,
         ),
     )
     platform_handler_mock.extract_pdf_data.assert_called_once_with(
@@ -261,7 +260,6 @@ async def test_extract_pdf_text_all_pages(
             output_filename="a-text.txt",
             word_count=1,
             character_count=4,
-            page_count=0,
         ),
     )
     platform_handler_mock.extract_pdf_data.assert_called_once_with(

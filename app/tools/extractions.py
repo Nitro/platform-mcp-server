@@ -73,7 +73,6 @@ class ExtractPDFTextResult(SingleFileOutputBase):
 
     word_count: int = Field(description="Number of words in extracted text")
     character_count: int = Field(description="Number of characters in extracted text")
-    page_count: int = Field(description="Number of pages extracted")
 
 
 class SearchTextInPDFRequest(SingleFileInputBase):
@@ -193,7 +192,6 @@ def extract_pdf_text(ctx: CoreContext, request: ExtractPDFTextRequest) -> Extrac
 
     word_count = len(extracted_text.split())
     character_count = len(extracted_text)
-    page_count = len(request.page_indices) if request.page_indices else 0
 
     output_path = files_handler.write(
         request.input_path, extracted_text.encode(), stem_suffix="text", ext="txt"
@@ -203,7 +201,6 @@ def extract_pdf_text(ctx: CoreContext, request: ExtractPDFTextRequest) -> Extrac
         output_filename=output_path.name,
         word_count=word_count,
         character_count=character_count,
-        page_count=page_count,
     )
 
 
