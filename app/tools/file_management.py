@@ -10,7 +10,6 @@ from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, Field
 
 from app.context import CoreContext, get_dep
-from app.handlers.files_handler import search_folder_in_home
 
 type FileType = Literal["pdf"]
 
@@ -50,11 +49,21 @@ class ListFilesRequest(BaseModel):
     )
 
 
+def _search_folder_in_home(name: str) -> Path | None:
+    """Search for a folder by name in the home directory (case-insensitive)."""
+    home = Path.home()
+    name_lower = name.lower()
+    for child in home.iterdir():
+        if child.is_dir() and child.name.lower() == name_lower:
+            return child
+    return None
+
+
 def _resolve_folder(folder: Path) -> Path:
     """Resolve a folder path, supporting bare folder names via home directory lookup."""
     if not folder.is_absolute() and not str(folder).startswith("~"):
         first_part = folder.parts[0]
-        found = search_folder_in_home(first_part)
+        found = _search_folder_in_home(first_part)
         if found is not None:
             rest = Path(*folder.parts[1:]) if len(folder.parts) > 1 else Path()
             return (found / rest).resolve() if rest != Path() else found

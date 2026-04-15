@@ -6,72 +6,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-def get_common_folders() -> list[Path]:
-    """Get list of common folders in the home directory."""
-    home = Path.home()
-    return [
-        home / "Downloads",
-        home / "Documents",
-        home / "Desktop",
-        home / "Pictures",
-    ]
-
-
-def search_folder_in_home(name: str) -> Path | None:
-    """Search for a folder by name in the home directory (case-insensitive)."""
-    home = Path.home()
-    name_lower = name.lower()
-    for child in home.iterdir():
-        if child.is_dir() and child.name.lower() == name_lower:
-            return child
-    return None
-
-
-def extract_workspace_and_filename(input_path: Path) -> tuple[Path, Path]:
-    """
-    Extract workspace directory and filename from a path.
-
-    For relative paths whose first component matches a home subdirectory name,
-    the path is resolved relative to that home subdirectory.
-
-    Args:
-        input_path: Full path to a file. Bare filenames (no directory) are not accepted.
-
-    Returns:
-        Tuple of (workspace_directory, filename)
-
-    Raises:
-        ValueError: If input_path is a bare filename with no directory component
-    """
-    path = input_path
-
-    if len(path.parts) == 1:
-        msg = f"Please provide full path including directory (e.g., '~/Downloads/{path}')"
-        raise ValueError(msg)
-
-    if not path.is_absolute() and not str(path).startswith("~"):
-        first_part = path.parts[0]
-        found = search_folder_in_home(first_part)
-        if found is not None:
-            rest = Path(*path.parts[1:])
-            full_path = (found / rest).resolve()
-            return full_path.parent, Path(full_path.name)
-
-    resolved = path.expanduser().resolve()
-    return resolved.parent, Path(resolved.name)
-
-
 @dataclass
 class FilesHandler:
     """Handles file I/O using full file paths."""
-
-    def read(self, path: Path) -> bytes:
-        """Read and return bytes from a file at the given full path."""
-        resolved = path.expanduser().resolve()
-        if not resolved.exists():
-            msg = f"File does not exist: {resolved}"
-            raise FileNotFoundError(msg)
-        return resolved.read_bytes()
 
     def _find_available_path(self, stem: str, extension: str, directory: Path) -> Path:
         """Find the next available filename using incremental suffixes."""
@@ -90,6 +27,14 @@ class FilesHandler:
             f"after {max_attempts} attempts"
         )
         raise FileExistsError(msg)
+
+    def read(self, path: Path) -> bytes:
+        """Read and return bytes from a file at the given full path."""
+        resolved = path.expanduser().resolve()
+        if not resolved.exists():
+            msg = f"File does not exist: {resolved}"
+            raise FileNotFoundError(msg)
+        return resolved.read_bytes()
 
     def write(
         self,

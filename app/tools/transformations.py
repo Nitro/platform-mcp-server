@@ -10,7 +10,6 @@ from pydantic import BaseModel, Field
 
 from app.client import CompressionLevel
 from app.context import CoreContext, get_dep
-from app.handlers.files_handler import extract_workspace_and_filename
 from app.handlers.platform_handler import PageRotation, PdfMetadata, PdfPermission
 from app.models import SingleFileInputBase, SingleFileOutputBase
 
@@ -46,7 +45,7 @@ def merge_files(ctx: CoreContext, request: MergeRequest) -> MergeResult:
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
-    workspace, _ = extract_workspace_and_filename(request.input_filenames[0])
+    workspace = request.input_filenames[0].expanduser().resolve().parent
 
     file_contents: list[bytes] = []
     total_size = 0

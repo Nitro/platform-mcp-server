@@ -2,12 +2,7 @@
 
 """Handlers for file I/O and platform API operations"""
 
-from app.handlers.files_handler import (
-    FilesHandler,
-    extract_workspace_and_filename,
-    get_common_folders,
-    search_folder_in_home,
-)
+from app.handlers.files_handler import FilesHandler
 from app.handlers.platform_handler import (
     ConversionNotSupportedError,
     PlatformHandler,
@@ -19,7 +14,4 @@ __all__ = [
     "FilesHandler",
     "PlatformHandler",
     "SupportedConversions",
-    "extract_workspace_and_filename",
-    "get_common_folders",
-    "search_folder_in_home",
 ]
