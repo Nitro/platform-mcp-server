@@ -24,3 +24,4 @@ style-guide.md
 Taskfile.yml
 setup.py
 node-version
+build/
