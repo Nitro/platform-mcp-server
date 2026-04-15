@@ -4,15 +4,13 @@
 
 from collections import Counter
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
+from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, Field
 
 from app.context import CoreContext, get_dep
 from app.models import BoundingBoxArea, SingleFileInputBase, SingleFileOutputBase
-
-if TYPE_CHECKING:
-    from mcp.server.fastmcp import FastMCP
 
 
 class ExtractPIIRequest(SingleFileInputBase):
@@ -60,7 +58,7 @@ class RedactPDFRequest(SingleFileInputBase):
     pii_json_file: Path | None = Field(
         default=None,
         description=(
-            "Path to PII detection JSON file (from extract_pii tool). "
+            "Full path to PII detection JSON file (from extract_pii tool). "
             "If provided, redactions will be extracted automatically from this file."
         ),
     )
@@ -73,8 +71,7 @@ class RedactPDFResult(SingleFileOutputBase):
 
 
 async def extract_pii(ctx: CoreContext, request: ExtractPIIRequest) -> ExtractPIIResult:
-    """
-    Extract PII from a PDF with bounding box coordinates.
+    """Extract PII from a PDF with bounding box coordinates.
 
     Returns a complete JSON file containing all detected PII entities with bounding boxes,
     confidence scores, and page locations. The output is immediately usable and requires
@@ -83,23 +80,18 @@ async def extract_pii(ctx: CoreContext, request: ExtractPIIRequest) -> ExtractPI
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
-    filename = files_handler.ensure_workspace_from_path(request.input_filename)
-    input_bytes = files_handler.read(filename)
+    input_bytes = files_handler.read(request.input_path)
 
     pii_json = platform_handler.extract_pii_bounding_boxes(input_bytes, request.language)
 
-    # Parse the result to extract summary statistics for the response
-    # This provides immediate context (entity counts, types, avg confidence) so Claude
-    # understands the extraction is complete without needing to read the JSON file
     pii_result = PIIDetectionResult.model_validate_json(pii_json)
 
-    # Calculate statistics
     total_entities = len(pii_result.pii_boxes)
     entities_by_type = dict(Counter(box.pii_type for box in pii_result.pii_boxes))
     confidences = [box.confidence for box in pii_result.pii_boxes]
     average_confidence = sum(confidences) / len(confidences) if confidences else 0.0
 
-    output_path = files_handler.write(filename, pii_json, stem_suffix="pii", ext="json")
+    output_path = files_handler.write(request.input_path, pii_json, stem_suffix="pii", ext="json")
 
     return ExtractPIIResult(
         output_filename=output_path.name,
@@ -110,8 +102,7 @@ async def extract_pii(ctx: CoreContext, request: ExtractPIIRequest) -> ExtractPI
 
 
 async def redact_pdf(ctx: CoreContext, request: RedactPDFRequest) -> RedactPDFResult:
-    """
-    Redact specific areas of a PDF using bounding box coordinates.
+    """Redact specific areas of a PDF using bounding box coordinates.
 
     Blacks out sensitive information at the specified page indices and bounding box
     coordinates. Can accept either manual redaction coordinates OR a PII JSON file
@@ -120,23 +111,16 @@ async def redact_pdf(ctx: CoreContext, request: RedactPDFRequest) -> RedactPDFRe
     files_handler = get_dep(ctx, "files-handler")
     platform_handler = get_dep(ctx, "platform-handler")
 
-    filename = files_handler.ensure_workspace_from_path(request.input_filename)
-    input_bytes = files_handler.read(filename)
+    input_bytes = files_handler.read(request.input_path)
 
-    # Determine source of redactions
     if request.pii_json_file:
-        # Load redactions from PII JSON file
-        json_filename = files_handler.ensure_workspace_from_path(request.pii_json_file)
-        json_bytes = files_handler.read(json_filename)
+        json_bytes = files_handler.read(request.pii_json_file)
 
-        # Parse and validate using Pydantic
         pii_result = PIIDetectionResult.model_validate_json(json_bytes)
 
         if not pii_result.pii_boxes:
-            msg = "No PII detections found in JSON file"
-            raise ValueError(msg)
+            raise ValueError("No PII detections found in JSON file")
 
-        # Convert PII boxes to redaction format
         redactions = [
             {
                 "pageIndex": box.page_index,
@@ -146,7 +130,6 @@ async def redact_pdf(ctx: CoreContext, request: RedactPDFRequest) -> RedactPDFRe
         ]
 
     elif request.redactions:
-        # Use manually provided redactions
         redactions = [
             {
                 "pageIndex": r.page_index,
@@ -155,12 +138,11 @@ async def redact_pdf(ctx: CoreContext, request: RedactPDFRequest) -> RedactPDFRe
             for r in request.redactions
         ]
     else:
-        msg = "Either redactions or pii_json_file must be provided"
-        raise ValueError(msg)
+        raise ValueError("Either redactions or pii_json_file must be provided")
 
     redacted_bytes = platform_handler.redact_pdf(input_bytes, redactions)
 
-    written = files_handler.write(filename, redacted_bytes, stem_suffix="redacted")
+    written = files_handler.write(request.input_path, redacted_bytes, stem_suffix="redacted")
 
     return RedactPDFResult(
         output_filename=written.name,

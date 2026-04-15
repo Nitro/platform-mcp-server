@@ -4,15 +4,12 @@
 
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
+from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, Field
 
 from app.context import CoreContext, get_dep
-from app.handlers import search_folder_in_home
-
-if TYPE_CHECKING:
-    from mcp.server.fastmcp import FastMCP
 
 type FileType = Literal["pdf"]
 
@@ -20,14 +17,14 @@ type FileType = Literal["pdf"]
 class FileInfo(BaseModel):
     """Information about a single file"""
 
-    name: str = Field(description="File name")
+    path: str = Field(description="Full path to the file — use this as input_path for other tools")
     file_type: str = Field(description="File extension/type")
     size_bytes: int = Field(description="File size in bytes")
     modified_time: datetime = Field(description="Last modification time, ISO format, UTC timezone")
 
 
 class FileListResult(BaseModel):
-    """Result of listing files in the workspace folder"""
+    """Result of listing files in the folder"""
 
     files: list[FileInfo] = Field(description="List of files found")
     total_count: int = Field(description="Total number of files found")
@@ -36,63 +33,50 @@ class FileListResult(BaseModel):
     )
 
 
-def list_files(
-    ctx: CoreContext,
-    file_type: FileType | None = "pdf",
-    folder: str | None = None,
-) -> FileListResult:
-    """List files available for processing.
+class ListFilesRequest(BaseModel):
+    """Request model for listing files in a folder."""
 
-    Important: If the user mentions a folder/location (e.g., 'Downloads', 'Documents',
-    '/path/to/folder'), you MUST pass it as the folder parameter. This sets the workspace
-    for all subsequent operations in this session.
+    file_type: FileType | None = Field(
+        None, description="Type of files to list ('pdf' or None for all files)"
+    )
+    folder: Path = Field(
+        description=(
+            "Full path to the folder to list files from (e.g., '~/Downloads' or "
+            "'/home/user/Documents'). You may also provide a bare folder name like 'Downloads' "
+            "and it will be resolved from the home directory. If you are unsure of the full path, "
+            "ask the user to provide it."
+        ),
+    )
 
-    Args:
-        file_type: Type of files to list ('pdf' or None for all files)
-        folder: Folder name (e.g., 'Downloads') or full path. When specified, this becomes
-                the new workspace for all subsequent operations. If not specified, uses the
-                current workspace (if any).
-    """
+
+def _search_folder_in_home(name: str) -> Path | None:
+    """Search for a folder by name in the home directory (case-insensitive)."""
+    home = Path.home()
+    name_lower = name.lower()
+    for child in home.iterdir():
+        if child.is_dir() and child.name.lower() == name_lower:
+            return child
+    return None
+
+
+def _resolve_folder(folder: Path) -> Path:
+    """Resolve a folder path, supporting bare folder names via home directory lookup."""
+    if not folder.is_absolute() and not str(folder).startswith("~"):
+        first_part = folder.parts[0]
+        found = _search_folder_in_home(first_part)
+        if found is not None:
+            rest = Path(*folder.parts[1:]) if len(folder.parts) > 1 else Path()
+            return (found / rest).resolve() if rest != Path() else found
+    return folder.expanduser().resolve()
+
+
+def list_files(ctx: CoreContext, request: ListFilesRequest) -> FileListResult:
+    """List files available for processing"""
     files_handler = get_dep(ctx, "files-handler")
 
-    # If folder is specified, set workspace from it
-    if folder is not None:
-        folder_path = Path(folder)
+    folder = _resolve_folder(request.folder)
+    file_paths = files_handler.list_files(folder, request.file_type)
 
-        # Handle paths like "Desktop/subfolder" or just "Downloads"
-        if not folder_path.is_absolute():
-            # Check if first part is a common folder
-            first_part = str(folder_path.parts[0])
-            found = search_folder_in_home(first_part)
-
-            if found:
-                # Reconstruct path with remaining parts
-                if len(folder_path.parts) > 1:
-                    remaining = folder_path.parts[1:]
-                    folder_path = found.joinpath(*remaining)
-                else:
-                    folder_path = found
-            else:
-                # Try to resolve as ~/folder or ~/folder/subfolder
-                folder_path = Path.home() / folder_path
-
-        # Resolve to absolute path and validate it exists
-        folder_path = folder_path.resolve()
-
-        if not folder_path.exists():
-            msg = f"Folder not found: {folder_path}"
-            raise ValueError(msg)
-
-        if not folder_path.is_dir():
-            msg = f"Path is not a directory: {folder_path}"
-            raise ValueError(msg)
-
-        # Set workspace
-        files_handler.set_workspace(folder_path)
-
-    file_paths = files_handler.list_files(file_type)
-
-    # Compute stat once per file for both sorting and info building
     file_paths_with_stat = [(f, f.stat()) for f in file_paths]
     file_paths_with_stat.sort(key=lambda x: x[1].st_mtime, reverse=True)
 
@@ -100,7 +84,7 @@ def list_files(
     for file_path, stat in file_paths_with_stat:
         file_infos.append(
             FileInfo(
-                name=file_path.name,
+                path=str(file_path),
                 file_type=file_path.suffix.lstrip(".") or "unknown",
                 size_bytes=stat.st_size,
                 modified_time=datetime.fromtimestamp(stat.st_mtime, tz=UTC),
@@ -108,9 +92,7 @@ def list_files(
         )
 
     return FileListResult(
-        files=file_infos,
-        total_count=len(file_infos),
-        requested_file_type=file_type,
+        files=file_infos, total_count=len(file_infos), requested_file_type=request.file_type
     )
 
 

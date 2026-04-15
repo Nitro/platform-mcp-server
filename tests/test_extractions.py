@@ -29,21 +29,22 @@ async def test_get_pdf_metadata(
     tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
+    tmp_path: Path,
 ) -> None:
     """Get PDF metadata calls platform handler and returns result."""
     files_handler_mock.read.return_value = b"pdf-a-content"
     platform_handler_mock.get_pdf_metadata.return_value = b'{"title": "Test PDF"}'
-    files_handler_mock.write.return_value = Path("a_metadata.json")
+    files_handler_mock.write.return_value = tmp_path / "a_metadata.json"
 
     await tool_caller.call(
         "get_pdf_metadata",
-        PDFMetadataRequest(input_filename=Path("a.pdf")),
+        PDFMetadataRequest(input_path=tmp_path / "a.pdf"),
         expected_result=PDFMetadataResult(output_filename="a_metadata.json"),
     )
-    files_handler_mock.read.assert_called_once_with(Path("a.pdf"))
+    files_handler_mock.read.assert_called_once_with(tmp_path / "a.pdf")
     platform_handler_mock.get_pdf_metadata.assert_called_once_with(b"pdf-a-content")
     files_handler_mock.write.assert_called_once_with(
-        Path("a.pdf"), b'{"title": "Test PDF"}', stem_suffix="metadata", ext="json"
+        tmp_path / "a.pdf", b'{"title": "Test PDF"}', stem_suffix="metadata", ext="json"
     )
 
 
@@ -52,21 +53,22 @@ async def test_get_pdf_metadata_empty(
     tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
+    tmp_path: Path,
 ) -> None:
     """Get PDF metadata with no metadata properties returns empty result."""
     files_handler_mock.read.return_value = b"pdf-content"
     platform_handler_mock.get_pdf_metadata.return_value = b"{}"
-    files_handler_mock.write.return_value = Path("empty_metadata.json")
+    files_handler_mock.write.return_value = tmp_path / "empty_metadata.json"
 
     await tool_caller.call(
         "get_pdf_metadata",
-        PDFMetadataRequest(input_filename=Path("empty.pdf")),
+        PDFMetadataRequest(input_path=tmp_path / "empty.pdf"),
         expected_result=PDFMetadataResult(output_filename="empty_metadata.json"),
     )
-    files_handler_mock.read.assert_called_once_with(Path("empty.pdf"))
+    files_handler_mock.read.assert_called_once_with(tmp_path / "empty.pdf")
     platform_handler_mock.get_pdf_metadata.assert_called_once_with(b"pdf-content")
     files_handler_mock.write.assert_called_once_with(
-        Path("empty.pdf"), b"{}", stem_suffix="metadata", ext="json"
+        tmp_path / "empty.pdf", b"{}", stem_suffix="metadata", ext="json"
     )
 
 
@@ -75,6 +77,7 @@ async def test_extract_pdf_forms_excel(
     tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
+    tmp_path: Path,
 ) -> None:
     """extract_pdf_forms defaults to Excel output."""
     form_json = json.dumps({
@@ -83,11 +86,11 @@ async def test_extract_pdf_forms_excel(
     }).encode()
     files_handler_mock.read.return_value = b"pdf-content"
     platform_handler_mock.extract_pdf_data.return_value = form_json
-    files_handler_mock.write.return_value = Path("a-forms.xlsx")
+    files_handler_mock.write.return_value = tmp_path / "a-forms.xlsx"
 
     await tool_caller.call(
         "extract_pdf_forms",
-        ExtractPDFFormsRequest(input_filename=Path("a.pdf"), language="fr"),
+        ExtractPDFFormsRequest(input_path=tmp_path / "a.pdf", language="fr"),
         expected_result=ExtractPDFDataResult(output_filename="a-forms.xlsx", data_type="forms"),
     )
     platform_handler_mock.extract_pdf_data.assert_called_once_with(
@@ -95,7 +98,7 @@ async def test_extract_pdf_forms_excel(
     )
     files_handler_mock.write.assert_called_once()
     write_call = files_handler_mock.write.call_args
-    assert write_call.args[0] == Path("a.pdf")
+    assert write_call.args[0] == tmp_path / "a.pdf"
     assert write_call.kwargs == {"stem_suffix": "forms", "ext": "xlsx"}
 
 
@@ -104,6 +107,7 @@ async def test_extract_pdf_forms_json(
     tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
+    tmp_path: Path,
 ) -> None:
     """extract_pdf_forms with json output writes JSON file."""
     form_json = json.dumps({
@@ -112,18 +116,18 @@ async def test_extract_pdf_forms_json(
     }).encode()
     files_handler_mock.read.return_value = b"pdf-content"
     platform_handler_mock.extract_pdf_data.return_value = form_json
-    files_handler_mock.write.return_value = Path("a-forms.json")
+    files_handler_mock.write.return_value = tmp_path / "a-forms.json"
 
     await tool_caller.call(
         "extract_pdf_forms",
-        ExtractPDFFormsRequest(input_filename=Path("a.pdf"), language="fr", output_format="json"),
+        ExtractPDFFormsRequest(input_path=tmp_path / "a.pdf", language="fr", output_format="json"),
         expected_result=ExtractPDFDataResult(output_filename="a-forms.json", data_type="forms"),
     )
     platform_handler_mock.extract_pdf_data.assert_called_once_with(
         b"pdf-content", "forms", ExtractionParams(language="fr")
     )
     files_handler_mock.write.assert_called_once_with(
-        Path("a.pdf"), form_json, stem_suffix="forms", ext="json"
+        tmp_path / "a.pdf", form_json, stem_suffix="forms", ext="json"
     )
 
 
@@ -132,6 +136,7 @@ async def test_extract_pdf_tables_excel(
     tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
+    tmp_path: Path,
 ) -> None:
     """extract_pdf_tables defaults to Excel output."""
     tables_json = json.dumps({
@@ -148,11 +153,11 @@ async def test_extract_pdf_tables_excel(
     }).encode()
     files_handler_mock.read.return_value = b"pdf-content"
     platform_handler_mock.extract_pdf_data.return_value = tables_json
-    files_handler_mock.write.return_value = Path("a-tables.xlsx")
+    files_handler_mock.write.return_value = tmp_path / "a-tables.xlsx"
 
     await tool_caller.call(
         "extract_pdf_tables",
-        ExtractPDFTablesRequest(input_filename=Path("a.pdf"), page_indices=[0, 1]),
+        ExtractPDFTablesRequest(input_path=tmp_path / "a.pdf", page_indices=[0, 1]),
         expected_result=ExtractPDFDataResult(output_filename="a-tables.xlsx", data_type="tables"),
     )
     platform_handler_mock.extract_pdf_data.assert_called_once_with(
@@ -160,7 +165,7 @@ async def test_extract_pdf_tables_excel(
     )
     files_handler_mock.write.assert_called_once()
     write_call = files_handler_mock.write.call_args
-    assert write_call.args[0] == Path("a.pdf")
+    assert write_call.args[0] == tmp_path / "a.pdf"
     assert write_call.kwargs == {"stem_suffix": "tables", "ext": "xlsx"}
 
 
@@ -169,6 +174,7 @@ async def test_extract_pdf_tables_json(
     tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
+    tmp_path: Path,
 ) -> None:
     """extract_pdf_tables with json output writes JSON file."""
     tables_json = json.dumps({
@@ -185,12 +191,12 @@ async def test_extract_pdf_tables_json(
     }).encode()
     files_handler_mock.read.return_value = b"pdf-content"
     platform_handler_mock.extract_pdf_data.return_value = tables_json
-    files_handler_mock.write.return_value = Path("a-tables.json")
+    files_handler_mock.write.return_value = tmp_path / "a-tables.json"
 
     await tool_caller.call(
         "extract_pdf_tables",
         ExtractPDFTablesRequest(
-            input_filename=Path("a.pdf"), page_indices=[0, 1], output_format="json"
+            input_path=tmp_path / "a.pdf", page_indices=[0, 1], output_format="json"
         ),
         expected_result=ExtractPDFDataResult(output_filename="a-tables.json", data_type="tables"),
     )
@@ -198,7 +204,7 @@ async def test_extract_pdf_tables_json(
         b"pdf-content", "tables", ExtractionParams(pageIndices=[0, 1])
     )
     files_handler_mock.write.assert_called_once_with(
-        Path("a.pdf"), tables_json, stem_suffix="tables", ext="json"
+        tmp_path / "a.pdf", tables_json, stem_suffix="tables", ext="json"
     )
 
 
@@ -207,17 +213,17 @@ async def test_extract_pdf_text(
     tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
+    tmp_path: Path,
 ) -> None:
     """extract_pdf_text writes text output with statistics."""
     files_handler_mock.read.return_value = b"pdf-content"
-    # API returns JSON-encoded string
     platform_handler_mock.extract_pdf_data.return_value = b'"text-a text-b"'
-    files_handler_mock.write.return_value = Path("a-text.txt")
+    files_handler_mock.write.return_value = tmp_path / "a-text.txt"
 
     await tool_caller.call(
         "extract_pdf_text",
         ExtractPDFTextRequest(
-            input_filename=Path("a.pdf"),
+            input_path=tmp_path / "a.pdf",
             page_indices=[0],
             reading_order=True,
         ),
@@ -225,14 +231,13 @@ async def test_extract_pdf_text(
             output_filename="a-text.txt",
             word_count=2,
             character_count=13,
-            page_count=1,
         ),
     )
     platform_handler_mock.extract_pdf_data.assert_called_once_with(
         b"pdf-content", "text", ExtractionParams(pageIndices=[0], readingOrder=True)
     )
     files_handler_mock.write.assert_called_once_with(
-        Path("a.pdf"), b"text-a text-b", stem_suffix="text", ext="txt"
+        tmp_path / "a.pdf", b"text-a text-b", stem_suffix="text", ext="txt"
     )
 
 
@@ -241,20 +246,20 @@ async def test_extract_pdf_text_all_pages(
     tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
+    tmp_path: Path,
 ) -> None:
     """extract_pdf_text with no page_indices extracts all pages."""
     files_handler_mock.read.return_value = b"pdf-content"
     platform_handler_mock.extract_pdf_data.return_value = b'"text"'
-    files_handler_mock.write.return_value = Path("a-text.txt")
+    files_handler_mock.write.return_value = tmp_path / "a-text.txt"
 
     await tool_caller.call(
         "extract_pdf_text",
-        ExtractPDFTextRequest(input_filename=Path("a.pdf")),
+        ExtractPDFTextRequest(input_path=tmp_path / "a.pdf"),
         expected_result=ExtractPDFTextResult(
             output_filename="a-text.txt",
             word_count=1,
             character_count=4,
-            page_count=0,
         ),
     )
     platform_handler_mock.extract_pdf_data.assert_called_once_with(
@@ -267,15 +272,16 @@ async def test_extract_pdf_accessibility(
     tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
+    tmp_path: Path,
 ) -> None:
     """extract_pdf_accessibility writes JSON output."""
     files_handler_mock.read.return_value = b"pdf-content"
     platform_handler_mock.extract_pdf_data.return_value = b'{"accessibility": {}}'
-    files_handler_mock.write.return_value = Path("a-accessibility.json")
+    files_handler_mock.write.return_value = tmp_path / "a-accessibility.json"
 
     await tool_caller.call(
         "extract_pdf_accessibility",
-        ExtractPDFAccessibilityRequest(input_filename=Path("a.pdf")),
+        ExtractPDFAccessibilityRequest(input_path=tmp_path / "a.pdf"),
         expected_result=ExtractPDFDataResult(
             output_filename="a-accessibility.json", data_type="accessibility"
         ),
@@ -284,7 +290,7 @@ async def test_extract_pdf_accessibility(
         b"pdf-content", "accessibility", ExtractionParams()
     )
     files_handler_mock.write.assert_called_once_with(
-        Path("a.pdf"), b'{"accessibility": {}}', stem_suffix="accessibility", ext="json"
+        tmp_path / "a.pdf", b'{"accessibility": {}}', stem_suffix="accessibility", ext="json"
     )
 
 
@@ -293,9 +299,9 @@ async def test_search_text_in_pdf(
     tool_caller: ToolCaller,
     files_handler_mock: MagicMock,
     platform_handler_mock: MagicMock,
+    tmp_path: Path,
 ) -> None:
     """search_text_in_pdf calls platform handler and returns result with summary."""
-    # Setup
     text_boxes_json = json.dumps({
         "textBoxes": [
             {
@@ -318,12 +324,11 @@ async def test_search_text_in_pdf(
 
     files_handler_mock.read.return_value = b"pdf-content"
     platform_handler_mock.extract_text_bounding_boxes.return_value = text_boxes_json
-    files_handler_mock.write.return_value = Path("a-search.json")
+    files_handler_mock.write.return_value = tmp_path / "a-search.json"
 
-    # Call
     await tool_caller.call(
         "search_text_in_pdf",
-        SearchTextInPDFRequest(input_filename=Path("a.pdf"), texts=["text-1", "text-2"]),
+        SearchTextInPDFRequest(input_path=tmp_path / "a.pdf", texts=["text-1", "text-2"]),
         expected_result=SearchTextInPDFResult(
             output_filename="a-search.json",
             total_matches=3,
@@ -331,11 +336,10 @@ async def test_search_text_in_pdf(
         ),
     )
 
-    # Assert
-    files_handler_mock.read.assert_called_once_with(Path("a.pdf"))
+    files_handler_mock.read.assert_called_once_with(tmp_path / "a.pdf")
     platform_handler_mock.extract_text_bounding_boxes.assert_called_once_with(
         b"pdf-content", ["text-1", "text-2"]
     )
     files_handler_mock.write.assert_called_once_with(
-        Path("a.pdf"), text_boxes_json, stem_suffix="search", ext="json"
+        tmp_path / "a.pdf", text_boxes_json, stem_suffix="search", ext="json"
     )

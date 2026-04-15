@@ -65,7 +65,7 @@ tasks:
     cmds:
       - cmd: echo "🚀 Building binary {{.VERSION}}..."
         silent: true
-      - mcpb pack . nitro-pdf-services-{{.VERSION}}.mcpb
+      - mcpb pack . build/nitro-pdf-services-{{.VERSION}}.mcpb
 
   clean:
     desc: Clean build artifacts
