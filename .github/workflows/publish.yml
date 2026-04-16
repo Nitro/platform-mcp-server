@@ -65,16 +65,20 @@ jobs:
       - name: Build
         run: task build
 
-      - name: Commit and push to main
+      - name: Commit version bump
         run: |
           VERSION="${{ steps.version.outputs.value }}"
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "nitro-robot"
+          git config user.email "nitro-robot@users.noreply.github.com"
           git add manifest.json pyproject.toml
           git commit -m "Release v${VERSION}"
           git tag "v${VERSION}"
-          git push origin main
-          git push origin "v${VERSION}"
+
+      - name: Push version change
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.NITRO_ROBOT_COMMIT_TOKEN }}
+          tags: true
 
       - name: Create GitHub release
         env:
