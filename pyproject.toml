@@ -1,6 +1,6 @@
 [project]
 name = "platform-mcp-server"
-version = "0.6.0"
+version = "0.7.0"
 description = "MCP server for Nitro Document Intelligence Platform"
 authors = [{name = "rpalekar", email = "rajvardhan.palekar@gonitro.com"}]
 readme = "README.md"
