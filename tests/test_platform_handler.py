@@ -275,7 +275,7 @@ def test_delete_pdf_pages(
     platform_client_mock.run.assert_called_once_with(
         "transformations",
         BytesFile(content_type=ContentType.PDF, content=b"pdf-content", name="input.pdf"),
-        method="delete",
+        method="delete-pages",
         params={"pageIndices": [0, 2, 4]},
         accept_format=AcceptFormat.BYTES,
     )
@@ -304,7 +304,7 @@ def test_set_pdf_metadata(
     platform_client_mock.run.assert_called_once_with(
         "transformations",
         BytesFile(content_type=ContentType.PDF, content=b"pdf-content", name="input.pdf"),
-        method="metadata",
+        method="set-properties",
         params=metadata,
         accept_format=AcceptFormat.BYTES,
     )
@@ -404,7 +404,7 @@ def test_extract_pdf_data_accessibility(
     platform_client_mock.run.assert_called_once_with(
         "extractions",
         BytesFile(content_type=ContentType.PDF, content=b"pdf-content", name="document.pdf"),
-        method="extract-accessibility",
+        method="extract-accessibility-data",
         params={},
         accept_format=AcceptFormat.JSON,
     )

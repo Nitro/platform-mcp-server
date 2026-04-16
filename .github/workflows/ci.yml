@@ -36,11 +36,36 @@ jobs:
         run: task test
         shell: bash
 
+  # Verifies that all dependencies have compatible wheels for macOS and Windows.
+  # Runs on Linux using `uv pip compile --python-platform` for cross-platform resolution,
+  # so no macOS/Windows runners are needed. Will fail if any dependency (e.g. uvloop)
+  # does not publish wheels for the target platform.
+  cross-platform-install:
+    name: Verify dependencies resolve for ${{ matrix.platform }}
+    runs-on: [self-hosted, linux, x64, nitrosys]
+    strategy:
+      matrix:
+        platform: [windows, macos]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.14"
+
+      - name: Verify dependencies resolve for ${{ matrix.platform }}
+        run: uv pip compile pyproject.toml --python-platform ${{ matrix.platform }} --python-version 3.14
+        shell: bash
+
   result:
     name: Result
     if: ${{ always() }}
     runs-on: [self-hosted, linux, x64]
-    needs: [check]
+    needs: [check, cross-platform-install]
     steps:
       - name: Check results
         if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')

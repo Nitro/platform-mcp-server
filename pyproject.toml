@@ -39,7 +39,6 @@ dev = [
     "pytest-socket>=0.7.0",
     "pytest-mock>=3.15.0",
     "pytest-httpx>=0.36.0",
-    "uvloop>=0.22.1",
 ]
 local-dev = [  # Used for local testing and dev
     "openai-agents>=0.13.0",
@@ -107,10 +106,11 @@ select = [
     "T10",   # debugger statements
 ]
 ignore = [
-    "D211",  # no-blank-line-before-class
-    "D213",  # multi-line-summary-second-line
-    "S101",  # use of assert detected
-    "COM812" # missing trailing comma in a list or tuple
+    "D211",   # no-blank-line-before-class
+    "D213",   # multi-line-summary-second-line
+    "S101",   # use of assert detected
+    "COM812", # missing trailing comma in a list or tuple
+    "TRY003", # avoid specifying long messages outside the exception class
 ]
 
 [tool.ruff.lint.per-file-ignores]

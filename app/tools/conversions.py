@@ -30,16 +30,21 @@ async def convert_file(ctx: CoreContext, request: ConversionRequest) -> Conversi
     platform_handler = get_dep(ctx, "platform-handler")
     files_handler = get_dep(ctx, "files-handler")
 
-    filename = files_handler.ensure_workspace_from_path(request.input_filename)
+    input_format = FileFormat(request.input_path.suffix.lstrip(".").lower())
+    output_format = FileFormat(request.to)
 
-    input_bytes = files_handler.read(filename)
-    converted_bytes = platform_handler.convert_file(
-        input_bytes,
-        FileFormat(filename.suffix.lstrip(".").lower()),
-        FileFormat(request.to),
+    input_bytes = files_handler.read(request.input_path)
+    converted_bytes = platform_handler.convert_file(input_bytes, input_format, output_format)
+
+    # PDF to image conversions return a ZIP file with one image per page, not a single image
+    is_pdf_to_image = input_format == FileFormat.PDF and output_format in (
+        FileFormat.JPEG,
+        FileFormat.PNG,
     )
+    output_ext = "zip" if is_pdf_to_image else request.to
+
     output_path = files_handler.write(
-        filename, converted_bytes, stem_suffix="converted", ext=request.to
+        request.input_path, converted_bytes, stem_suffix="converted", ext=output_ext
     )
     return ConversionResult(output_filename=output_path.name)
 
