@@ -6,6 +6,7 @@ import json
 from typing import Literal
 
 from mcp.server.fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 from pydantic import BaseModel, Field
 
 from app.context import CoreContext, get_dep
@@ -254,23 +255,37 @@ def search_text_in_pdf(ctx: CoreContext, request: SearchTextInPDFRequest) -> Sea
 
 def register(mcp: FastMCP) -> None:
     """Register extraction tools with the MCP server"""
-    mcp.tool(description="Use this tool when the user asks for the metadata of a PDF file.")(
-        get_pdf_metadata
-    )
+    destructive = ToolAnnotations(destructiveHint=True)
 
-    mcp.tool(description="Use this tool to extract form fields from a PDF file.")(extract_pdf_forms)
+    mcp.tool(
+        description="Use this tool when the user asks for the metadata of a PDF file.",
+        annotations=destructive,
+    )(get_pdf_metadata)
 
-    mcp.tool(description="Use this tool to extract tables from a PDF file.")(extract_pdf_tables)
+    mcp.tool(
+        description="Use this tool to extract form fields from a PDF file.",
+        annotations=destructive,
+    )(extract_pdf_forms)
 
-    mcp.tool(description="Use this tool to extract text from a PDF file.")(extract_pdf_text)
+    mcp.tool(
+        description="Use this tool to extract tables from a PDF file.",
+        annotations=destructive,
+    )(extract_pdf_tables)
 
-    mcp.tool(description="Use this tool to extract accessibility data from a PDF file.")(
-        extract_pdf_accessibility
-    )
+    mcp.tool(
+        description="Use this tool to extract text from a PDF file.",
+        annotations=destructive,
+    )(extract_pdf_text)
+
+    mcp.tool(
+        description="Use this tool to extract accessibility data from a PDF file.",
+        annotations=destructive,
+    )(extract_pdf_accessibility)
 
     mcp.tool(
         description=(
             "Use this tool to search for specific text strings in a PDF and get their locations. "
             "Returns a JSON file with bounding box coordinates for each match."
-        )
+        ),
+        annotations=destructive,
     )(search_text_in_pdf)

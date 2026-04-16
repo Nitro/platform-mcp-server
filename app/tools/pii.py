@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Literal
 
 from mcp.server.fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 from pydantic import BaseModel, Field
 
 from app.context import CoreContext, get_dep
@@ -156,7 +157,8 @@ def register(mcp: FastMCP) -> None:
         description=(
             "Use this tool to extract PII (Personally Identifiable Information) from a PDF file. "
             "Returns a JSON file with detected PII entities, bounding boxes, and confidence scores."
-        )
+        ),
+        annotations=ToolAnnotations(destructiveHint=True),
     )(extract_pii)
 
     mcp.tool(
@@ -166,5 +168,6 @@ def register(mcp: FastMCP) -> None:
             "redact all detected PII, OR "
             "(2) Provide manual redactions with page indices and bounding box coordinates. "
             "The tool will apply redactions and save a redacted PDF."
-        )
+        ),
+        annotations=ToolAnnotations(destructiveHint=True),
     )(redact_pdf)
