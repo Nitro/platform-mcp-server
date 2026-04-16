@@ -39,32 +39,32 @@ Your credentials are stored securely and used to authenticate with the Nitro Doc
 
 **Merge multiple PDFs:**
 ```
-Merge invoice-jan.pdf, invoice-feb.pdf, and invoice-mar.pdf from my Documents folder into one file
+Merge invoice-jan.pdf, invoice-feb.pdf, and invoice-mar.pdf from my Documents folder into one file using Nitro
 ```
 
 **Convert a PDF to Word:**
 ```
-Convert report.pdf in my Desktop folder to a Word document
+Convert report.pdf in my Desktop folder to a Word document using Nitro
 ```
 
 **Compress a large PDF:**
 ```
-Compress presentation.pdf from Downloads with heavy compression
+Compress presentation.pdf from Downloads with heavy compression using Nitro
 ```
 
 **Extract tables from a PDF:**
 ```
-Extract all tables from data-export.pdf in my Documents folder as Excel
+Extract all tables from data-export.pdf in my Documents folder as Excel using Nitro
 ```
 
 **Split a PDF by page range:**
 ```
-Split contract.pdf into two files: pages 1-5 and pages 6-10
+Split contract.pdf into two files: pages 1-5 and pages 6-10 using Nitro
 ```
 
 **Protect a PDF with a password:**
 ```
-Add password protection to confidential.pdf in Desktop
+Add password protection to confidential.pdf in Desktop using Nitro
 ```
 
 ## Privacy Policy
