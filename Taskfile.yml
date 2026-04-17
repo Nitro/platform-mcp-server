@@ -57,6 +57,11 @@ tasks:
         silent: true
       - uv run pytest --cov --cov-config=pyproject.toml --cov-report=xml -s -vv -rA {{.CLI_ARGS}}
 
+  publish:
+    desc: "Trigger the publish release workflow (optional version: task publish -- 1.2.3)"
+    cmds:
+      - 'gh workflow run publish.yml --repo Nitro/platform-mcp-server {{if .CLI_ARGS}}-f version={{.CLI_ARGS}}{{end}}'
+
   build:
     desc: Build mcpb package
     vars:
