@@ -45,11 +45,6 @@ jobs:
           jq --arg v "$VERSION" '.version = $v' manifest.json > manifest.json.tmp
           mv manifest.json.tmp manifest.json
 
-      - name: Update pyproject.toml
-        run: |
-          VERSION="${{ steps.version.outputs.value }}"
-          sed -i "s/^version = .*/version = \"$VERSION\"/" pyproject.toml
-
       - name: Install uv
         uses: astral-sh/setup-uv@v6
 
@@ -70,7 +65,7 @@ jobs:
           VERSION="${{ steps.version.outputs.value }}"
           git config --local user.email "robotics@gonitro.com"
           git config --local user.name "nitro-robot"
-          git add manifest.json pyproject.toml
+          git add manifest.json
           git commit -m "Release v${VERSION}"
           git tag "v${VERSION}"
 
