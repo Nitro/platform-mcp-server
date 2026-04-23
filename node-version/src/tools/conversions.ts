@@ -39,13 +39,12 @@ export function register(server: McpServer, context: AppContext): void {
         const filesHandler = getDep(context, 'filesHandler');
         const platformHandler = getDep(context, 'platformHandler');
 
-        if (!path.isAbsolute(args.inputPath) && !args.inputPath.startsWith('~/') && !args.inputPath.startsWith('~\\') && args.inputPath !== '~') {
+        const ext = path.extname(args.inputPath).replace(/^\./, '').toLowerCase();
+        if (!ext) {
           throw new UserFacingError(
-            `inputPath must be an absolute path or start with ~. Use list_files to find the full path.`,
+            `inputPath must include a filename with a supported extension.`,
           );
         }
-
-        const ext = path.extname(args.inputPath).replace(/^\./, '').toLowerCase();
         if (!isFileFormat(ext)) {
           throw new UserFacingError(`Unrecognized input file format: ${ext}`);
         }

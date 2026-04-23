@@ -28,6 +28,16 @@ function _findAvailablePath(stem: string, extension: string, directory: string):
 
 export class FilesHandler {
   read(filePath: string): Buffer {
+    if (!path.isAbsolute(filePath) && !filePath.startsWith('~/') && !filePath.startsWith('~\\') && filePath !== '~') {
+      throw new UserFacingError(
+        `inputPath must be an absolute path or start with ~. Use list_files to find the full path.`,
+      );
+    }
+    if (filePath === '~') {
+      throw new UserFacingError(
+        `inputPath must point to a file, not the home directory. Provide a full file path such as '~/Downloads/file.pdf'.`,
+      );
+    }
     const resolved = path.resolve(expandUser(filePath));
     if (!fs.existsSync(resolved)) {
       throw new UserFacingError(`File does not exist: ${resolved}`);

@@ -230,8 +230,25 @@ export class PlatformApiClient {
         signal: AbortSignal.timeout(this._defaultTimeout),
       });
       await checkHttpResponse(errRes);
-      const errBody = await errRes.text();
-      logger.error(`[PlatformApiClient] Job failed: ${errBody}`);
+      const rawErrBody = await errRes.text();
+      let loggedError = rawErrBody;
+      try {
+        const parsedErrBody: unknown = JSON.parse(rawErrBody);
+        if (typeof parsedErrBody === 'object' && parsedErrBody !== null) {
+          const errorField = 'error' in parsedErrBody ? parsedErrBody.error : undefined;
+          const messageField = 'message' in parsedErrBody ? parsedErrBody.message : undefined;
+          if (typeof errorField === 'string') {
+            loggedError = errorField;
+          } else if (typeof messageField === 'string') {
+            loggedError = messageField;
+          }
+        }
+      } catch {
+      }
+      if (loggedError.length > 1000) {
+        loggedError = `${loggedError.slice(0, 1000)}... [truncated]`;
+      }
+      logger.error(`[PlatformApiClient] Job failed: ${loggedError}`);
       throw new GenericFailedError();
     }
 
