@@ -41,6 +41,14 @@ export const SupportedConversions = {
   ]),
 } as const;
 
+export type ExtractionDataType = 'forms' | 'tables' | 'text' | 'accessibility';
+
+export interface ExtractionParams {
+  readonly language?: string;
+  readonly pageIndices?: number[];
+  readonly readingOrder?: boolean;
+}
+
 export class ConversionNotSupportedError extends Error {
   constructor(fromFormat: FileFormat, toFormat: FileFormat) {
     super(`Conversion from ${fromFormat} to ${toFormat} is not supported`);
@@ -145,5 +153,51 @@ export class PlatformHandler {
     });
 
     return body;
+  }
+
+  private _extractResult(body: Buffer): Buffer {
+    const parsed: unknown = JSON.parse(body.toString());
+    if (typeof parsed !== 'object' || parsed === null || !('result' in parsed)) {
+      throw new Error('Unexpected extraction response shape');
+    }
+    return Buffer.from(JSON.stringify((parsed as Record<string, unknown>).result, null, 2));
+  }
+
+  async getPdfMetadata(fileBytes: Buffer): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'document.pdf');
+    const { body } = await this._client.run('extractions', file, {
+      method: 'get-properties',
+      params: {},
+    });
+    return this._extractResult(body);
+  }
+
+  async extractPdfData(
+    fileBytes: Buffer,
+    dataType: ExtractionDataType,
+    params: ExtractionParams,
+  ): Promise<Buffer> {
+    const methodMap: Record<ExtractionDataType, string> = {
+      forms: 'extract-forms',
+      tables: 'extract-tables',
+      text: 'extract-text',
+      accessibility: 'extract-accessibility-data',
+    };
+
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'document.pdf');
+    const { body } = await this._client.run('extractions', file, {
+      method: methodMap[dataType],
+      params: params as Record<string, unknown>,
+    });
+    return this._extractResult(body);
+  }
+
+  async extractTextBoundingBoxes(fileBytes: Buffer, texts: string[]): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'document.pdf');
+    const { body } = await this._client.run('extractions', file, {
+      method: 'extract-text-bounding-boxes',
+      params: { texts },
+    });
+    return this._extractResult(body);
   }
 }

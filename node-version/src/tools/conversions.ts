@@ -4,8 +4,7 @@ import { z } from 'zod';
 import type { AppContext } from '../context.js';
 import { getDep } from '../context.js';
 import { FileFormat, isFileFormat } from '../client/enums.js';
-import { GenericFailedError, UserFacingError } from '../errors.js';
-import { logger } from '../logger.js';
+import { handleToolError, UserFacingError } from '../errors.js';
 import { ConversionNotSupportedError, SupportedConversions } from '../handlers/platformHandler.js';
 
 const conversionRequestSchema = {
@@ -73,22 +72,7 @@ export function register(server: McpServer, context: AppContext): void {
           content: [{ type: 'text' as const, text: JSON.stringify(result) }],
         };
       } catch (err) {
-        const isUserFacingError =
-          err instanceof UserFacingError ||
-          err instanceof ConversionNotSupportedError ||
-          err instanceof GenericFailedError;
-        if (!isUserFacingError) {
-          const loggedError = err instanceof Error ? (err.stack ?? err.message) : String(err);
-          logger.error(`[convert_file] Unexpected error: ${loggedError}`);
-        }
-        const message =
-          isUserFacingError && err instanceof Error
-            ? err.message
-            : new GenericFailedError().message;
-        return {
-          isError: true,
-          content: [{ type: 'text' as const, text: message }],
-        };
+        return handleToolError('convert_file', err, [ConversionNotSupportedError]);
       }
     },
   );

@@ -14,6 +14,25 @@ export class GenericFailedError extends Error {
   }
 }
 
+export function handleToolError(
+  toolName: string,
+  err: unknown,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  extraUserFacingClasses: (new (...args: any[]) => Error)[] = [],
+): { isError: true; content: [{ type: 'text'; text: string }] } {
+  const isUserFacing =
+    err instanceof UserFacingError ||
+    err instanceof GenericFailedError ||
+    extraUserFacingClasses.some((cls) => err instanceof cls);
+  if (!isUserFacing) {
+    const loggedError = err instanceof Error ? (err.stack ?? err.message) : String(err);
+    logger.error(`[${toolName}] Unexpected error: ${loggedError}`);
+  }
+  const message =
+    isUserFacing && err instanceof Error ? err.message : new GenericFailedError().message;
+  return { isError: true, content: [{ type: 'text' as const, text: message }] };
+}
+
 export async function checkHttpResponse(res: Response): Promise<void> {
   if (res.status !== 200 && res.status !== 202) {
     const summary = { url: res.url, status: res.status };
