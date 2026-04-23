@@ -38,7 +38,7 @@ tasks:
       - npm run dev
 
   bundle:
-    desc: Bundle TypeScript source into dist/bundle.js
+    desc: Bundle TypeScript source into dist/bundle.cjs
     cmds:
       - npm run bundle
 
