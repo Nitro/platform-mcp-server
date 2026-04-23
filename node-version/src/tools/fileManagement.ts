@@ -32,7 +32,7 @@ function _searchFolderInHome(name: string): string | null {
 }
 
 function _resolveFolder(folder: string): string {
-  if (folder.startsWith('~/') || folder === '~') {
+  if (folder === '~' || folder.startsWith('~/') || folder.startsWith('~\\')) {
     return path.resolve(expandUser(folder));
   }
   if (path.isAbsolute(folder)) {
