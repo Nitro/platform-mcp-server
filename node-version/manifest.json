@@ -1,0 +1,49 @@
+{
+  "manifest_version": "0.4",
+  "name": "nitro-mcp",
+  "display_name": "Nitro PDF Services",
+  "version": "0.8.0",
+  "description": "Nitro PDF Services MCP server",
+  "author": {
+    "name": "Nitro Software Inc."
+  },
+  "license": "Proprietary",
+  "privacy_policies": [
+    "https://www.gonitro.com/legal/privacy-policy"
+  ],
+  "server": {
+    "type": "node",
+    "entry_point": "src/index.ts",
+    "mcp_config": {
+      "command": "npx",
+      "args": [
+        "tsx",
+        "--directory",
+        "${__dirname}",
+        "src/index.ts"
+      ],
+      "env": {
+        "NITRO_TARGET_ENV": "prod",
+        "NITRO_AUTH_MODE": "client-credentials",
+        "NITRO_CLIENT_ID": "${user_config.client_id}",
+        "NITRO_CLIENT_SECRET": "${user_config.client_secret}"
+      }
+    }
+  },
+  "tools_generated": true,
+  "user_config": {
+    "client_id": {
+      "type": "string",
+      "title": "Client ID",
+      "description": "Your Nitro OAuth client ID",
+      "required": true
+    },
+    "client_secret": {
+      "type": "string",
+      "title": "Client Secret",
+      "description": "Your Nitro OAuth client secret",
+      "required": true,
+      "sensitive": true
+    }
+  }
+}

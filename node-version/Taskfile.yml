@@ -37,6 +37,14 @@ tasks:
     cmds:
       - npm run dev
 
+  build:
+    desc: Build mcpb package
+    vars:
+      VERSION:
+        sh: node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('manifest.json','utf8')).version)"
+    cmds:
+      - mcpb pack . ../build/nitro-pdf-services-node-{{.VERSION}}.mcpb
+
   clean:
     desc: Clean build artifacts
     cmds:
