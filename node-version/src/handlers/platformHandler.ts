@@ -1,6 +1,9 @@
+import { z } from 'zod';
 import { ContentType, FileFormat } from '../client/enums.js';
 import { PlatformApiClient, createBytesFile } from '../client/platformClient.js';
 import { checkHttpResponse } from '../errors.js';
+
+const _tokenResponseSchema = z.object({ accessToken: z.string().min(1) });
 
 export const SupportedConversions = {
   fromPdfTo: new Set<FileFormat>([
@@ -90,8 +93,8 @@ async function _getToken(
     body: JSON.stringify({ clientID: clientId, clientSecret }),
   });
   checkHttpResponse(res);
-  const json = (await res.json()) as { accessToken: string };
-  return json.accessToken;
+  const { accessToken } = _tokenResponseSchema.parse(await res.json());
+  return accessToken;
 }
 
 export class PlatformHandler {
