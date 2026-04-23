@@ -1,0 +1,43 @@
+version: '3'
+
+tasks:
+  install:
+    desc: Install dependencies
+    cmds:
+      - npm install
+
+  check-types:
+    desc: Run TypeScript type checking
+    cmds:
+      - npm run check:types
+
+  check-lint:
+    desc: Run ESLint
+    cmds:
+      - npm run check:lint
+
+  check:
+    desc: Run all code quality checks
+    cmds:
+      - task: check-types
+      - task: check-lint
+
+  autoformat:
+    desc: Auto-format source files with Prettier
+    cmds:
+      - npm run format
+
+  test:
+    desc: Run tests with coverage
+    cmds:
+      - npm test
+
+  run:
+    desc: Run the MCP server
+    cmds:
+      - npm run dev
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf node_modules dist coverage

@@ -32,6 +32,7 @@
       }
     }
   },
+  "tools_generated": true,
   "user_config": {
     "client_id": {
       "type": "string",

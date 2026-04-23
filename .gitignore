@@ -97,3 +97,4 @@ tmp*.py
 *.mcpb
 node-version/dist/
 node-version/node_modules/
+node-version/coverage/
