@@ -38,7 +38,7 @@ function _resolveFolder(folder: string): string {
   if (path.isAbsolute(folder)) {
     return folder;
   }
-  const parts = folder.split(path.sep);
+  const parts = path.normalize(folder).split(path.sep);
   const firstPart = parts[0];
   if (firstPart !== undefined) {
     const found = _searchFolderInHome(firstPart);
