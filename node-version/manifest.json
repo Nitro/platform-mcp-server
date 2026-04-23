@@ -18,9 +18,7 @@
       "command": "npx",
       "args": [
         "tsx",
-        "--directory",
-        "${__dirname}",
-        "src/index.ts"
+        "${__dirname}/src/index.ts"
       ],
       "env": {
         "NITRO_TARGET_ENV": "prod",
