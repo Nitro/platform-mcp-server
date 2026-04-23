@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { ContentType, type FileFormat } from './enums.js';
+import { ContentType } from './enums.js';
 import { checkHttpResponse, GenericFailedError } from '../errors.js';
 import { logger } from '../logger.js';
 
@@ -249,5 +249,3 @@ export class PlatformApiClient {
     return { body: Buffer.from(arrayBuffer), contentType };
   }
 }
-
-export { FileFormat };
