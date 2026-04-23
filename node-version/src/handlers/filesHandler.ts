@@ -32,6 +32,9 @@ export class FilesHandler {
     if (!fs.existsSync(resolved)) {
       throw new UserFacingError(`File does not exist: ${resolved}`);
     }
+    if (!fs.statSync(resolved).isFile()) {
+      throw new UserFacingError(`Path is not a file: ${resolved}`);
+    }
     return fs.readFileSync(resolved);
   }
 
@@ -56,10 +59,19 @@ export class FilesHandler {
 
   listFiles(folder: string, extension?: string): FileEntry[] {
     const resolved = path.resolve(expandUser(folder));
-    if (!fs.existsSync(resolved)) {
-      throw new UserFacingError(`Folder does not exist: ${resolved}`);
+    let entries: string[];
+    try {
+      const stat = fs.statSync(resolved);
+      if (!stat.isDirectory()) {
+        throw new UserFacingError(`Path is not a folder: ${resolved}`);
+      }
+      entries = fs.readdirSync(resolved);
+    } catch (err) {
+      if (err instanceof UserFacingError) {
+        throw err;
+      }
+      throw new UserFacingError(`Folder does not exist or is unreadable: ${resolved}`);
     }
-    const entries = fs.readdirSync(resolved);
     const normalizedExtension = extension?.toLowerCase();
 
     return entries.flatMap((name) => {

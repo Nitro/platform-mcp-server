@@ -49,7 +49,7 @@ function _resolveFolder(folder: string): string {
       return path.resolve(path.join(found, ...parts.slice(1)));
     }
   }
-  return path.resolve(folder);
+  return path.join(os.homedir(), folder);
 }
 
 export function register(server: McpServer, context: AppContext): void {
