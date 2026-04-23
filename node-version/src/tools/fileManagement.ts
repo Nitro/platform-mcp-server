@@ -44,15 +44,22 @@ function _resolveFolder(folder: string): string {
   if (path.isAbsolute(folder)) {
     return folder;
   }
+  const home = os.homedir();
   const parts = path.normalize(folder).split(path.sep);
   const firstPart = parts[0];
+  let resolved: string;
   if (firstPart !== undefined) {
     const found = _searchFolderInHome(firstPart);
-    if (found !== null) {
-      return path.resolve(path.join(found, ...parts.slice(1)));
-    }
+    resolved = found !== null
+      ? path.resolve(path.join(found, ...parts.slice(1)))
+      : path.resolve(home, folder);
+  } else {
+    resolved = path.resolve(home, folder);
   }
-  return path.join(os.homedir(), folder);
+  if (!resolved.startsWith(home + path.sep) && resolved !== home) {
+    throw new UserFacingError(`Folder path must be within the home directory.`);
+  }
+  return resolved;
 }
 
 export function register(server: McpServer, context: AppContext): void {

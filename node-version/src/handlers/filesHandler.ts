@@ -86,17 +86,21 @@ export class FilesHandler {
 
     return entries.flatMap((name) => {
       const fullPath = path.join(resolved, name);
-      const stat = fs.statSync(fullPath);
-      if (!stat.isFile()) {
+      try {
+        const stat = fs.statSync(fullPath);
+        if (!stat.isFile()) {
+          return [];
+        }
+        if (
+          normalizedExtension !== undefined &&
+          path.extname(name).replace(/^\./, '').toLowerCase() !== normalizedExtension
+        ) {
+          return [];
+        }
+        return [{ filePath: fullPath, mtimeMs: stat.mtimeMs, sizeBytes: stat.size }];
+      } catch {
         return [];
       }
-      if (
-        normalizedExtension !== undefined &&
-        path.extname(name).replace(/^\./, '').toLowerCase() !== normalizedExtension
-      ) {
-        return [];
-      }
-      return [{ filePath: fullPath, mtimeMs: stat.mtimeMs, sizeBytes: stat.size }];
     });
   }
 }
