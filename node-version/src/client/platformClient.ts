@@ -104,7 +104,7 @@ export class PlatformApiClient {
       headers: { ...this._authHeaders(), Accept: 'text/event-stream' },
       signal: AbortSignal.timeout(this._jobWaitTimeout),
     });
-    checkHttpResponse(res);
+    await checkHttpResponse(res);
 
     if (res.body === null) {
       throw new GenericFailedError();
@@ -119,7 +119,7 @@ export class PlatformApiClient {
       try {
         parsed = JSON.parse(data);
       } catch {
-        throw new Error(`Failed to parse SSE event as JSON: ${data}`);
+        throw new Error(`Failed to parse SSE event as JSON: ${data.slice(0, 200)}`);
       }
       return _sseEventSchema.parse(parsed);
     };
@@ -209,7 +209,7 @@ export class PlatformApiClient {
       signal: AbortSignal.timeout(this._defaultTimeout),
     });
 
-    checkHttpResponse(submitRes);
+    await checkHttpResponse(submitRes);
 
     if (submitRes.status !== 202) {
       logger.error(`[PlatformApiClient] Job submission returned unexpected status ${String(submitRes.status)} for ${triggerUrl}; expected 202`);
@@ -229,7 +229,7 @@ export class PlatformApiClient {
         headers: this._authHeaders(),
         signal: AbortSignal.timeout(this._defaultTimeout),
       });
-      checkHttpResponse(errRes);
+      await checkHttpResponse(errRes);
       const errBody = await errRes.text();
       logger.error(`[PlatformApiClient] Job failed: ${errBody}`);
       throw new GenericFailedError();
@@ -242,7 +242,7 @@ export class PlatformApiClient {
       },
       signal: AbortSignal.timeout(this._defaultTimeout),
     });
-    checkHttpResponse(resultRes);
+    await checkHttpResponse(resultRes);
 
     const arrayBuffer = await resultRes.arrayBuffer();
     const contentType = resultRes.headers.get('content-type') ?? 'application/octet-stream';

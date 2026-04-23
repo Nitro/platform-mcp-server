@@ -93,7 +93,7 @@ async function _getToken(
     body: JSON.stringify({ clientID: clientId, clientSecret }),
     signal: AbortSignal.timeout(30_000),
   });
-  checkHttpResponse(res);
+  await checkHttpResponse(res);
   const { accessToken } = _tokenResponseSchema.parse(await res.json());
   return accessToken;
 }

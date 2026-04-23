@@ -15,7 +15,7 @@ const listFilesRequestSchema = {
       "You may also provide a bare folder name like 'Downloads' and it will be resolved from the home directory. " +
       'If you are unsure of the full path, ask the user to provide it.',
   ),
-  fileType: z.enum(['pdf']).optional().describe("Type of files to list ('pdf' or omit for all files)"),
+  fileType: z.enum(['pdf']).nullable().optional().describe("Type of files to list ('pdf' or omit for all files)"),
 };
 
 function _searchFolderInHome(name: string): string | null {
@@ -69,7 +69,7 @@ export function register(server: McpServer, context: AppContext): void {
       try {
         const filesHandler = getDep(context, 'filesHandler');
         const resolvedFolder = _resolveFolder(args.folder);
-        const entries = filesHandler.listFiles(resolvedFolder, args.fileType);
+        const entries = filesHandler.listFiles(resolvedFolder, args.fileType ?? undefined);
 
         const sorted = [...entries].sort((a, b) => b.mtimeMs - a.mtimeMs);
 
