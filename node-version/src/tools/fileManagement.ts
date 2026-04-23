@@ -6,6 +6,8 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { AppContext } from '../context.js';
 import { getDep } from '../context.js';
+import { GenericFailedError, UserFacingError } from '../errors.js';
+import { logger } from '../logger.js';
 
 const listFilesRequestSchema = {
   folder: z.string().describe(
@@ -61,29 +63,45 @@ export function register(server: McpServer, context: AppContext): void {
       annotations: { readOnlyHint: true },
     },
     (args) => {
-      const filesHandler = getDep(context, 'filesHandler');
-      const resolvedFolder = _resolveFolder(args.folder);
-      const entries = filesHandler.listFiles(resolvedFolder, args.fileType);
+      try {
+        const filesHandler = getDep(context, 'filesHandler');
+        const resolvedFolder = _resolveFolder(args.folder);
+        const entries = filesHandler.listFiles(resolvedFolder, args.fileType);
 
-      const sorted = [...entries].sort((a, b) => b.mtimeMs - a.mtimeMs);
+        const sorted = [...entries].sort((a, b) => b.mtimeMs - a.mtimeMs);
 
-      const files = sorted.map((entry) => ({
-        path: entry.filePath,
-        fileType: path.extname(entry.filePath).replace(/^\./, '') || 'unknown',
-        sizeBytes: entry.sizeBytes,
-        modifiedTime: new Date(entry.mtimeMs).toISOString(),
-      }));
+        const files = sorted.map((entry) => ({
+          path: entry.filePath,
+          fileType: path.extname(entry.filePath).replace(/^\./, '') || 'unknown',
+          sizeBytes: entry.sizeBytes,
+          modifiedTime: new Date(entry.mtimeMs).toISOString(),
+        }));
 
-      const result = {
-        files,
-        totalCount: files.length,
-        requestedFileType: args.fileType ?? null,
-      };
+        const result = {
+          files,
+          totalCount: files.length,
+          requestedFileType: args.fileType ?? null,
+        };
 
-      return {
-        structuredContent: result,
-        content: [{ type: 'text' as const, text: JSON.stringify(result) }],
-      };
+        return {
+          structuredContent: result,
+          content: [{ type: 'text' as const, text: JSON.stringify(result) }],
+        };
+      } catch (err) {
+        const isUserFacingError = err instanceof UserFacingError;
+        if (!isUserFacingError) {
+          const loggedError = err instanceof Error ? (err.stack ?? err.message) : String(err);
+          logger.error(`[list_files] Unexpected error: ${loggedError}`);
+        }
+        const message =
+          isUserFacingError && err instanceof Error
+            ? err.message
+            : new GenericFailedError().message;
+        return {
+          isError: true,
+          content: [{ type: 'text' as const, text: message }],
+        };
+      }
     },
   );
 }
