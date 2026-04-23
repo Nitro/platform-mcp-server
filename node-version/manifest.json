@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "nitro-mcp",
   "display_name": "Nitro PDF Services",
-  "version": "0.9.0",
+  "version": "0.8.0",
   "description": "Nitro PDF Services MCP server",
   "author": {
     "name": "Nitro Software Inc."
@@ -12,17 +12,12 @@
     "https://www.gonitro.com/legal/privacy-policy"
   ],
   "server": {
-    "type": "uv",
-    "entry_point": "app.server",
+    "type": "node",
+    "entry_point": "dist/bundle.cjs",
     "mcp_config": {
-      "command": "uv",
+      "command": "node",
       "args": [
-        "run",
-        "--directory",
-        "${__dirname}",
-        "python",
-        "-m",
-        "app.server"
+        "${__dirname}/dist/bundle.cjs"
       ],
       "env": {
         "NITRO_TARGET_ENV": "prod",

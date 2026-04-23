@@ -1,0 +1,36 @@
+{
+  "name": "nitro-mcp",
+  "version": "0.8.0",
+  "type": "module",
+  "description": "Nitro MCP server for PDF processing",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "bundle": "esbuild src/index.ts --bundle --platform=node --format=cjs --outfile=dist/bundle.cjs",
+    "build": "npm run bundle",
+    "check": "npm run check:types && npm run check:lint",
+    "check:types": "tsc --noEmit",
+    "check:lint": "eslint src/ tests/",
+    "format": "prettier --write src/ tests/",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "dotenv": "^16.4.7",
+    "zod": "^3.24.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "@typescript-eslint/eslint-plugin": "^8.32.0",
+    "@typescript-eslint/parser": "^8.32.0",
+    "@vitest/coverage-v8": "^3.1.2",
+    "esbuild": "^0.28.0",
+    "eslint": "^9.26.0",
+    "jiti": "^2.6.1",
+    "prettier": "^3.5.3",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.32.0",
+    "vitest": "^3.1.2"
+  }
+}

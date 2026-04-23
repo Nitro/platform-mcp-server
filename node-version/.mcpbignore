@@ -1,0 +1,13 @@
+node_modules/
+coverage/
+tests/
+src/
+.github/
+.claude/
+*.yml
+.env
+.prettierrc
+eslint.config.ts
+tsconfig.json
+CLAUDE.md
+build/
