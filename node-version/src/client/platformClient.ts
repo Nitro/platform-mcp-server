@@ -211,8 +211,14 @@ export class PlatformApiClient {
 
     checkHttpResponse(submitRes);
 
+    if (submitRes.status !== 202) {
+      logger.error(`[PlatformApiClient] Job submission returned unexpected status ${String(submitRes.status)} for ${triggerUrl}; expected 202`);
+      throw new GenericFailedError();
+    }
+
     const statusUrl = submitRes.headers.get('Location');
     if (statusUrl === null) {
+      logger.error(`[PlatformApiClient] Job submission returned 202 without a Location header for ${triggerUrl}`);
       throw new GenericFailedError();
     }
 

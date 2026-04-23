@@ -73,7 +73,8 @@ export function register(server: McpServer, context: AppContext): void {
           err instanceof ConversionNotSupportedError ||
           err instanceof GenericFailedError;
         if (!isUserFacingError) {
-          logger.error(`[convert_file] Unexpected error: ${String(err)}`);
+          const loggedError = err instanceof Error ? (err.stack ?? err.message) : String(err);
+          logger.error(`[convert_file] Unexpected error: ${loggedError}`);
         }
         const message =
           isUserFacingError && err instanceof Error

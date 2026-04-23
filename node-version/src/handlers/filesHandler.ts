@@ -62,10 +62,11 @@ export class FilesHandler {
     const entries = fs.readdirSync(resolved, { withFileTypes: true });
     const files = entries.filter((e) => e.isFile());
 
+    const normalizedExtension = extension?.toLowerCase();
     const filtered =
-      extension === undefined
+      normalizedExtension === undefined
         ? files
-        : files.filter((e) => path.extname(e.name).replace(/^\./, '') === extension);
+        : files.filter((e) => path.extname(e.name).replace(/^\./, '').toLowerCase() === normalizedExtension);
 
     return filtered.map((e) => {
       const fullPath = path.join(resolved, e.name);
