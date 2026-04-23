@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx src/index.ts",
     "bundle": "esbuild src/index.ts --bundle --platform=node --format=cjs --outfile=dist/bundle.cjs",
-    "build": "tsc --noEmit",
+    "build": "npm run bundle",
     "check": "npm run check:types && npm run check:lint",
     "check:types": "tsc --noEmit",
     "check:lint": "eslint src/ tests/",
