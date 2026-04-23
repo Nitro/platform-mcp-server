@@ -5,6 +5,7 @@
   "description": "Nitro MCP server for PDF processing",
   "scripts": {
     "dev": "tsx src/index.ts",
+    "bundle": "esbuild src/index.ts --bundle --platform=node --format=cjs --outfile=dist/bundle.cjs",
     "build": "tsc --noEmit",
     "check": "npm run check:types && npm run check:lint",
     "check:types": "tsc --noEmit",
@@ -24,6 +25,7 @@
     "@typescript-eslint/eslint-plugin": "^8.32.0",
     "@typescript-eslint/parser": "^8.32.0",
     "@vitest/coverage-v8": "^3.1.2",
+    "esbuild": "^0.28.0",
     "eslint": "^9.26.0",
     "jiti": "^2.6.1",
     "prettier": "^3.5.3",

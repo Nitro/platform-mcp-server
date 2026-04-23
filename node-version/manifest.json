@@ -13,12 +13,11 @@
   ],
   "server": {
     "type": "node",
-    "entry_point": "src/index.ts",
+    "entry_point": "dist/bundle.cjs",
     "mcp_config": {
-      "command": "npx",
+      "command": "node",
       "args": [
-        "tsx",
-        "${__dirname}/src/index.ts"
+        "${__dirname}/dist/bundle.cjs"
       ],
       "env": {
         "NITRO_TARGET_ENV": "prod",
