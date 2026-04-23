@@ -10,7 +10,7 @@ import { GenericFailedError, UserFacingError } from '../errors.js';
 import { logger } from '../logger.js';
 
 const listFilesRequestSchema = {
-  folder: z.string().describe(
+  folder: z.string().min(1).describe(
     "Full path to the folder to list files from (e.g., '~/Downloads' or '/home/user/Documents'). " +
       "You may also provide a bare folder name like 'Downloads' and it will be resolved from the home directory. " +
       'If you are unsure of the full path, ask the user to provide it.',
@@ -24,8 +24,11 @@ function _searchFolderInHome(name: string): string | null {
     const entries = fs.readdirSync(home, { withFileTypes: true });
     const nameLower = name.toLowerCase();
     for (const entry of entries) {
-      if (entry.isDirectory() && entry.name.toLowerCase() === nameLower) {
-        return path.join(home, entry.name);
+      if (entry.name.toLowerCase() === nameLower) {
+        const entryPath = path.join(home, entry.name);
+        if (fs.statSync(entryPath).isDirectory()) {
+          return entryPath;
+        }
       }
     }
   } catch {

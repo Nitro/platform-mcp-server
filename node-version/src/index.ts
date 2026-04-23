@@ -1,6 +1,7 @@
 import { main } from './server.js';
 
 main().catch((err: unknown) => {
-  process.stderr.write(`Fatal: ${String(err)}\n`);
+  const message = err instanceof Error ? (err.stack ?? err.message) : String(err);
+  process.stderr.write(`Fatal: ${message}\n`);
   process.exit(1);
 });

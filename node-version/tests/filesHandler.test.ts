@@ -14,7 +14,7 @@ describe('FilesHandler', () => {
   });
 
   afterEach(() => {
-    fs.rmSync(tmpDir, { recursive: true });
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   describe('read', () => {
