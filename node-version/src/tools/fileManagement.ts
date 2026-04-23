@@ -27,6 +27,7 @@ function _searchFolderInHome(name: string): string | null {
       }
     }
   } catch {
+    // Ignore errors and fall back to normal path resolution below.
   }
   return null;
 }

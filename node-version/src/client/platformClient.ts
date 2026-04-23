@@ -78,6 +78,12 @@ export interface RunOptions {
   readonly params?: Record<string, unknown>;
 }
 
+function _validateRunOptions(path: ApiPath, options: RunOptions): void {
+  if (options.method === null && path !== 'conversions') {
+    throw new Error(`method is required for path '${path}'`);
+  }
+}
+
 export class PlatformApiClient {
   private readonly _baseUrl: string;
   private readonly _authToken: string;
@@ -149,7 +155,11 @@ export class PlatformApiClient {
         }
       }
     } finally {
-      reader.releaseLock();
+      try {
+        await reader.cancel();
+      } finally {
+        reader.releaseLock();
+      }
     }
   }
 
@@ -169,6 +179,8 @@ export class PlatformApiClient {
     options: RunOptions,
   ): Promise<{ body: Buffer; contentType: string }> {
     const form = new FormData();
+
+    _validateRunOptions(path, options);
 
     if (options.method !== null) {
       form.append('method', options.method);
