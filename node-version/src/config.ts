@@ -1,7 +1,12 @@
 import 'dotenv/config';
+import { z } from 'zod';
 
-type TargetEnv = 'dev' | 'prod';
-type AuthMode = 'token-auth' | 'client-credentials';
+const _targetEnvSchema = z.enum(['dev', 'prod']);
+const _authModeSchema = z.enum(['token-auth', 'client-credentials']);
+const _nonEmptyString = z.string().min(1);
+
+type TargetEnv = z.infer<typeof _targetEnvSchema>;
+type AuthMode = z.infer<typeof _authModeSchema>;
 
 const API_URLS: Record<`${TargetEnv}:${AuthMode}`, string> = {
   'dev:token-auth': 'https://api.gonitrodev.com/idp/platform',
@@ -11,21 +16,11 @@ const API_URLS: Record<`${TargetEnv}:${AuthMode}`, string> = {
 };
 
 function _readTargetEnv(): TargetEnv {
-  const raw = process.env.NITRO_TARGET_ENV ?? 'dev';
-  if (raw !== 'dev' && raw !== 'prod') {
-    throw new Error(`NITRO_TARGET_ENV must be 'dev' or 'prod', got: ${raw}`);
-  }
-  return raw;
+  return _targetEnvSchema.parse(process.env.NITRO_TARGET_ENV ?? 'dev');
 }
 
 function _readAuthMode(): AuthMode {
-  const raw = process.env.NITRO_AUTH_MODE ?? 'token-auth';
-  if (raw !== 'token-auth' && raw !== 'client-credentials') {
-    throw new Error(
-      `NITRO_AUTH_MODE must be 'token-auth' or 'client-credentials', got: ${raw}`,
-    );
-  }
-  return raw;
+  return _authModeSchema.parse(process.env.NITRO_AUTH_MODE ?? 'token-auth');
 }
 
 class Settings {
@@ -49,23 +44,17 @@ class Settings {
     if (this._authMode !== 'token-auth') {
       throw new Error(`authToken is only available in 'token-auth' mode, current mode is '${this._authMode}'`);
     }
-    const value = process.env.NITRO_AUTH_TOKEN;
-    if (value === undefined || value === '') {
-      throw new Error('NITRO_AUTH_TOKEN environment variable is required');
-    }
-    return value;
+    return _nonEmptyString.parse(process.env.NITRO_AUTH_TOKEN);
   }
 
   get clientCredentials(): { clientId: string; clientSecret: string } {
     if (this._authMode !== 'client-credentials') {
       throw new Error(`clientCredentials is only available in 'client-credentials' mode, current mode is '${this._authMode}'`);
     }
-    const clientId = process.env.NITRO_CLIENT_ID;
-    const clientSecret = process.env.NITRO_CLIENT_SECRET;
-    if (!clientId || !clientSecret) {
-      throw new Error('NITRO_CLIENT_ID and NITRO_CLIENT_SECRET environment variables are required');
-    }
-    return { clientId, clientSecret };
+    return {
+      clientId: _nonEmptyString.parse(process.env.NITRO_CLIENT_ID),
+      clientSecret: _nonEmptyString.parse(process.env.NITRO_CLIENT_SECRET),
+    };
   }
 
   get apiUrl(): string {
