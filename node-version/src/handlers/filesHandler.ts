@@ -59,23 +59,22 @@ export class FilesHandler {
     if (!fs.existsSync(resolved)) {
       throw new UserFacingError(`Folder does not exist: ${resolved}`);
     }
-    const entries = fs.readdirSync(resolved, { withFileTypes: true });
-    const files = entries.filter((e) => e.isFile());
-
+    const entries = fs.readdirSync(resolved);
     const normalizedExtension = extension?.toLowerCase();
-    const filtered =
-      normalizedExtension === undefined
-        ? files
-        : files.filter((e) => path.extname(e.name).replace(/^\./, '').toLowerCase() === normalizedExtension);
 
-    return filtered.map((e) => {
-      const fullPath = path.join(resolved, e.name);
+    return entries.flatMap((name) => {
+      const fullPath = path.join(resolved, name);
       const stat = fs.statSync(fullPath);
-      return {
-        filePath: fullPath,
-        mtimeMs: stat.mtimeMs,
-        sizeBytes: stat.size,
-      };
+      if (!stat.isFile()) {
+        return [];
+      }
+      if (
+        normalizedExtension !== undefined &&
+        path.extname(name).replace(/^\./, '').toLowerCase() !== normalizedExtension
+      ) {
+        return [];
+      }
+      return [{ filePath: fullPath, mtimeMs: stat.mtimeMs, sizeBytes: stat.size }];
     });
   }
 }
