@@ -11,9 +11,7 @@ import { ToolCaller } from './helpers/toolCaller.js';
 import type { FilesHandler } from '../src/handlers/filesHandler.js';
 import type { FileEntry } from '../src/handlers/filesHandler.js';
 
-async function _createToolCaller(
-  context: ReturnType<typeof createAppContext>
-): Promise<{
+async function _createToolCaller(context: ReturnType<typeof createAppContext>): Promise<{
   caller: ToolCaller;
   cleanup: () => Promise<void>;
 }> {

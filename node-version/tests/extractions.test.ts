@@ -5,7 +5,11 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { register } from '../src/tools/extractions.js';
 import { GenericFailedError } from '../src/errors.js';
-import { createAppContext, type MockFilesHandler, type MockPlatformHandler } from './helpers/fixtures.js';
+import {
+  createAppContext,
+  type MockFilesHandler,
+  type MockPlatformHandler,
+} from './helpers/fixtures.js';
 import { ToolCaller } from './helpers/toolCaller.js';
 import type { FilesHandler } from '../src/handlers/filesHandler.js';
 import type { PlatformHandler } from '../src/handlers/platformHandler.js';
@@ -48,6 +52,15 @@ describe('extraction tools', () => {
       getPdfMetadata: vi.fn(),
       extractPdfData: vi.fn(),
       extractTextBoundingBoxes: vi.fn(),
+      mergePdfs: vi.fn(),
+      compressPdf: vi.fn(),
+      splitPdf: vi.fn(),
+      rotatePdf: vi.fn(),
+      protectPdf: vi.fn(),
+      unprotectPdf: vi.fn(),
+      deletePdfPages: vi.fn(),
+      setPdfMetadata: vi.fn(),
+      flattenPdf: vi.fn(),
     };
     const context = createAppContext({
       filesHandler: filesHandlerMock as unknown as FilesHandler,
@@ -243,11 +256,7 @@ describe('extraction tools', () => {
   describe('search_text_in_pdf', () => {
     it('returns total matches and unique texts found', async () => {
       const searchResult = {
-        textBoxes: [
-          { text: 'hello' },
-          { text: 'hello' },
-          { text: 'world' },
-        ],
+        textBoxes: [{ text: 'hello' }, { text: 'hello' }, { text: 'world' }],
       };
       filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
       platformHandlerMock.extractTextBoundingBoxes.mockResolvedValue(
@@ -258,7 +267,13 @@ describe('extraction tools', () => {
       await caller.call(
         'search_text_in_pdf',
         { inputPath: path.join(tmpDir, 'doc.pdf'), texts: ['hello', 'world'] },
-        { expectedResult: { outputFilename: 'doc-search.json', totalMatches: 3, uniqueTextsFound: 2 } },
+        {
+          expectedResult: {
+            outputFilename: 'doc-search.json',
+            totalMatches: 3,
+            uniqueTextsFound: 2,
+          },
+        },
       );
 
       expect(platformHandlerMock.extractTextBoundingBoxes).toHaveBeenCalledWith(

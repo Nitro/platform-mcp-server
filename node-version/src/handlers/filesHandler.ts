@@ -23,12 +23,19 @@ function _findAvailablePath(stem: string, extension: string, directory: string):
     }
   }
 
-  throw new Error(`No available filename for '${stem}.${extension}' after ${String(maxAttempts)} attempts`);
+  throw new Error(
+    `No available filename for '${stem}.${extension}' after ${String(maxAttempts)} attempts`,
+  );
 }
 
 export class FilesHandler {
   read(filePath: string): Buffer {
-    if (!path.isAbsolute(filePath) && !filePath.startsWith('~/') && !filePath.startsWith('~\\') && filePath !== '~') {
+    if (
+      !path.isAbsolute(filePath) &&
+      !filePath.startsWith('~/') &&
+      !filePath.startsWith('~\\') &&
+      filePath !== '~'
+    ) {
       throw new UserFacingError(
         `inputPath must be an absolute path or start with ~. Use list_files to find the full path.`,
       );
@@ -48,11 +55,7 @@ export class FilesHandler {
     return fs.readFileSync(resolved);
   }
 
-  write(
-    inputPath: string,
-    data: Buffer,
-    options?: { stemSuffix?: string; ext?: string },
-  ): string {
+  write(inputPath: string, data: Buffer, options?: { stemSuffix?: string; ext?: string }): string {
     const resolved = path.resolve(expandUser(inputPath));
     const directory = path.dirname(resolved);
     const parsed = path.parse(resolved);

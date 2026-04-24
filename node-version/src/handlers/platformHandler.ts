@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ContentType, FileFormat } from '../client/enums.js';
+import { ContentType, CompressionLevel, FileFormat } from '../client/enums.js';
 import { PlatformApiClient, createBytesFile } from '../client/platformClient.js';
 import { checkHttpResponse } from '../errors.js';
 
@@ -49,12 +49,44 @@ export interface ExtractionParams {
   readonly readingOrder?: boolean;
 }
 
+export type PdfPermission =
+  | 'print'
+  | 'modify'
+  | 'copy'
+  | 'annotate'
+  | 'form'
+  | 'assemble'
+  | 'print-hq';
+
+export interface PageRotation {
+  readonly pageIndex: number;
+  readonly amount: number;
+}
+
+export interface PdfMetadata {
+  readonly title?: string;
+  readonly author?: string;
+  readonly subject?: string;
+  readonly keywords?: string;
+  readonly creator?: string;
+  readonly producer?: string;
+  readonly creation_date?: string;
+  readonly mod_date?: string;
+  readonly trapped?: string;
+}
+
 export class ConversionNotSupportedError extends Error {
   constructor(fromFormat: FileFormat, toFormat: FileFormat) {
     super(`Conversion from ${fromFormat} to ${toFormat} is not supported`);
     this.name = 'ConversionNotSupportedError';
   }
 }
+
+const _COMPRESSION_LEVEL_INT: Record<CompressionLevel, number> = {
+  [CompressionLevel.LIGHT]: 0,
+  [CompressionLevel.MEDIUM]: 1,
+  [CompressionLevel.HEAVY]: 2,
+};
 
 const FORMAT_TO_CONTENT_TYPE: Record<FileFormat, ContentType> = {
   [FileFormat.PDF]: ContentType.PDF,
@@ -90,11 +122,7 @@ function _contentTypeForFormat(format: FileFormat): ContentType {
   return FORMAT_TO_CONTENT_TYPE[format];
 }
 
-async function _getToken(
-  baseUrl: string,
-  clientId: string,
-  clientSecret: string,
-): Promise<string> {
+async function _getToken(baseUrl: string, clientId: string, clientSecret: string): Promise<string> {
   const res = await fetch(`${baseUrl}/oauth/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -135,11 +163,7 @@ export class PlatformHandler {
     );
   }
 
-  async convertFile(
-    fileBytes: Buffer,
-    fileType: FileFormat,
-    to: FileFormat,
-  ): Promise<Buffer> {
+  async convertFile(fileBytes: Buffer, fileType: FileFormat, to: FileFormat): Promise<Buffer> {
     if (!this._isValidConversion(fileType, to)) {
       throw new ConversionNotSupportedError(fileType, to);
     }
@@ -199,5 +223,104 @@ export class PlatformHandler {
       params: { texts },
     });
     return this._extractResult(body);
+  }
+
+  async mergePdfs(fileBuffers: Buffer[]): Promise<Buffer> {
+    const files = fileBuffers.map((content, i) =>
+      createBytesFile(ContentType.PDF, content, `document_${String(i)}.pdf`),
+    );
+    const { body } = await this._client.run('transformations', files, {
+      method: 'merge',
+      params: {},
+    });
+    return body;
+  }
+
+  async compressPdf(fileBytes: Buffer, level: CompressionLevel): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
+    const { body } = await this._client.run('transformations', file, {
+      method: 'compress',
+      params: { level: _COMPRESSION_LEVEL_INT[level] },
+    });
+    return body;
+  }
+
+  async splitPdf(fileBytes: Buffer, pageRanges: number[][]): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
+    const { body } = await this._client.run('transformations', file, {
+      method: 'split',
+      params: { pageIndices: pageRanges },
+    });
+    return body;
+  }
+
+  async rotatePdf(fileBytes: Buffer, rotations: PageRotation[]): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
+    const { body } = await this._client.run('transformations', file, {
+      method: 'rotate',
+      params: { rotations },
+    });
+    return body;
+  }
+
+  async protectPdf(
+    fileBytes: Buffer,
+    ownerPassword?: string,
+    userPassword?: string,
+    permissions?: PdfPermission[],
+  ): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
+    const params: Record<string, unknown> = {};
+    if (ownerPassword !== undefined) params.ownerPassword = ownerPassword;
+    if (userPassword !== undefined) params.userPassword = userPassword;
+    if (permissions !== undefined) params.permissions = permissions;
+    const { body } = await this._client.run('transformations', file, {
+      method: 'protect',
+      params,
+    });
+    return body;
+  }
+
+  async unprotectPdf(
+    fileBytes: Buffer,
+    ownerPassword?: string,
+    userPassword?: string,
+  ): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
+    const params: Record<string, unknown> = {};
+    if (ownerPassword !== undefined) params.ownerPassword = ownerPassword;
+    if (userPassword !== undefined) params.userPassword = userPassword;
+    const { body } = await this._client.run('transformations', file, {
+      method: 'unprotect',
+      params,
+    });
+    return body;
+  }
+
+  async deletePdfPages(fileBytes: Buffer, pageIndices: number[]): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
+    const { body } = await this._client.run('transformations', file, {
+      method: 'delete-pages',
+      params: { pageIndices },
+    });
+    return body;
+  }
+
+  async setPdfMetadata(fileBytes: Buffer, metadata: PdfMetadata): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
+    const { body } = await this._client.run('transformations', file, {
+      method: 'set-properties',
+      params: metadata as Record<string, unknown>,
+    });
+    return body;
+  }
+
+  async flattenPdf(fileBytes: Buffer): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
+    const { body } = await this._client.run('transformations', file, {
+      method: 'flatten',
+      params: {},
+    });
+    return body;
   }
 }

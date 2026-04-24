@@ -25,9 +25,7 @@ describe('FilesHandler', () => {
     });
 
     it('throws when file does not exist', () => {
-      expect(() => handler.read(path.join(tmpDir, 'missing.pdf'))).toThrow(
-        'File does not exist',
-      );
+      expect(() => handler.read(path.join(tmpDir, 'missing.pdf'))).toThrow('File does not exist');
     });
   });
 
