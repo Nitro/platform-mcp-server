@@ -32,7 +32,7 @@ jobs:
             fi
             echo "value=$INPUT" >> "$GITHUB_OUTPUT"
           else
-            CURRENT=$(jq -r '.version' manifest.json)
+            CURRENT=$(jq -r '.version' node-version/manifest.json)
             MAJOR=$(echo "$CURRENT" | cut -d. -f1)
             MINOR=$(echo "$CURRENT" | cut -d. -f2)
             NEW_MINOR=$((MINOR + 1))
@@ -42,11 +42,15 @@ jobs:
       - name: Update manifest.json
         run: |
           VERSION="${{ steps.version.outputs.value }}"
-          jq --arg v "$VERSION" '.version = $v' manifest.json > manifest.json.tmp
-          mv manifest.json.tmp manifest.json
+          jq --arg v "$VERSION" '.version = $v' node-version/manifest.json > node-version/manifest.json.tmp
+          mv node-version/manifest.json.tmp node-version/manifest.json
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: node-version/package-lock.json
 
       - name: Install Task
         uses: arduino/setup-task@v2
@@ -55,17 +59,19 @@ jobs:
         run: npm install -g @anthropic-ai/mcpb
 
       - name: Install dependencies
-        run: uv sync --all-groups
+        run: npm ci
+        working-directory: node-version
 
       - name: Build
         run: task build
+        working-directory: node-version
 
       - name: Commit version bump
         run: |
           VERSION="${{ steps.version.outputs.value }}"
           git config --local user.email "robotics@gonitro.com"
           git config --local user.name "nitro-robot"
-          git add manifest.json
+          git add node-version/manifest.json
           git commit -m "Release v${VERSION}"
           git tag "v${VERSION}"
 
