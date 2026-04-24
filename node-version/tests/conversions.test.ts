@@ -48,6 +48,9 @@ describe('convert_file tool', () => {
     };
     platformHandlerMock = {
       convertFile: vi.fn(),
+      getPdfMetadata: vi.fn(),
+      extractPdfData: vi.fn(),
+      extractTextBoundingBoxes: vi.fn(),
     };
     const context = createAppContext({
       filesHandler: filesHandlerMock as unknown as FilesHandler,

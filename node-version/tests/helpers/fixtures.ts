@@ -5,6 +5,9 @@ import type { PlatformHandler } from '../../src/handlers/platformHandler.js';
 
 export interface MockPlatformHandler {
   convertFile: ReturnType<typeof vi.fn>;
+  getPdfMetadata: ReturnType<typeof vi.fn>;
+  extractPdfData: ReturnType<typeof vi.fn>;
+  extractTextBoundingBoxes: ReturnType<typeof vi.fn>;
 }
 
 export interface MockFilesHandler {
@@ -16,6 +19,9 @@ export interface MockFilesHandler {
 export function createPlatformHandlerMock(): MockPlatformHandler {
   return {
     convertFile: vi.fn(),
+    getPdfMetadata: vi.fn(),
+    extractPdfData: vi.fn(),
+    extractTextBoundingBoxes: vi.fn(),
   };
 }
 

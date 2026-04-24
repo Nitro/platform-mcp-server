@@ -6,8 +6,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { AppContext } from '../context.js';
 import { getDep } from '../context.js';
-import { GenericFailedError, UserFacingError } from '../errors.js';
-import { logger } from '../logger.js';
+import { handleToolError, UserFacingError } from '../errors.js';
 
 const listFilesRequestSchema = {
   folder: z.string().min(1).describe(
@@ -98,19 +97,7 @@ export function register(server: McpServer, context: AppContext): void {
           content: [{ type: 'text' as const, text: JSON.stringify(result) }],
         };
       } catch (err) {
-        const isUserFacingError = err instanceof UserFacingError;
-        if (!isUserFacingError) {
-          const loggedError = err instanceof Error ? (err.stack ?? err.message) : String(err);
-          logger.error(`[list_files] Unexpected error: ${loggedError}`);
-        }
-        const message =
-          isUserFacingError && err instanceof Error
-            ? err.message
-            : new GenericFailedError().message;
-        return {
-          isError: true,
-          content: [{ type: 'text' as const, text: message }],
-        };
+        return handleToolError('list_files', err);
       }
     },
   );
