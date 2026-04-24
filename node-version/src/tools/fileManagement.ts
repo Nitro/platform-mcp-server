@@ -9,12 +9,19 @@ import { getDep } from '../context.js';
 import { handleToolError, UserFacingError } from '../errors.js';
 
 const listFilesRequestSchema = {
-  folder: z.string().min(1).describe(
-    "Full path to the folder to list files from (e.g., '~/Downloads' or '/home/user/Documents'). " +
-      "You may also provide a bare folder name like 'Downloads' and it will be resolved from the home directory. " +
-      'If you are unsure of the full path, ask the user to provide it.',
-  ),
-  fileType: z.enum(['pdf']).nullable().optional().describe("Type of files to list ('pdf' or omit for all files)"),
+  folder: z
+    .string()
+    .min(1)
+    .describe(
+      "Full path to the folder to list files from (e.g., '~/Downloads' or '/home/user/Documents'). " +
+        "You may also provide a bare folder name like 'Downloads' and it will be resolved from the home directory. " +
+        'If you are unsure of the full path, ask the user to provide it.',
+    ),
+  fileType: z
+    .enum(['pdf'])
+    .nullable()
+    .optional()
+    .describe("Type of files to list ('pdf' or omit for all files)"),
 };
 
 function _searchFolderInHome(name: string): string | null {
@@ -49,9 +56,10 @@ function _resolveFolder(folder: string): string {
   let resolved: string;
   if (firstPart !== undefined) {
     const found = _searchFolderInHome(firstPart);
-    resolved = found !== null
-      ? path.resolve(path.join(found, ...parts.slice(1)))
-      : path.resolve(home, folder);
+    resolved =
+      found !== null
+        ? path.resolve(path.join(found, ...parts.slice(1)))
+        : path.resolve(home, folder);
   } else {
     resolved = path.resolve(home, folder);
   }
@@ -65,7 +73,8 @@ export function register(server: McpServer, context: AppContext): void {
   server.registerTool(
     'list_files',
     {
-      description: 'List files on the user\'s local filesystem available for PDF processing.' +
+      description:
+        "List files on the user's local filesystem available for PDF processing." +
         ' Use this tool whenever the user asks about files they have locally,' +
         ' wants to find PDFs, or before any other Nitro MCP operation that requires a file.',
       inputSchema: listFilesRequestSchema,

@@ -17,8 +17,7 @@ export class GenericFailedError extends Error {
 export function handleToolError(
   toolName: string,
   err: unknown,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  extraUserFacingClasses: (new (...args: any[]) => Error)[] = [],
+  extraUserFacingClasses: (new (...args: never[]) => Error)[] = [],
 ): { isError: true; content: [{ type: 'text'; text: string }] } {
   const isUserFacing =
     err instanceof UserFacingError ||
@@ -39,7 +38,9 @@ export async function checkHttpResponse(res: Response): Promise<void> {
     if (!res.bodyUsed) {
       try {
         const body = await res.text();
-        logger.error(`HTTP request failed: ${JSON.stringify({ ...summary, body: body.slice(0, 500) })}`);
+        logger.error(
+          `HTTP request failed: ${JSON.stringify({ ...summary, body: body.slice(0, 500) })}`,
+        );
       } catch {
         logger.error(`HTTP request failed: ${JSON.stringify(summary)}`);
       }

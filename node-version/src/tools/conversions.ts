@@ -8,9 +8,11 @@ import { handleToolError, UserFacingError } from '../errors.js';
 import { ConversionNotSupportedError, SupportedConversions } from '../handlers/platformHandler.js';
 
 const conversionRequestSchema = {
-  inputPath: z.string().describe(
-    "Full path to the source file (e.g., '~/Downloads/file.pdf' or '/home/user/Documents/file.pdf'). Must include the directory — bare filenames are not accepted.",
-  ),
+  inputPath: z
+    .string()
+    .describe(
+      "Full path to the source file (e.g., '~/Downloads/file.pdf' or '/home/user/Documents/file.pdf'). Must include the directory — bare filenames are not accepted.",
+    ),
   to: z.string().describe('Format to convert the file to'),
 };
 
@@ -55,10 +57,13 @@ export function register(server: McpServer, context: AppContext): void {
         const outputFormat = args.to;
 
         const inputBytes = filesHandler.read(args.inputPath);
-        const convertedBytes = await platformHandler.convertFile(inputBytes, inputFormat, outputFormat);
+        const convertedBytes = await platformHandler.convertFile(
+          inputBytes,
+          inputFormat,
+          outputFormat,
+        );
 
-        const isPdfToImage =
-          inputFormat === FileFormat.PDF && _PDF_IMAGE_FORMATS.has(outputFormat);
+        const isPdfToImage = inputFormat === FileFormat.PDF && _PDF_IMAGE_FORMATS.has(outputFormat);
         const outputExt = isPdfToImage ? 'zip' : args.to;
 
         const outputPath = filesHandler.write(args.inputPath, convertedBytes, {

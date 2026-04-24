@@ -46,11 +46,7 @@ export interface BytesFile {
 
 export type File = UrlFile | BytesFile;
 
-export function createUrlFile(
-  contentType: ContentType,
-  url: string,
-  name = 'file',
-): UrlFile {
+export function createUrlFile(contentType: ContentType, url: string, name = 'file'): UrlFile {
   return { kind: 'url', contentType, url, name };
 }
 
@@ -65,9 +61,17 @@ export function createBytesFile(
 function _fileToFormData(file: File, fieldName: string, form: FormData): void {
   if (file.kind === 'url') {
     const json = JSON.stringify({ URL: file.url, contentType: file.contentType });
-    form.append(fieldName, new Blob([json], { type: 'application/vnd.gonitro.url+json' }), file.name);
+    form.append(
+      fieldName,
+      new Blob([json], { type: 'application/vnd.gonitro.url+json' }),
+      file.name,
+    );
   } else {
-    form.append(fieldName, new Blob([new Uint8Array(file.content)], { type: file.contentType }), file.name);
+    form.append(
+      fieldName,
+      new Blob([new Uint8Array(file.content)], { type: file.contentType }),
+      file.name,
+    );
   }
 }
 
@@ -136,7 +140,7 @@ export class PlatformApiClient {
         textBuffer += decoder.decode(chunk.value, { stream: !done });
 
         const rawLines = textBuffer.split('\n');
-        textBuffer = (!done && rawLines.length > 0) ? (rawLines.pop() ?? '') : '';
+        textBuffer = !done && rawLines.length > 0 ? (rawLines.pop() ?? '') : '';
 
         for (const rawLine of rawLines) {
           const line = rawLine.replace(/\r$/, '');
@@ -212,13 +216,17 @@ export class PlatformApiClient {
     await checkHttpResponse(submitRes);
 
     if (submitRes.status !== 202) {
-      logger.error(`[PlatformApiClient] Job submission returned unexpected status ${String(submitRes.status)} for ${triggerUrl}; expected 202`);
+      logger.error(
+        `[PlatformApiClient] Job submission returned unexpected status ${String(submitRes.status)} for ${triggerUrl}; expected 202`,
+      );
       throw new GenericFailedError();
     }
 
     const statusUrl = submitRes.headers.get('Location');
     if (statusUrl === null) {
-      logger.error(`[PlatformApiClient] Job submission returned 202 without a Location header for ${triggerUrl}`);
+      logger.error(
+        `[PlatformApiClient] Job submission returned 202 without a Location header for ${triggerUrl}`,
+      );
       throw new GenericFailedError();
     }
 
@@ -243,8 +251,7 @@ export class PlatformApiClient {
             loggedError = messageField;
           }
         }
-      } catch {
-      }
+      } catch {}
       if (loggedError.length > 1000) {
         loggedError = `${loggedError.slice(0, 1000)}... [truncated]`;
       }
