@@ -19,14 +19,21 @@ describe('PlatformHandler', () => {
   describe('getPdfMetadata', () => {
     it('calls extractions with get-properties and returns extracted result', async () => {
       const rawResponse = JSON.stringify({ result: { title: 'doc-title' } });
-      runMock.mockResolvedValueOnce({ body: Buffer.from(rawResponse), contentType: 'application/json' });
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from(rawResponse),
+        contentType: 'application/json',
+      });
 
       const result = await handler.getPdfMetadata(Buffer.from('pdf-bytes'));
 
       expect(result).toEqual(Buffer.from(JSON.stringify({ title: 'doc-title' }, null, 2)));
       expect(runMock).toHaveBeenCalledWith(
         'extractions',
-        expect.objectContaining({ kind: 'bytes', contentType: ContentType.PDF, name: 'document.pdf' }),
+        expect.objectContaining({
+          kind: 'bytes',
+          contentType: ContentType.PDF,
+          name: 'document.pdf',
+        }),
         { method: 'get-properties', params: {} },
       );
     });
@@ -40,7 +47,10 @@ describe('PlatformHandler', () => {
       ['accessibility', 'extract-accessibility-data'],
     ] as const)('calls correct method for %s', async (dataType, expectedMethod) => {
       const rawResponse = JSON.stringify({ result: {} });
-      runMock.mockResolvedValueOnce({ body: Buffer.from(rawResponse), contentType: 'application/json' });
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from(rawResponse),
+        contentType: 'application/json',
+      });
 
       await handler.extractPdfData(Buffer.from('pdf-bytes'), dataType, {});
 
@@ -53,7 +63,10 @@ describe('PlatformHandler', () => {
 
     it('passes params to client', async () => {
       const rawResponse = JSON.stringify({ result: [] });
-      runMock.mockResolvedValueOnce({ body: Buffer.from(rawResponse), contentType: 'application/json' });
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from(rawResponse),
+        contentType: 'application/json',
+      });
 
       await handler.extractPdfData(Buffer.from('pdf-bytes'), 'tables', { pageIndices: [0, 1] });
 
@@ -68,7 +81,10 @@ describe('PlatformHandler', () => {
   describe('extractTextBoundingBoxes', () => {
     it('calls extract-text-bounding-boxes with texts param', async () => {
       const rawResponse = JSON.stringify({ result: { textBoxes: [] } });
-      runMock.mockResolvedValueOnce({ body: Buffer.from(rawResponse), contentType: 'application/json' });
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from(rawResponse),
+        contentType: 'application/json',
+      });
 
       await handler.extractTextBoundingBoxes(Buffer.from('pdf-bytes'), ['hello', 'world']);
 
