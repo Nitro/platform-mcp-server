@@ -82,7 +82,7 @@ export function register(server: McpServer, context: AppContext): void {
       inputSchema: {
         ...singleFileInputSchema.shape,
         pageIndices: z
-          .array(z.number().int())
+          .array(z.number().int().min(0))
           .optional()
           .describe('Zero-based page indices to extract from'),
       },
