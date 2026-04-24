@@ -42,14 +42,18 @@ class Settings {
 
   get authToken(): string {
     if (this._authMode !== 'token-auth') {
-      throw new Error(`authToken is only available in 'token-auth' mode, current mode is '${this._authMode}'`);
+      throw new Error(
+        `authToken is only available in 'token-auth' mode, current mode is '${this._authMode}'`,
+      );
     }
     return _nonEmptyString.parse(process.env.NITRO_AUTH_TOKEN);
   }
 
   get clientCredentials(): { clientId: string; clientSecret: string } {
     if (this._authMode !== 'client-credentials') {
-      throw new Error(`clientCredentials is only available in 'client-credentials' mode, current mode is '${this._authMode}'`);
+      throw new Error(
+        `clientCredentials is only available in 'client-credentials' mode, current mode is '${this._authMode}'`,
+      );
     }
     return {
       clientId: _nonEmptyString.parse(process.env.NITRO_CLIENT_ID),

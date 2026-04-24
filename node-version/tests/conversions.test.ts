@@ -5,14 +5,16 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { register } from '../src/tools/conversions.js';
 import { GenericFailedError, UserFacingError } from '../src/errors.js';
-import { createAppContext, type MockFilesHandler, type MockPlatformHandler } from './helpers/fixtures.js';
+import {
+  createAppContext,
+  type MockFilesHandler,
+  type MockPlatformHandler,
+} from './helpers/fixtures.js';
 import { ToolCaller } from './helpers/toolCaller.js';
 import type { FilesHandler } from '../src/handlers/filesHandler.js';
 import type { PlatformHandler } from '../src/handlers/platformHandler.js';
 
-async function _createToolCaller(
-  context: ReturnType<typeof createAppContext>
-): Promise<{
+async function _createToolCaller(context: ReturnType<typeof createAppContext>): Promise<{
   caller: ToolCaller;
   cleanup: () => Promise<void>;
 }> {
@@ -51,6 +53,15 @@ describe('convert_file tool', () => {
       getPdfMetadata: vi.fn(),
       extractPdfData: vi.fn(),
       extractTextBoundingBoxes: vi.fn(),
+      mergePdfs: vi.fn(),
+      compressPdf: vi.fn(),
+      splitPdf: vi.fn(),
+      rotatePdf: vi.fn(),
+      protectPdf: vi.fn(),
+      unprotectPdf: vi.fn(),
+      deletePdfPages: vi.fn(),
+      setPdfMetadata: vi.fn(),
+      flattenPdf: vi.fn(),
     };
     const context = createAppContext({
       filesHandler: filesHandlerMock as unknown as FilesHandler,

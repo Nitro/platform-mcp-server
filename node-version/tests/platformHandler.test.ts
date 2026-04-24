@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PlatformHandler, ConversionNotSupportedError } from '../src/handlers/platformHandler.js';
 import { PlatformApiClient } from '../src/client/platformClient.js';
-import { FileFormat } from '../src/client/enums.js';
-import { ContentType } from '../src/client/enums.js';
+import { CompressionLevel, ContentType, FileFormat } from '../src/client/enums.js';
 
 describe('PlatformHandler', () => {
   let clientMock: PlatformApiClient;
@@ -20,14 +19,21 @@ describe('PlatformHandler', () => {
   describe('getPdfMetadata', () => {
     it('calls extractions with get-properties and returns extracted result', async () => {
       const rawResponse = JSON.stringify({ result: { title: 'doc-title' } });
-      runMock.mockResolvedValueOnce({ body: Buffer.from(rawResponse), contentType: 'application/json' });
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from(rawResponse),
+        contentType: 'application/json',
+      });
 
       const result = await handler.getPdfMetadata(Buffer.from('pdf-bytes'));
 
       expect(result).toEqual(Buffer.from(JSON.stringify({ title: 'doc-title' }, null, 2)));
       expect(runMock).toHaveBeenCalledWith(
         'extractions',
-        expect.objectContaining({ kind: 'bytes', contentType: ContentType.PDF, name: 'document.pdf' }),
+        expect.objectContaining({
+          kind: 'bytes',
+          contentType: ContentType.PDF,
+          name: 'document.pdf',
+        }),
         { method: 'get-properties', params: {} },
       );
     });
@@ -41,7 +47,10 @@ describe('PlatformHandler', () => {
       ['accessibility', 'extract-accessibility-data'],
     ] as const)('calls correct method for %s', async (dataType, expectedMethod) => {
       const rawResponse = JSON.stringify({ result: {} });
-      runMock.mockResolvedValueOnce({ body: Buffer.from(rawResponse), contentType: 'application/json' });
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from(rawResponse),
+        contentType: 'application/json',
+      });
 
       await handler.extractPdfData(Buffer.from('pdf-bytes'), dataType, {});
 
@@ -54,7 +63,10 @@ describe('PlatformHandler', () => {
 
     it('passes params to client', async () => {
       const rawResponse = JSON.stringify({ result: [] });
-      runMock.mockResolvedValueOnce({ body: Buffer.from(rawResponse), contentType: 'application/json' });
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from(rawResponse),
+        contentType: 'application/json',
+      });
 
       await handler.extractPdfData(Buffer.from('pdf-bytes'), 'tables', { pageIndices: [0, 1] });
 
@@ -69,7 +81,10 @@ describe('PlatformHandler', () => {
   describe('extractTextBoundingBoxes', () => {
     it('calls extract-text-bounding-boxes with texts param', async () => {
       const rawResponse = JSON.stringify({ result: { textBoxes: [] } });
-      runMock.mockResolvedValueOnce({ body: Buffer.from(rawResponse), contentType: 'application/json' });
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from(rawResponse),
+        contentType: 'application/json',
+      });
 
       await handler.extractTextBoundingBoxes(Buffer.from('pdf-bytes'), ['hello', 'world']);
 
@@ -77,6 +92,206 @@ describe('PlatformHandler', () => {
         'extractions',
         expect.objectContaining({ kind: 'bytes', contentType: ContentType.PDF }),
         { method: 'extract-text-bounding-boxes', params: { texts: ['hello', 'world'] } },
+      );
+    });
+  });
+
+  describe('mergePdfs', () => {
+    it('calls transformations with merge and returns body', async () => {
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from('merged-pdf'),
+        contentType: 'application/pdf',
+      });
+
+      const result = await handler.mergePdfs([Buffer.from('pdf-1'), Buffer.from('pdf-2')]);
+
+      expect(result).toEqual(Buffer.from('merged-pdf'));
+      expect(runMock).toHaveBeenCalledWith(
+        'transformations',
+        [
+          expect.objectContaining({
+            kind: 'bytes',
+            contentType: ContentType.PDF,
+            name: 'document_0.pdf',
+          }),
+          expect.objectContaining({
+            kind: 'bytes',
+            contentType: ContentType.PDF,
+            name: 'document_1.pdf',
+          }),
+        ],
+        { method: 'merge', params: {} },
+      );
+    });
+  });
+
+  describe('compressPdf', () => {
+    it.each([
+      [CompressionLevel.LIGHT, 0],
+      [CompressionLevel.MEDIUM, 1],
+      [CompressionLevel.HEAVY, 2],
+    ] as const)('maps %s level to integer %i', async (level, expectedInt) => {
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from('compressed'),
+        contentType: 'application/pdf',
+      });
+
+      await handler.compressPdf(Buffer.from('pdf-bytes'), level);
+
+      expect(runMock).toHaveBeenCalledWith(
+        'transformations',
+        expect.objectContaining({ kind: 'bytes', contentType: ContentType.PDF, name: 'input.pdf' }),
+        { method: 'compress', params: { level: expectedInt } },
+      );
+    });
+  });
+
+  describe('splitPdf', () => {
+    it('calls transformations with split and page indices', async () => {
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from('zip-bytes'),
+        contentType: 'application/zip',
+      });
+
+      const result = await handler.splitPdf(Buffer.from('pdf-bytes'), [[0, 1], [3]]);
+
+      expect(result).toEqual(Buffer.from('zip-bytes'));
+      expect(runMock).toHaveBeenCalledWith(
+        'transformations',
+        expect.objectContaining({ kind: 'bytes', contentType: ContentType.PDF }),
+        { method: 'split', params: { pageIndices: [[0, 1], [3]] } },
+      );
+    });
+  });
+
+  describe('rotatePdf', () => {
+    it('calls transformations with rotate and rotations param', async () => {
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from('rotated'),
+        contentType: 'application/pdf',
+      });
+      const rotations = [
+        { pageIndex: 0, amount: 90 },
+        { pageIndex: 2, amount: 180 },
+      ];
+
+      await handler.rotatePdf(Buffer.from('pdf-bytes'), rotations);
+
+      expect(runMock).toHaveBeenCalledWith(
+        'transformations',
+        expect.objectContaining({ kind: 'bytes', contentType: ContentType.PDF }),
+        { method: 'rotate', params: { rotations } },
+      );
+    });
+  });
+
+  describe('protectPdf', () => {
+    it('calls transformations with protect and password params', async () => {
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from('protected'),
+        contentType: 'application/pdf',
+      });
+
+      await handler.protectPdf(Buffer.from('pdf-bytes'), 'owner-pass', 'user-pass', [
+        'print',
+        'copy',
+      ]);
+
+      expect(runMock).toHaveBeenCalledWith(
+        'transformations',
+        expect.objectContaining({ kind: 'bytes', contentType: ContentType.PDF }),
+        {
+          method: 'protect',
+          params: {
+            ownerPassword: 'owner-pass',
+            userPassword: 'user-pass',
+            permissions: ['print', 'copy'],
+          },
+        },
+      );
+    });
+
+    it('omits undefined password fields', async () => {
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from('protected'),
+        contentType: 'application/pdf',
+      });
+
+      await handler.protectPdf(Buffer.from('pdf-bytes'), 'owner-pass');
+
+      expect(runMock).toHaveBeenCalledWith('transformations', expect.anything(), {
+        method: 'protect',
+        params: { ownerPassword: 'owner-pass' },
+      });
+    });
+  });
+
+  describe('unprotectPdf', () => {
+    it('calls transformations with unprotect and password params', async () => {
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from('unprotected'),
+        contentType: 'application/pdf',
+      });
+
+      await handler.unprotectPdf(Buffer.from('pdf-bytes'), 'owner-pass');
+
+      expect(runMock).toHaveBeenCalledWith(
+        'transformations',
+        expect.objectContaining({ kind: 'bytes', contentType: ContentType.PDF }),
+        { method: 'unprotect', params: { ownerPassword: 'owner-pass' } },
+      );
+    });
+  });
+
+  describe('deletePdfPages', () => {
+    it('calls transformations with delete-pages and page indices', async () => {
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from('modified'),
+        contentType: 'application/pdf',
+      });
+
+      await handler.deletePdfPages(Buffer.from('pdf-bytes'), [0, 2, 4]);
+
+      expect(runMock).toHaveBeenCalledWith(
+        'transformations',
+        expect.objectContaining({ kind: 'bytes', contentType: ContentType.PDF }),
+        { method: 'delete-pages', params: { pageIndices: [0, 2, 4] } },
+      );
+    });
+  });
+
+  describe('setPdfMetadata', () => {
+    it('calls transformations with set-properties and metadata params', async () => {
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from('modified'),
+        contentType: 'application/pdf',
+      });
+      const metadata = { title: 'doc-title', author: 'doc-author' };
+
+      await handler.setPdfMetadata(Buffer.from('pdf-bytes'), metadata);
+
+      expect(runMock).toHaveBeenCalledWith(
+        'transformations',
+        expect.objectContaining({ kind: 'bytes', contentType: ContentType.PDF }),
+        { method: 'set-properties', params: metadata },
+      );
+    });
+  });
+
+  describe('flattenPdf', () => {
+    it('calls transformations with flatten and empty params', async () => {
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from('flattened'),
+        contentType: 'application/pdf',
+      });
+
+      const result = await handler.flattenPdf(Buffer.from('pdf-bytes'));
+
+      expect(result).toEqual(Buffer.from('flattened'));
+      expect(runMock).toHaveBeenCalledWith(
+        'transformations',
+        expect.objectContaining({ kind: 'bytes', contentType: ContentType.PDF }),
+        { method: 'flatten', params: {} },
       );
     });
   });

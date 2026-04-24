@@ -6,7 +6,10 @@ import { getDep } from '../context.js';
 import { handleToolError } from '../errors.js';
 import { singleFileInputSchema } from '../models.js';
 
-function _successResult(outputFilename: string, extra?: Record<string, unknown>): {
+function _successResult(
+  outputFilename: string,
+  extra?: Record<string, unknown>,
+): {
   structuredContent: Record<string, unknown>;
   content: [{ type: 'text'; text: string }];
 } {
@@ -143,11 +146,10 @@ export function register(server: McpServer, context: AppContext): void {
         const wordCount = extractedText.split(/\s+/).filter((w) => w.length > 0).length;
         const characterCount = extractedText.length;
 
-        const outputPath = filesHandler.write(
-          args.inputPath,
-          Buffer.from(extractedText),
-          { stemSuffix: 'text', ext: 'txt' },
-        );
+        const outputPath = filesHandler.write(args.inputPath, Buffer.from(extractedText), {
+          stemSuffix: 'text',
+          ext: 'txt',
+        });
 
         return _successResult(path.basename(outputPath), { wordCount, characterCount });
       } catch (err) {
@@ -190,10 +192,7 @@ export function register(server: McpServer, context: AppContext): void {
         'Returns a JSON file with bounding box coordinates for each match.',
       inputSchema: {
         ...singleFileInputSchema.shape,
-        texts: z
-          .array(z.string())
-          .min(1)
-          .describe('List of text strings to search for in the PDF'),
+        texts: z.array(z.string()).min(1).describe('List of text strings to search for in the PDF'),
       },
       annotations: { destructiveHint: true },
     },

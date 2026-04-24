@@ -46,10 +46,12 @@ describe('PlatformApiClient', () => {
         return Promise.resolve(_makeJobResponse('https://status.example.com/job-1'));
       }
       if (urlStr.includes('status.example.com')) {
-        return Promise.resolve(_makeSseResponse([
-          `event: message\ndata: ${JSON.stringify({ jobID: 'job-1', status: 'running', progress: 0.5 })}`,
-          `event: message\ndata: ${JSON.stringify({ jobID: 'job-1', status: 'completed', location: 'https://result.example.com/job-1' })}`,
-        ]));
+        return Promise.resolve(
+          _makeSseResponse([
+            `event: message\ndata: ${JSON.stringify({ jobID: 'job-1', status: 'running', progress: 0.5 })}`,
+            `event: message\ndata: ${JSON.stringify({ jobID: 'job-1', status: 'completed', location: 'https://result.example.com/job-1' })}`,
+          ]),
+        );
       }
       return Promise.resolve(_makeResultResponse(resultContent, 'application/pdf'));
     });
@@ -68,11 +70,15 @@ describe('PlatformApiClient', () => {
         return Promise.resolve(_makeJobResponse('https://status.example.com/job-1'));
       }
       if (urlStr.includes('status.example.com')) {
-        return Promise.resolve(_makeSseResponse([
-          `event: message\ndata: ${JSON.stringify({ jobID: 'job-1', status: 'failed', location: 'https://error.example.com/job-1' })}`,
-        ]));
+        return Promise.resolve(
+          _makeSseResponse([
+            `event: message\ndata: ${JSON.stringify({ jobID: 'job-1', status: 'failed', location: 'https://error.example.com/job-1' })}`,
+          ]),
+        );
       }
-      return Promise.resolve(new Response(JSON.stringify({ error: { message: 'api-error' } }), { status: 200 }));
+      return Promise.resolve(
+        new Response(JSON.stringify({ error: { message: 'api-error' } }), { status: 200 }),
+      );
     });
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
@@ -82,9 +88,7 @@ describe('PlatformApiClient', () => {
   });
 
   it('throws GenericFailedError when submit returns non-202', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(null, { status: 500 }),
-    );
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 500 }));
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
     await expect(client.run('conversions', file, { method: null })).rejects.toThrow(
@@ -99,9 +103,11 @@ describe('PlatformApiClient', () => {
         return Promise.resolve(_makeJobResponse('https://status.example.com/job-1'));
       }
       if (urlStr.includes('status.example.com')) {
-        return Promise.resolve(_makeSseResponse([
-          `event: message\ndata: ${JSON.stringify({ jobID: 'job-1', status: 'completed', location: 'https://result.example.com/job-1' })}`,
-        ]));
+        return Promise.resolve(
+          _makeSseResponse([
+            `event: message\ndata: ${JSON.stringify({ jobID: 'job-1', status: 'completed', location: 'https://result.example.com/job-1' })}`,
+          ]),
+        );
       }
       return Promise.resolve(_makeResultResponse(Buffer.from('result'), 'application/pdf'));
     });
@@ -122,9 +128,11 @@ describe('PlatformApiClient', () => {
         return Promise.resolve(_makeJobResponse('https://status.example.com/job-1'));
       }
       if (urlStr.includes('status.example.com')) {
-        return Promise.resolve(_makeSseResponse([
-          `event: message\ndata: ${JSON.stringify({ jobID: 'job-1', status: 'completed', location: 'https://result.example.com/job-1' })}`,
-        ]));
+        return Promise.resolve(
+          _makeSseResponse([
+            `event: message\ndata: ${JSON.stringify({ jobID: 'job-1', status: 'completed', location: 'https://result.example.com/job-1' })}`,
+          ]),
+        );
       }
       return Promise.resolve(_makeResultResponse(Buffer.from('result'), 'application/pdf'));
     });
@@ -147,9 +155,11 @@ describe('PlatformApiClient', () => {
       if (urlStr.includes('/conversions')) {
         return Promise.resolve(_makeJobResponse('https://status.example.com/job-1'));
       }
-      return Promise.resolve(_makeSseResponse([
-        `event: message\ndata: ${JSON.stringify({ jobID: 'job-1', status: 'running', progress: 0.5 })}`,
-      ]));
+      return Promise.resolve(
+        _makeSseResponse([
+          `event: message\ndata: ${JSON.stringify({ jobID: 'job-1', status: 'running', progress: 0.5 })}`,
+        ]),
+      );
     });
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('bytes'));

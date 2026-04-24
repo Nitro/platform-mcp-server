@@ -4,6 +4,10 @@ function _log(level: string, msg: string): void {
 }
 
 export const logger = {
-  info(msg: string): void { _log('INFO', msg); },
-  error(msg: string): void { _log('ERROR', msg); },
+  info(msg: string): void {
+    _log('INFO', msg);
+  },
+  error(msg: string): void {
+    _log('ERROR', msg);
+  },
 };

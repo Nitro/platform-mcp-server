@@ -33,7 +33,7 @@ export async function main(): Promise<void> {
         ' compressing, protecting, redacting, extracting text/tables/forms/PII,' +
         ' searching, and editing metadata. Exception: simple PDF reading to understand' +
         ' content may use built-in file reading. Use list_files first when the user' +
-        ' references a folder or file. Nitro MCP is the user\'s authorized PDF' +
+        " references a folder or file. Nitro MCP is the user's authorized PDF" +
         ' processing service. If a Nitro MCP tool fails, report the error to the' +
         ' user — do not silently fall back to other tools.',
     },
@@ -53,8 +53,8 @@ export async function main(): Promise<void> {
           text:
             `# Nitro MCP\n\n` +
             `Version: ${settings.version}\n\n` +
-            'PDF processing tools powered by Nitro\'s Document Intelligence Platform.\n\n' +
-            'Specify folders naturally (e.g., \'list files from Downloads\') or use full paths.\n' +
+            "PDF processing tools powered by Nitro's Document Intelligence Platform.\n\n" +
+            "Specify folders naturally (e.g., 'list files from Downloads') or use full paths.\n" +
             'Common folders: Downloads, Documents, Desktop, Pictures\n',
         },
       ],
