@@ -97,7 +97,7 @@ export class PlatformApiClient {
   private readonly _jobWaitTimeout = 120_000;
 
   static fromStaticToken(baseUrl: string, token: string): PlatformApiClient {
-    return new PlatformApiClient(baseUrl, async () => token);
+    return new PlatformApiClient(baseUrl, () => Promise.resolve(token));
   }
 
   static fromTokenProvider(baseUrl: string, provider: TokenProvider): PlatformApiClient {

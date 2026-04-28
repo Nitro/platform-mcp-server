@@ -99,12 +99,12 @@ export class PkceManager {
     }
   }
 
-  async getAccessToken(): Promise<string> {
+  getAccessToken(): Promise<string> {
     if (this._accessToken !== null) {
-      return this._accessToken;
+      return Promise.resolve(this._accessToken);
     }
     const authUrl = this._startFlow();
-    throw new AuthRequiredError(authUrl);
+    return Promise.reject(new AuthRequiredError(authUrl));
   }
 
   private _buildAuthUrl(codeChallenge: string, state: string, redirectUri: string): string {
@@ -122,11 +122,11 @@ export class PkceManager {
 
   private _startFlow(): string {
     if (this._flowStarted) {
-      const verifier = this._codeVerifier!;
-      const port = this._config.callbackPorts[0]!;
+      const verifier = this._codeVerifier ?? '';
+      const port = this._config.callbackPorts[0] ?? 0;
       const redirectUri = `http://localhost:${String(port)}/callback`;
       const challenge = _generateCodeChallenge(verifier);
-      return this._buildAuthUrl(challenge, this._state!, redirectUri);
+      return this._buildAuthUrl(challenge, this._state ?? '', redirectUri);
     }
 
     this._flowStarted = true;
