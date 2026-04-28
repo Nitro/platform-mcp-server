@@ -33,6 +33,12 @@ export function handleToolError(
 }
 
 export async function checkHttpResponse(res: Response): Promise<void> {
+  if (res.status === 429) {
+    const retryAfter = res.headers.get('Retry-After');
+    const waitClause =
+      retryAfter !== null ? ` Please wait ${retryAfter} seconds before trying again.` : '';
+    throw new UserFacingError(`You have used up your current Nitro allowance.${waitClause}`);
+  }
   if (res.status !== 200 && res.status !== 202) {
     const summary = { url: res.url, status: res.status };
     if (!res.bodyUsed) {
