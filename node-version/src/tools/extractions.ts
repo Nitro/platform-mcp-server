@@ -3,8 +3,14 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { AppContext } from '../context.js';
 import { getDep } from '../context.js';
-import { handleToolError } from '../errors.js';
+import { handleToolError, UserFacingError } from '../errors.js';
 import { singleFileInputSchema } from '../models.js';
+import {
+  createFormsExcel,
+  createTablesExcel,
+  type FormsResult,
+  type TablesResult,
+} from '../utils/excelHelpers.js';
 
 function _successResult(
   outputFilename: string,
@@ -54,6 +60,12 @@ export function register(server: McpServer, context: AppContext): void {
       inputSchema: {
         ...singleFileInputSchema.shape,
         language: z.string().default('en').describe('Language code for form extraction'),
+        outputFormat: z
+          .enum(['excel', 'json'])
+          .default('excel')
+          .describe(
+            "Output format: 'excel' (always the default) or 'json' if explicitly requested",
+          ),
       },
       annotations: { destructiveHint: true },
     },
@@ -66,10 +78,24 @@ export function register(server: McpServer, context: AppContext): void {
         const result = await platformHandler.extractPdfData(inputBytes, 'forms', {
           language: args.language,
         });
-        const outputPath = filesHandler.write(args.inputPath, result, {
-          stemSuffix: 'forms',
-          ext: 'json',
-        });
+
+        let outputPath: string;
+        if (args.outputFormat === 'excel') {
+          const formsResult = JSON.parse(result.toString()) as FormsResult;
+          if (formsResult.fields.length === 0) {
+            throw new UserFacingError('No data available to generate Excel output');
+          }
+          const excelBytes = await createFormsExcel(formsResult, path.basename(args.inputPath));
+          outputPath = filesHandler.write(args.inputPath, excelBytes, {
+            stemSuffix: 'forms',
+            ext: 'xlsx',
+          });
+        } else {
+          outputPath = filesHandler.write(args.inputPath, result, {
+            stemSuffix: 'forms',
+            ext: 'json',
+          });
+        }
 
         return _successResult(path.basename(outputPath), { dataType: 'forms' });
       } catch (err) {
@@ -88,6 +114,12 @@ export function register(server: McpServer, context: AppContext): void {
           .array(z.number().int().min(0))
           .optional()
           .describe('Zero-based page indices to extract from'),
+        outputFormat: z
+          .enum(['excel', 'json'])
+          .default('excel')
+          .describe(
+            "Output format: 'excel' (always the default) or 'json' if explicitly requested",
+          ),
       },
       annotations: { destructiveHint: true },
     },
@@ -99,10 +131,24 @@ export function register(server: McpServer, context: AppContext): void {
         const inputBytes = filesHandler.read(args.inputPath);
         const params = args.pageIndices !== undefined ? { pageIndices: args.pageIndices } : {};
         const result = await platformHandler.extractPdfData(inputBytes, 'tables', params);
-        const outputPath = filesHandler.write(args.inputPath, result, {
-          stemSuffix: 'tables',
-          ext: 'json',
-        });
+
+        let outputPath: string;
+        if (args.outputFormat === 'excel') {
+          const tablesResult = JSON.parse(result.toString()) as TablesResult;
+          if (tablesResult.tables.length === 0) {
+            throw new UserFacingError('No data available to generate Excel output');
+          }
+          const excelBytes = await createTablesExcel(tablesResult, path.basename(args.inputPath));
+          outputPath = filesHandler.write(args.inputPath, excelBytes, {
+            stemSuffix: 'tables',
+            ext: 'xlsx',
+          });
+        } else {
+          outputPath = filesHandler.write(args.inputPath, result, {
+            stemSuffix: 'tables',
+            ext: 'json',
+          });
+        }
 
         return _successResult(path.basename(outputPath), { dataType: 'tables' });
       } catch (err) {
