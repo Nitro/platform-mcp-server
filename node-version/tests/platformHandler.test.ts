@@ -34,7 +34,7 @@ describe('PlatformHandler', () => {
           contentType: ContentType.PDF,
           name: 'document.pdf',
         }),
-        { method: 'get-properties', params: {} },
+        { method: 'get-properties', params: {}, acceptFormat: 'json' },
       );
     });
   });
@@ -57,7 +57,7 @@ describe('PlatformHandler', () => {
       expect(runMock).toHaveBeenCalledWith(
         'extractions',
         expect.objectContaining({ kind: 'bytes', contentType: ContentType.PDF }),
-        expect.objectContaining({ method: expectedMethod }),
+        expect.objectContaining({ method: expectedMethod, acceptFormat: 'json' }),
       );
     });
 
@@ -91,7 +91,48 @@ describe('PlatformHandler', () => {
       expect(runMock).toHaveBeenCalledWith(
         'extractions',
         expect.objectContaining({ kind: 'bytes', contentType: ContentType.PDF }),
-        { method: 'extract-text-bounding-boxes', params: { texts: ['hello', 'world'] } },
+        {
+          method: 'extract-text-bounding-boxes',
+          params: { texts: ['hello', 'world'] },
+          acceptFormat: 'json',
+        },
+      );
+    });
+  });
+
+  describe('extractPiiBoundingBoxes', () => {
+    it('calls extract-pii-bounding-boxes with language param', async () => {
+      const rawResponse = JSON.stringify({ result: { PIIBoxes: [] } });
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from(rawResponse),
+        contentType: 'application/json',
+      });
+
+      await handler.extractPiiBoundingBoxes(Buffer.from('pdf-bytes'), 'en');
+
+      expect(runMock).toHaveBeenCalledWith(
+        'extractions',
+        expect.objectContaining({ kind: 'bytes', contentType: ContentType.PDF }),
+        { method: 'extract-pii-bounding-boxes', params: { language: 'en' }, acceptFormat: 'json' },
+      );
+    });
+  });
+
+  describe('redactPdf', () => {
+    it('calls transformations with redact and returns body', async () => {
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from('redacted-pdf'),
+        contentType: 'application/pdf',
+      });
+      const redactions = [{ pageIndex: 0, boundingBox: [10, 20, 30, 40] }];
+
+      const result = await handler.redactPdf(Buffer.from('pdf-bytes'), redactions);
+
+      expect(result).toEqual(Buffer.from('redacted-pdf'));
+      expect(runMock).toHaveBeenCalledWith(
+        'transformations',
+        expect.objectContaining({ kind: 'bytes', contentType: ContentType.PDF }),
+        { method: 'redact', params: { redactions } },
       );
     });
   });
