@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ContentType, CompressionLevel, FileFormat } from '../client/enums.js';
 import { PlatformApiClient, createBytesFile } from '../client/platformClient.js';
+import type { PkceManager } from '../auth/pkceManager.js';
 import { checkHttpResponse } from '../errors.js';
 
 const _tokenResponseSchema = z.object({ accessToken: z.string().min(1) });
@@ -144,7 +145,7 @@ export class PlatformHandler {
   }
 
   static fromAuthToken(baseUrl: string, token: string): PlatformHandler {
-    return new PlatformHandler(new PlatformApiClient(baseUrl, token));
+    return new PlatformHandler(PlatformApiClient.fromStaticToken(baseUrl, token));
   }
 
   static async fromClientCredentials(
@@ -154,6 +155,12 @@ export class PlatformHandler {
   ): Promise<PlatformHandler> {
     const token = await _getToken(baseUrl, clientId, clientSecret);
     return PlatformHandler.fromAuthToken(baseUrl, token);
+  }
+
+  static fromPkce(apiUrl: string, pkceManager: PkceManager): PlatformHandler {
+    return new PlatformHandler(
+      PlatformApiClient.fromTokenProvider(apiUrl, () => pkceManager.getAccessToken()),
+    );
   }
 
   private _isValidConversion(fileType: FileFormat, to: FileFormat): boolean {
