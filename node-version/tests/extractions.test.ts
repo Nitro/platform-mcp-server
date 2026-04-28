@@ -61,6 +61,8 @@ describe('extraction tools', () => {
       deletePdfPages: vi.fn(),
       setPdfMetadata: vi.fn(),
       flattenPdf: vi.fn(),
+      extractPiiBoundingBoxes: vi.fn(),
+      redactPdf: vi.fn(),
     };
     const context = createAppContext({
       filesHandler: filesHandlerMock as unknown as FilesHandler,

@@ -192,6 +192,7 @@ export class PlatformHandler {
     const { body } = await this._client.run('extractions', file, {
       method: 'get-properties',
       params: {},
+      acceptFormat: 'json',
     });
     return this._extractResult(body);
   }
@@ -212,6 +213,7 @@ export class PlatformHandler {
     const { body } = await this._client.run('extractions', file, {
       method: methodMap[dataType],
       params: params as Record<string, unknown>,
+      acceptFormat: 'json',
     });
     return this._extractResult(body);
   }
@@ -221,6 +223,17 @@ export class PlatformHandler {
     const { body } = await this._client.run('extractions', file, {
       method: 'extract-text-bounding-boxes',
       params: { texts },
+      acceptFormat: 'json',
+    });
+    return this._extractResult(body);
+  }
+
+  async extractPiiBoundingBoxes(fileBytes: Buffer, language: 'en' | 'es'): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'document.pdf');
+    const { body } = await this._client.run('extractions', file, {
+      method: 'extract-pii-bounding-boxes',
+      params: { language },
+      acceptFormat: 'json',
     });
     return this._extractResult(body);
   }
@@ -320,6 +333,18 @@ export class PlatformHandler {
     const { body } = await this._client.run('transformations', file, {
       method: 'flatten',
       params: {},
+    });
+    return body;
+  }
+
+  async redactPdf(
+    fileBytes: Buffer,
+    redactions: { pageIndex: number; boundingBox: number[] }[],
+  ): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
+    const { body } = await this._client.run('transformations', file, {
+      method: 'redact',
+      params: { redactions },
     });
     return body;
   }
