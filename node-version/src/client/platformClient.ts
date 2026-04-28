@@ -81,6 +81,7 @@ export type ApiPath = 'conversions' | 'extractions' | 'transformations';
 export interface RunOptions {
   readonly method: string | null;
   readonly params?: Record<string, unknown>;
+  readonly acceptFormat?: 'bytes' | 'json';
 }
 
 function _validateRunOptions(path: ApiPath, options: RunOptions): void {
@@ -263,10 +264,12 @@ export class PlatformApiClient {
       throw new GenericFailedError();
     }
 
+    const acceptHeader =
+      options.acceptFormat === 'json' ? 'application/json' : 'application/octet-stream';
     const resultRes = await fetch(resultUrl, {
       headers: {
         ...this._authHeaders(),
-        Accept: 'application/octet-stream',
+        Accept: acceptHeader,
       },
       signal: AbortSignal.timeout(this._defaultTimeout),
     });

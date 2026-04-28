@@ -61,6 +61,8 @@ describe('extraction tools', () => {
       deletePdfPages: vi.fn(),
       setPdfMetadata: vi.fn(),
       flattenPdf: vi.fn(),
+      extractPiiBoundingBoxes: vi.fn(),
+      redactPdf: vi.fn(),
     };
     const context = createAppContext({
       filesHandler: filesHandlerMock as unknown as FilesHandler,
@@ -110,14 +112,14 @@ describe('extraction tools', () => {
   });
 
   describe('extract_pdf_forms', () => {
-    it('extracts forms and returns output filename with dataType', async () => {
+    it('extracts forms as JSON when outputFormat is json', async () => {
       filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
       platformHandlerMock.extractPdfData.mockResolvedValue(Buffer.from('{"fields":[]}'));
       filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-forms.json'));
 
       await caller.call(
         'extract_pdf_forms',
-        { inputPath: path.join(tmpDir, 'doc.pdf') },
+        { inputPath: path.join(tmpDir, 'doc.pdf'), outputFormat: 'json' },
         { expectedResult: { outputFilename: 'doc-forms.json', dataType: 'forms' } },
       );
 
@@ -133,14 +135,52 @@ describe('extraction tools', () => {
       );
     });
 
+    it('extracts forms as Excel by default', async () => {
+      const formsData = {
+        fields: [{ name: 'field-name', value: 'field-value', confidence: 0.9 }],
+        averageConfidence: 0.9,
+      };
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.extractPdfData.mockResolvedValue(Buffer.from(JSON.stringify(formsData)));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-forms.xlsx'));
+
+      await caller.call(
+        'extract_pdf_forms',
+        { inputPath: path.join(tmpDir, 'doc.pdf') },
+        { expectedResult: { outputFilename: 'doc-forms.xlsx', dataType: 'forms' } },
+      );
+
+      expect(filesHandlerMock.write).toHaveBeenCalledWith(
+        path.join(tmpDir, 'doc.pdf'),
+        expect.any(Buffer),
+        { stemSuffix: 'forms', ext: 'xlsx' },
+      );
+    });
+
+    it('returns error when Excel requested but no fields', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.extractPdfData.mockResolvedValue(
+        Buffer.from('{"fields":[],"averageConfidence":0}'),
+      );
+
+      await caller.call(
+        'extract_pdf_forms',
+        { inputPath: path.join(tmpDir, 'doc.pdf') },
+        { expectError: true },
+      );
+
+      expect(filesHandlerMock.write).not.toHaveBeenCalled();
+    });
+
     it('passes custom language', async () => {
       filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
-      platformHandlerMock.extractPdfData.mockResolvedValue(Buffer.from('{}'));
+      platformHandlerMock.extractPdfData.mockResolvedValue(Buffer.from('{"fields":[]}'));
       filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-forms.json'));
 
       await caller.call('extract_pdf_forms', {
         inputPath: path.join(tmpDir, 'doc.pdf'),
         language: 'es',
+        outputFormat: 'json',
       });
 
       expect(platformHandlerMock.extractPdfData).toHaveBeenCalledWith(
@@ -152,14 +192,14 @@ describe('extraction tools', () => {
   });
 
   describe('extract_pdf_tables', () => {
-    it('extracts tables and returns output filename with dataType', async () => {
+    it('extracts tables as JSON when outputFormat is json', async () => {
       filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
       platformHandlerMock.extractPdfData.mockResolvedValue(Buffer.from('{"tables":[]}'));
       filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-tables.json'));
 
       await caller.call(
         'extract_pdf_tables',
-        { inputPath: path.join(tmpDir, 'doc.pdf') },
+        { inputPath: path.join(tmpDir, 'doc.pdf'), outputFormat: 'json' },
         { expectedResult: { outputFilename: 'doc-tables.json', dataType: 'tables' } },
       );
 
@@ -170,14 +210,54 @@ describe('extraction tools', () => {
       );
     });
 
+    it('extracts tables as Excel by default', async () => {
+      const tablesData = {
+        tables: [
+          {
+            tableData: { title: 'table-title', cells: [['a', 'b']], averageConfidence: 0.95 },
+            pageIndices: [0],
+          },
+        ],
+      };
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.extractPdfData.mockResolvedValue(Buffer.from(JSON.stringify(tablesData)));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-tables.xlsx'));
+
+      await caller.call(
+        'extract_pdf_tables',
+        { inputPath: path.join(tmpDir, 'doc.pdf') },
+        { expectedResult: { outputFilename: 'doc-tables.xlsx', dataType: 'tables' } },
+      );
+
+      expect(filesHandlerMock.write).toHaveBeenCalledWith(
+        path.join(tmpDir, 'doc.pdf'),
+        expect.any(Buffer),
+        { stemSuffix: 'tables', ext: 'xlsx' },
+      );
+    });
+
+    it('returns error when Excel requested but no tables', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.extractPdfData.mockResolvedValue(Buffer.from('{"tables":[]}'));
+
+      await caller.call(
+        'extract_pdf_tables',
+        { inputPath: path.join(tmpDir, 'doc.pdf') },
+        { expectError: true },
+      );
+
+      expect(filesHandlerMock.write).not.toHaveBeenCalled();
+    });
+
     it('passes page indices when provided', async () => {
       filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
-      platformHandlerMock.extractPdfData.mockResolvedValue(Buffer.from('{}'));
+      platformHandlerMock.extractPdfData.mockResolvedValue(Buffer.from('{"tables":[]}'));
       filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-tables.json'));
 
       await caller.call('extract_pdf_tables', {
         inputPath: path.join(tmpDir, 'doc.pdf'),
         pageIndices: [0, 1],
+        outputFormat: 'json',
       });
 
       expect(platformHandlerMock.extractPdfData).toHaveBeenCalledWith(
