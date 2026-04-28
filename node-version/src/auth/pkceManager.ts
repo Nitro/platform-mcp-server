@@ -51,8 +51,7 @@ function _writeRefreshToken(filePath: string, refreshToken: string): void {
 function _deleteSessionFile(filePath: string): void {
   try {
     fs.unlinkSync(filePath);
-  } catch {
-  }
+  } catch {}
 }
 
 function _base64UrlEncode(buf: Buffer): string {
@@ -180,13 +179,15 @@ export class PkceManager {
     if (error !== null) {
       logger.error(`[PkceManager] Auth callback error: ${error}`);
       res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end('<html><body><p>Authentication failed. Please retry from your AI assistant.</p></body></html>');
+      res.end(
+        '<html><body><p>Authentication failed. Please retry from your AI assistant.</p></body></html>',
+      );
       return;
     }
 
     if (code === null || state !== this._state) {
       res.writeHead(400, { 'Content-Type': 'text/html' });
-      res.end('<html><body><p>Invalid callback parameters.</p></body></html>');
+      res.end('<html><body><p>Something went wrong. Please retry from your AI assistant or contact Nitro support.</p></body></html>');
       return;
     }
 
@@ -288,11 +289,7 @@ export class PkceManager {
     this._storeTokens(data.access_token, data.refresh_token, data.expires_in);
   }
 
-  private _storeTokens(
-    accessToken: string,
-    refreshToken: string,
-    expiresInSeconds: number,
-  ): void {
+  private _storeTokens(accessToken: string, refreshToken: string, expiresInSeconds: number): void {
     this._accessToken = accessToken;
     this._refreshToken = refreshToken;
     _writeRefreshToken(this._config.sessionFilePath, refreshToken);
