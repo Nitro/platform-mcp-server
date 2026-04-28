@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { ContentType } from './enums.js';
 import { checkHttpResponse, GenericFailedError } from '../errors.js';
 import { logger } from '../logger.js';
+import { settings } from '../config.js';
 
 const _progressUpdateEventSchema = z.object({
   jobID: z.string(),
@@ -111,7 +112,10 @@ export class PlatformApiClient {
 
   private async _authHeaders(): Promise<Record<string, string>> {
     const token = await this._tokenProvider();
-    return { Authorization: `Bearer ${token}` };
+    return {
+      Authorization: `Bearer ${token}`,
+      'X-Nitro-Client': `mcp/${settings.version}`,
+    };
   }
 
   private async *_iterSseEvents(statusUrl: string): AsyncGenerator<SseEvent> {

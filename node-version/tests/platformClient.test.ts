@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PlatformApiClient, createBytesFile } from '../src/client/platformClient.js';
 import { ContentType } from '../src/client/enums.js';
-import { GenericFailedError } from '../src/errors.js';
+import { GenericFailedError, UserFacingError } from '../src/errors.js';
 
 function _makeSseResponse(events: string[]): Response {
   const body = events.join('\n\n') + '\n\n';
@@ -165,6 +165,53 @@ describe('PlatformApiClient', () => {
     const file = createBytesFile(ContentType.PDF, Buffer.from('bytes'));
     await expect(client.run('conversions', file, { method: null })).rejects.toThrow(
       'SSE stream closed before job finished',
+    );
+  });
+
+  it('sends X-Nitro-Client header on all requests', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
+      const urlStr = url instanceof URL ? url.href : (url as string);
+      if (urlStr.includes('/conversions')) {
+        return Promise.resolve(_makeJobResponse('https://status.example.com/job-1'));
+      }
+      if (urlStr.includes('status.example.com')) {
+        return Promise.resolve(
+          _makeSseResponse([
+            `event: message\ndata: ${JSON.stringify({ jobID: 'job-1', status: 'completed', location: 'https://result.example.com/job-1' })}`,
+          ]),
+        );
+      }
+      return Promise.resolve(_makeResultResponse(Buffer.from('result'), 'application/pdf'));
+    });
+
+    const file = createBytesFile(ContentType.PDF, Buffer.from('bytes'));
+    await client.run('conversions', file, { method: null });
+
+    for (const call of fetchMock.mock.calls) {
+      const headers = call[1]?.headers as Record<string, string> | undefined;
+      expect(headers?.['X-Nitro-Client']).toMatch(/^mcp\//);
+    }
+  });
+
+  it('throws UserFacingError with wait time when server returns 429 with Retry-After', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(null, { status: 429, headers: { 'Retry-After': '60' } }),
+    );
+
+    const file = createBytesFile(ContentType.PDF, Buffer.from('bytes'));
+    await expect(client.run('conversions', file, { method: null })).rejects.toThrow(
+      new UserFacingError(
+        'You have used up your current Nitro allowance. Please wait 60 seconds before trying again.',
+      ),
+    );
+  });
+
+  it('throws UserFacingError without wait time when server returns 429 with no Retry-After', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 429 }));
+
+    const file = createBytesFile(ContentType.PDF, Buffer.from('bytes'));
+    await expect(client.run('conversions', file, { method: null })).rejects.toThrow(
+      new UserFacingError('You have used up your current Nitro allowance.'),
     );
   });
 
