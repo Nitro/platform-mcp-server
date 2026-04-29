@@ -97,7 +97,9 @@ export class PkceManager {
         await this._refresh(refreshToken);
       } catch (err) {
         const reason = err instanceof Error ? err.message : String(err);
-        logger.error(`[PkceManager] Failed to refresh token on startup: ${reason}. Deleting session file.`);
+        logger.error(
+          `[PkceManager] Failed to refresh token on startup: ${reason}. Deleting session file.`,
+        );
         _deleteSessionFile(this._config.sessionFilePath);
       }
     }
