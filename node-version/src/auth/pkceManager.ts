@@ -23,6 +23,7 @@ const _exchangeResponseSchema = z.object({
 
 const _refreshResponseSchema = z.object({
   access_token: z.string().min(1),
+  refresh_token: z.string().min(1),
   expires_in: z.number().int().positive(),
 });
 
@@ -95,9 +96,8 @@ export class PkceManager {
       try {
         await this._refresh(refreshToken);
       } catch (err) {
-        logger.error(
-          `[PkceManager] Failed to refresh token on startup: ${err instanceof Error ? err.message : String(err)}`,
-        );
+        const reason = err instanceof Error ? err.message : String(err);
+        logger.error(`[PkceManager] Failed to refresh token on startup: ${reason}. Deleting session file.`);
         _deleteSessionFile(this._config.sessionFilePath);
       }
     }
@@ -306,7 +306,7 @@ export class PkceManager {
     }
 
     const data = _refreshResponseSchema.parse(await res.json());
-    this._storeTokens(data.access_token, refreshToken, data.expires_in);
+    this._storeTokens(data.access_token, data.refresh_token, data.expires_in);
   }
 
   private _storeTokens(accessToken: string, refreshToken: string, expiresInSeconds: number): void {
@@ -337,9 +337,8 @@ export class PkceManager {
     try {
       await this._refresh(refreshToken);
     } catch (err) {
-      logger.error(
-        `[PkceManager] Proactive refresh failed: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      const reason = err instanceof Error ? err.message : String(err);
+      logger.error(`[PkceManager] Proactive refresh failed: ${reason}. Deleting session file.`);
       this._accessToken = null;
       this._refreshToken = null;
       _deleteSessionFile(this._config.sessionFilePath);
