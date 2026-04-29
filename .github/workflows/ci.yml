@@ -34,8 +34,16 @@ jobs:
         run: npm ci
         working-directory: node-version
 
-      - name: Run checks
-        run: task check
+      - name: Check formatting
+        run: task check-format
+        working-directory: node-version
+
+      - name: Check linting
+        run: task check-lint
+        working-directory: node-version
+
+      - name: Check types
+        run: task check-types
         working-directory: node-version
 
       - name: Run tests
