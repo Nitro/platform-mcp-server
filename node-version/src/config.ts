@@ -21,11 +21,11 @@ const _INTERNAL_CONFIG = {
   } satisfies Record<`${TargetEnv}:${AuthMode}`, string>,
   pkceAuthUrls: {
     dev: 'https://auth.gonitrodev.com',
-    prod: 'https://auth.gonitrodev.com',
+    prod: 'https://auth.gonitro.com',
   } satisfies Record<TargetEnv, string>,
   pkceClientIds: {
-    dev: 'wBsSXsDAOEvbmD3dle2XyRRtrR9yTaJx',
-    prod: 'wBsSXsDAOEvbmD3dle2XyRRtrR9yTaJx',
+    dev: 'uSVEBaW8bzXo6wTjX9myzBafinXtHiC0',
+    prod: 'RH4MAFXhbJfEtEIATXKzoOHqSsI833gp',
   } satisfies Record<TargetEnv, string>,
   pkceCallbackPorts: [27834, 41209, 53671, 19438, 62105],
 } as const;
