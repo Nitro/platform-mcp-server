@@ -103,12 +103,26 @@ export class PkceManager {
     }
   }
 
-  getAccessToken(): Promise<string> {
+  async getAccessToken(): Promise<string> {
     if (this._accessToken !== null) {
-      return Promise.resolve(this._accessToken);
+      return this._accessToken;
     }
-    const authUrl = this._startFlow();
-    return Promise.reject(new AuthRequiredError(authUrl));
+    const authUrl = await this._startFlow();
+    throw new AuthRequiredError(authUrl);
+  }
+
+  private _stopCallbackServer(): void {
+    if (this._callbackServer !== null) {
+      this._callbackServer.close();
+      this._callbackServer = null;
+    }
+  }
+
+  private _resetFlow(): void {
+    this._stopCallbackServer();
+    this._flowStarted = false;
+    this._codeVerifier = null;
+    this._state = null;
   }
 
   private _buildAuthUrl(codeChallenge: string, state: string, redirectUri: string): string {
@@ -124,7 +138,7 @@ export class PkceManager {
     return `${this._config.authUrl}/authorize?${params.toString()}`;
   }
 
-  private _startFlow(): string {
+  private async _startFlow(): Promise<string> {
     if (this._flowStarted) {
       const verifier = this._codeVerifier ?? '';
       const port = this._config.callbackPorts[0] ?? 0;
@@ -140,29 +154,31 @@ export class PkceManager {
     this._state = state;
 
     const challenge = _generateCodeChallenge(verifier);
-    let authUrl = '';
 
     for (const port of this._config.callbackPorts) {
       const redirectUri = `http://localhost:${String(port)}/callback`;
-      authUrl = this._buildAuthUrl(challenge, state, redirectUri);
-      try {
-        const server = http.createServer((req, res) => {
-          void this._handleCallback(req, res, redirectUri);
-        });
-        server.listen(port, 'localhost', () => {
+      const server = http.createServer((req, res) => {
+        void this._handleCallback(req, res, redirectUri);
+      });
+      const bound = await new Promise<boolean>((resolve) => {
+        server.once('listening', () => {
           logger.info(`[PkceManager] Callback server listening on port ${String(port)}`);
+          resolve(true);
         });
-        server.on('error', (err) => {
-          logger.error(`[PkceManager] Callback server error: ${err.message}`);
+        server.once('error', (err) => {
+          logger.error(`[PkceManager] Callback server error on port ${String(port)}: ${err.message}`);
+          resolve(false);
         });
+        server.listen(port, 'localhost');
+      });
+      if (bound) {
         this._callbackServer = server;
-        break;
-      } catch {
-        continue;
+        return this._buildAuthUrl(challenge, state, redirectUri);
       }
     }
 
-    return authUrl;
+    this._resetFlow();
+    throw new Error('[PkceManager] All callback ports are in use. Please free a port and try again.');
   }
 
   private async _handleCallback(
@@ -187,12 +203,14 @@ export class PkceManager {
       res.end(
         '<html><body><p>Authentication failed. Please retry from your AI assistant.</p></body></html>',
       );
+      this._resetFlow();
       return;
     }
 
     if (code === null || state !== this._state) {
       res.writeHead(400, { 'Content-Type': 'text/html' });
       res.end('<html><body><p>Something went wrong. Please retry from your AI assistant or contact Nitro support.</p></body></html>');
+      this._resetFlow();
       return;
     }
 
@@ -233,13 +251,6 @@ export class PkceManager {
     }
   }
 
-  private _stopCallbackServer(): void {
-    if (this._callbackServer !== null) {
-      this._callbackServer.close();
-      this._callbackServer = null;
-    }
-  }
-
   private async _exchangeCode(code: string, redirectUri: string): Promise<void> {
     const verifier = this._codeVerifier;
     if (verifier === null) {
@@ -267,9 +278,7 @@ export class PkceManager {
 
     const data = _exchangeResponseSchema.parse(await res.json());
     this._storeTokens(data.access_token, data.refresh_token, data.expires_in);
-    this._flowStarted = false;
-    this._codeVerifier = null;
-    this._state = null;
+    this._resetFlow();
   }
 
   private async _refresh(refreshToken: string): Promise<void> {
