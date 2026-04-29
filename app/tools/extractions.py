@@ -277,10 +277,7 @@ def register(mcp: FastMCP) -> None:
         annotations=destructive,
     )(extract_pdf_text)
 
-    mcp.tool(
-        description="Use this tool to extract accessibility data from a PDF file.",
-        annotations=destructive,
-    )(extract_pdf_accessibility)
+    # extract_pdf_accessibility is intentionally not registered — tool is not yet released
 
     mcp.tool(
         description=(

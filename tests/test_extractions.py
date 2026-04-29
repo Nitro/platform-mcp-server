@@ -267,6 +267,7 @@ async def test_extract_pdf_text_all_pages(
     )
 
 
+@pytest.mark.skip(reason="tool not yet released")
 @pytest.mark.anyio
 async def test_extract_pdf_accessibility(
     tool_caller: ToolCaller,
