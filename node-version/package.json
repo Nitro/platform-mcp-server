@@ -5,7 +5,7 @@
   "description": "Nitro MCP server for PDF processing",
   "scripts": {
     "dev": "tsx src/index.ts",
-    "bundle": "esbuild src/index.ts --bundle --platform=node --format=cjs --outfile=dist/bundle.cjs",
+    "bundle": "node build.mjs",
     "build": "npm run bundle",
     "check": "npm run check:types && npm run check:lint",
     "check:types": "tsc --noEmit",
