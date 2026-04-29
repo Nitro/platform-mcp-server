@@ -27,7 +27,7 @@ function _makeTokenResponse(overrides: Record<string, unknown> = {}): Response {
 
 function _makeRefreshResponse(overrides: Record<string, unknown> = {}): Response {
   return new Response(
-    JSON.stringify({ access_token: 'access-token', expires_in: 3600, ...overrides }),
+    JSON.stringify({ access_token: 'access-token', refresh_token: 'refresh-token', expires_in: 3600, ...overrides }),
     { status: 200, headers: { 'Content-Type': 'application/json' } },
   );
 }
