@@ -6,6 +6,11 @@ tasks:
     cmds:
       - npm install
 
+  check-format:
+    desc: Check formatting with Prettier
+    cmds:
+      - npm run check:format
+
   check-types:
     desc: Run TypeScript type checking
     cmds:
@@ -19,6 +24,7 @@ tasks:
   check:
     desc: Run all code quality checks
     cmds:
+      - task: check-format
       - task: check-types
       - task: check-lint
 
