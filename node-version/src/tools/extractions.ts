@@ -204,31 +204,7 @@ export function register(server: McpServer, context: AppContext): void {
     },
   );
 
-  server.registerTool(
-    'extract_pdf_accessibility',
-    {
-      description: 'Use this tool to extract accessibility data from a PDF file.',
-      inputSchema: singleFileInputSchema.shape,
-      annotations: { destructiveHint: true },
-    },
-    async (args) => {
-      try {
-        const filesHandler = getDep(context, 'filesHandler');
-        const platformHandler = getDep(context, 'platformHandler');
-
-        const inputBytes = filesHandler.read(args.inputPath);
-        const result = await platformHandler.extractPdfData(inputBytes, 'accessibility', {});
-        const outputPath = filesHandler.write(args.inputPath, result, {
-          stemSuffix: 'accessibility',
-          ext: 'json',
-        });
-
-        return _successResult(path.basename(outputPath), { dataType: 'accessibility' });
-      } catch (err) {
-        return handleToolError('extract_pdf_accessibility', err);
-      }
-    },
-  );
+  // extract_pdf_accessibility is intentionally not registered — tool is not yet released
 
   server.registerTool(
     'search_text_in_pdf',

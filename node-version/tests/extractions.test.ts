@@ -313,7 +313,7 @@ describe('extraction tools', () => {
     });
   });
 
-  describe('extract_pdf_accessibility', () => {
+  describe.skip('extract_pdf_accessibility', () => {
     it('extracts accessibility data and returns output filename with dataType', async () => {
       filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
       platformHandlerMock.extractPdfData.mockResolvedValue(Buffer.from('{}'));
