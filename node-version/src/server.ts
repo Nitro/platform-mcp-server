@@ -1,5 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { PkceManager } from './auth/pkceManager.js';
 import { settings } from './config.js';
 import type { AppContext } from './context.js';
 import { FilesHandler } from './handlers/filesHandler.js';
@@ -10,6 +11,10 @@ async function _buildContext(): Promise<AppContext> {
   let platformHandler: PlatformHandler;
   if (settings.authMode === 'token-auth') {
     platformHandler = PlatformHandler.fromAuthToken(settings.apiUrl, settings.authToken);
+  } else if (settings.authMode === 'pkce') {
+    const pkceManager = new PkceManager(settings.pkceConfig);
+    await pkceManager.initialize();
+    platformHandler = PlatformHandler.fromPkce(settings.apiUrl, pkceManager);
   } else {
     const { clientId, clientSecret } = settings.clientCredentials;
     platformHandler = await PlatformHandler.fromClientCredentials(

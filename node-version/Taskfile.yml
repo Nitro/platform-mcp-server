@@ -49,7 +49,7 @@ tasks:
         sh: node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('manifest.json','utf8')).version)"
     cmds:
       - task: bundle
-      - mcpb pack . ../build/nitro-pdf-services-node-{{.VERSION}}.mcpb
+      - npx @anthropic-ai/mcpb pack . ../build/nitro-pdf-services-node-{{.VERSION}}.mcpb
 
   clean:
     desc: Clean build artifacts

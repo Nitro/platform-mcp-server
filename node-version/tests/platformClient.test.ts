@@ -31,7 +31,7 @@ describe('PlatformApiClient', () => {
   let client: PlatformApiClient;
 
   beforeEach(() => {
-    client = new PlatformApiClient(baseUrl, authToken);
+    client = PlatformApiClient.fromStaticToken(baseUrl, authToken);
   });
 
   afterEach(() => {

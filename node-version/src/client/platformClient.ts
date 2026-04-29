@@ -90,27 +90,38 @@ function _validateRunOptions(path: ApiPath, options: RunOptions): void {
   }
 }
 
+export type TokenProvider = () => Promise<string>;
+
 export class PlatformApiClient {
   private readonly _baseUrl: string;
-  private readonly _authToken: string;
+  private readonly _tokenProvider: TokenProvider;
   private readonly _defaultTimeout = 30_000;
   private readonly _jobWaitTimeout = 120_000;
 
-  constructor(baseUrl: string, authToken: string) {
-    this._baseUrl = baseUrl;
-    this._authToken = authToken;
+  static fromStaticToken(baseUrl: string, token: string): PlatformApiClient {
+    return new PlatformApiClient(baseUrl, () => Promise.resolve(token));
   }
 
-  private _authHeaders(): Record<string, string> {
+  static fromTokenProvider(baseUrl: string, provider: TokenProvider): PlatformApiClient {
+    return new PlatformApiClient(baseUrl, provider);
+  }
+
+  constructor(baseUrl: string, tokenProvider: TokenProvider) {
+    this._baseUrl = baseUrl;
+    this._tokenProvider = tokenProvider;
+  }
+
+  private async _authHeaders(): Promise<Record<string, string>> {
+    const token = await this._tokenProvider();
     return {
-      Authorization: `Bearer ${this._authToken}`,
+      Authorization: `Bearer ${token}`,
       'X-Nitro-Client': `mcp/${settings.version}`,
     };
   }
 
   private async *_iterSseEvents(statusUrl: string): AsyncGenerator<SseEvent> {
     const res = await fetch(statusUrl, {
-      headers: { ...this._authHeaders(), Accept: 'text/event-stream' },
+      headers: { ...(await this._authHeaders()), Accept: 'text/event-stream' },
       signal: AbortSignal.timeout(this._jobWaitTimeout),
     });
     await checkHttpResponse(res);
@@ -211,7 +222,7 @@ export class PlatformApiClient {
     const submitRes = await fetch(triggerUrl, {
       method: 'POST',
       headers: {
-        ...this._authHeaders(),
+        ...(await this._authHeaders()),
         Prefer: 'respond-async',
       },
       body: form,
@@ -239,7 +250,7 @@ export class PlatformApiClient {
 
     if (failed) {
       const errRes = await fetch(resultUrl, {
-        headers: this._authHeaders(),
+        headers: await this._authHeaders(),
         signal: AbortSignal.timeout(this._defaultTimeout),
       });
       await checkHttpResponse(errRes);
@@ -268,7 +279,7 @@ export class PlatformApiClient {
       options.acceptFormat === 'json' ? 'application/json' : 'application/octet-stream';
     const resultRes = await fetch(resultUrl, {
       headers: {
-        ...this._authHeaders(),
+        ...(await this._authHeaders()),
         Accept: acceptHeader,
       },
       signal: AbortSignal.timeout(this._defaultTimeout),
