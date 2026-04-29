@@ -30,12 +30,8 @@ const _sessionFileSchema = z.object({
   refreshToken: z.string().min(1),
 });
 
-function _defaultSessionFilePath(): string {
-  return path.join(os.homedir(), '.nitro-mcp', 'session.json');
-}
-
 export function defaultSessionFilePath(): string {
-  return _defaultSessionFilePath();
+  return path.join(os.homedir(), '.nitro-mcp', 'session.json');
 }
 
 function _readRefreshToken(filePath: string): string | null {
@@ -56,7 +52,11 @@ function _writeRefreshToken(filePath: string, refreshToken: string): void {
 function _deleteSessionFile(filePath: string): void {
   try {
     fs.unlinkSync(filePath);
-  } catch {}
+  } catch (err) {
+    logger.error(
+      `[PkceManager] Failed to delete session file: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
 }
 
 function _base64UrlEncode(buf: Buffer): string {
@@ -166,7 +166,9 @@ export class PkceManager {
           resolve(true);
         });
         server.once('error', (err) => {
-          logger.error(`[PkceManager] Callback server error on port ${String(port)}: ${err.message}`);
+          logger.error(
+            `[PkceManager] Callback server error on port ${String(port)}: ${err.message}`,
+          );
           resolve(false);
         });
         server.listen(port, 'localhost');
@@ -178,7 +180,9 @@ export class PkceManager {
     }
 
     this._resetFlow();
-    throw new Error('[PkceManager] All callback ports are in use. Please free a port and try again.');
+    throw new Error(
+      '[PkceManager] All callback ports are in use. Please free a port and try again.',
+    );
   }
 
   private async _handleCallback(
@@ -209,7 +213,9 @@ export class PkceManager {
 
     if (code === null || state !== this._state) {
       res.writeHead(400, { 'Content-Type': 'text/html' });
-      res.end('<html><body><p>Something went wrong. Please retry from your AI assistant or contact Nitro support.</p></body></html>');
+      res.end(
+        '<html><body><p>Something went wrong. Please retry from your AI assistant or contact Nitro support.</p></body></html>',
+      );
       this._resetFlow();
       return;
     }
