@@ -15,9 +15,14 @@ export interface PkceConfig {
   readonly sessionFilePath: string;
 }
 
-const _tokenResponseSchema = z.object({
+const _exchangeResponseSchema = z.object({
   access_token: z.string().min(1),
   refresh_token: z.string().min(1),
+  expires_in: z.number().int().positive(),
+});
+
+const _refreshResponseSchema = z.object({
+  access_token: z.string().min(1),
   expires_in: z.number().int().positive(),
 });
 
@@ -260,7 +265,7 @@ export class PkceManager {
       throw new Error(`Token exchange failed with status ${String(res.status)}`);
     }
 
-    const data = _tokenResponseSchema.parse(await res.json());
+    const data = _exchangeResponseSchema.parse(await res.json());
     this._storeTokens(data.access_token, data.refresh_token, data.expires_in);
     this._flowStarted = false;
     this._codeVerifier = null;
@@ -285,8 +290,8 @@ export class PkceManager {
       throw new Error(`Token refresh failed with status ${String(res.status)}`);
     }
 
-    const data = _tokenResponseSchema.parse(await res.json());
-    this._storeTokens(data.access_token, data.refresh_token, data.expires_in);
+    const data = _refreshResponseSchema.parse(await res.json());
+    this._storeTokens(data.access_token, refreshToken, data.expires_in);
   }
 
   private _storeTokens(accessToken: string, refreshToken: string, expiresInSeconds: number): void {
