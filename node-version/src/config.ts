@@ -96,6 +96,8 @@ class Settings {
     return _INTERNAL_CONFIG.apiUrls[`${this._targetEnv}:${this._authMode}`];
   }
 
+  readonly name = 'Nitro PDF Services';
+
   get version(): string {
     return process.env.MCP_SERVER_VERSION ?? '0.0.0-dev';
   }
