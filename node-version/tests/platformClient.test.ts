@@ -82,7 +82,9 @@ describe('PlatformApiClient', () => {
     });
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
-    await expect(client.run('conversions', file, { method: null })).rejects.toThrow(
+    const promise = client.run('conversions', file, { method: null });
+    await expect(promise).rejects.toThrow(GenericFailedError);
+    await expect(promise).rejects.toThrow(
       /Please provide the following reference code to Nitro support:/,
     );
   });
