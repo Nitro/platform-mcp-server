@@ -5,9 +5,10 @@
   "description": "Nitro MCP server for PDF processing",
   "scripts": {
     "dev": "tsx src/index.ts",
-    "bundle": "esbuild src/index.ts --bundle --platform=node --format=cjs --outfile=dist/bundle.cjs",
+    "bundle": "node build.mjs",
     "build": "npm run bundle",
-    "check": "npm run check:types && npm run check:lint",
+    "check": "npm run check:format && npm run check:types && npm run check:lint",
+    "check:format": "prettier --check src/ tests/",
     "check:types": "tsc --noEmit",
     "check:lint": "eslint src/ tests/",
     "format": "prettier --write src/ tests/",
@@ -17,6 +18,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
     "dotenv": "^16.4.7",
+    "exceljs": "^4.4.0",
     "zod": "^3.24.3"
   },
   "devDependencies": {

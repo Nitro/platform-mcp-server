@@ -6,6 +6,11 @@ tasks:
     cmds:
       - npm install
 
+  check-format:
+    desc: Check formatting with Prettier
+    cmds:
+      - npm run check:format
+
   check-types:
     desc: Run TypeScript type checking
     cmds:
@@ -19,6 +24,7 @@ tasks:
   check:
     desc: Run all code quality checks
     cmds:
+      - task: check-format
       - task: check-types
       - task: check-lint
 
@@ -49,7 +55,8 @@ tasks:
         sh: node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('manifest.json','utf8')).version)"
     cmds:
       - "esbuild src/index.ts --bundle --platform=node --format=cjs --outfile=dist/bundle.cjs '--define:process.env.MCP_SERVER_VERSION=\"{{.VERSION}}\"'"
-      - mcpb pack . ../build/nitro-pdf-services-node-{{.VERSION}}.mcpb
+      - npx @anthropic-ai/mcpb pack . ../build/nitro-pdf-services-node-{{.VERSION}}.mcpb
+
 
   clean:
     desc: Clean build artifacts

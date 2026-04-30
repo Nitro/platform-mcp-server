@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ContentType, CompressionLevel, FileFormat } from '../client/enums.js';
 import { PlatformApiClient, createBytesFile } from '../client/platformClient.js';
+import type { PkceManager } from '../auth/pkceManager.js';
 import { checkHttpResponse } from '../errors.js';
 
 const _tokenResponseSchema = z.object({ accessToken: z.string().min(1) });
@@ -144,7 +145,7 @@ export class PlatformHandler {
   }
 
   static fromAuthToken(baseUrl: string, token: string): PlatformHandler {
-    return new PlatformHandler(new PlatformApiClient(baseUrl, token));
+    return new PlatformHandler(PlatformApiClient.fromStaticToken(baseUrl, token));
   }
 
   static async fromClientCredentials(
@@ -154,6 +155,12 @@ export class PlatformHandler {
   ): Promise<PlatformHandler> {
     const token = await _getToken(baseUrl, clientId, clientSecret);
     return PlatformHandler.fromAuthToken(baseUrl, token);
+  }
+
+  static fromPkce(apiUrl: string, pkceManager: PkceManager): PlatformHandler {
+    return new PlatformHandler(
+      PlatformApiClient.fromTokenProvider(apiUrl, () => pkceManager.getAccessToken()),
+    );
   }
 
   private _isValidConversion(fileType: FileFormat, to: FileFormat): boolean {
@@ -192,6 +199,7 @@ export class PlatformHandler {
     const { body } = await this._client.run('extractions', file, {
       method: 'get-properties',
       params: {},
+      acceptFormat: 'json',
     });
     return this._extractResult(body);
   }
@@ -212,6 +220,7 @@ export class PlatformHandler {
     const { body } = await this._client.run('extractions', file, {
       method: methodMap[dataType],
       params: params as Record<string, unknown>,
+      acceptFormat: 'json',
     });
     return this._extractResult(body);
   }
@@ -221,6 +230,17 @@ export class PlatformHandler {
     const { body } = await this._client.run('extractions', file, {
       method: 'extract-text-bounding-boxes',
       params: { texts },
+      acceptFormat: 'json',
+    });
+    return this._extractResult(body);
+  }
+
+  async extractPiiBoundingBoxes(fileBytes: Buffer, language: 'en' | 'es'): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'document.pdf');
+    const { body } = await this._client.run('extractions', file, {
+      method: 'extract-pii-bounding-boxes',
+      params: { language },
+      acceptFormat: 'json',
     });
     return this._extractResult(body);
   }
@@ -320,6 +340,18 @@ export class PlatformHandler {
     const { body } = await this._client.run('transformations', file, {
       method: 'flatten',
       params: {},
+    });
+    return body;
+  }
+
+  async redactPdf(
+    fileBytes: Buffer,
+    redactions: { pageIndex: number; boundingBox: number[] }[],
+  ): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
+    const { body } = await this._client.run('transformations', file, {
+      method: 'redact',
+      params: { redactions },
     });
     return body;
   }

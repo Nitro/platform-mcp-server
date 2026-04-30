@@ -24,7 +24,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: "npm"
@@ -34,8 +34,16 @@ jobs:
         run: npm ci
         working-directory: node-version
 
-      - name: Run checks
-        run: task check
+      - name: Check formatting
+        run: task check-format
+        working-directory: node-version
+
+      - name: Check linting
+        run: task check-lint
+        working-directory: node-version
+
+      - name: Check types
+        run: task check-types
         working-directory: node-version
 
       - name: Run tests

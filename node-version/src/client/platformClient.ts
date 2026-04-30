@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { ContentType } from './enums.js';
 import { checkHttpResponse, GenericFailedError } from '../errors.js';
 import { logger } from '../logger.js';
+import { settings } from '../config.js';
 
 const _progressUpdateEventSchema = z.object({
   jobID: z.string(),
@@ -80,6 +81,7 @@ export type ApiPath = 'conversions' | 'extractions' | 'transformations';
 export interface RunOptions {
   readonly method: string | null;
   readonly params?: Record<string, unknown>;
+  readonly acceptFormat?: 'bytes' | 'json';
 }
 
 function _validateRunOptions(path: ApiPath, options: RunOptions): void {
@@ -88,30 +90,45 @@ function _validateRunOptions(path: ApiPath, options: RunOptions): void {
   }
 }
 
+export type TokenProvider = () => Promise<string>;
+
 export class PlatformApiClient {
   private readonly _baseUrl: string;
-  private readonly _authToken: string;
+  private readonly _tokenProvider: TokenProvider;
   private readonly _defaultTimeout = 30_000;
   private readonly _jobWaitTimeout = 120_000;
 
-  constructor(baseUrl: string, authToken: string) {
+  static fromStaticToken(baseUrl: string, token: string): PlatformApiClient {
+    return new PlatformApiClient(baseUrl, () => Promise.resolve(token));
+  }
+
+  static fromTokenProvider(baseUrl: string, provider: TokenProvider): PlatformApiClient {
+    return new PlatformApiClient(baseUrl, provider);
+  }
+
+  constructor(baseUrl: string, tokenProvider: TokenProvider) {
     this._baseUrl = baseUrl;
-    this._authToken = authToken;
+    this._tokenProvider = tokenProvider;
   }
 
-  private _authHeaders(): Record<string, string> {
-    return { Authorization: `Bearer ${this._authToken}` };
+  private async _requestHeaders(sessionId: string): Promise<Record<string, string>> {
+    const token = await this._tokenProvider();
+    return {
+      Authorization: `Bearer ${token}`,
+      'X-Nitro-Client': `mcp/${settings.version}`,
+      'X-Analytics-Session-Id': sessionId,
+    };
   }
 
-  private async *_iterSseEvents(statusUrl: string): AsyncGenerator<SseEvent> {
+  private async *_iterSseEvents(statusUrl: string, sessionId: string): AsyncGenerator<SseEvent> {
     const res = await fetch(statusUrl, {
-      headers: { ...this._authHeaders(), Accept: 'text/event-stream' },
+      headers: { ...(await this._requestHeaders(sessionId)), Accept: 'text/event-stream' },
       signal: AbortSignal.timeout(this._jobWaitTimeout),
     });
-    await checkHttpResponse(res);
+    await checkHttpResponse(res, sessionId);
 
     if (res.body === null) {
-      throw new GenericFailedError();
+      throw new GenericFailedError(sessionId);
     }
 
     const reader = res.body.getReader();
@@ -167,8 +184,11 @@ export class PlatformApiClient {
     }
   }
 
-  private async _waitForJob(statusUrl: string): Promise<{ failed: boolean; resultUrl: string }> {
-    for await (const event of this._iterSseEvents(statusUrl)) {
+  private async _waitForJob(
+    statusUrl: string,
+    sessionId: string,
+  ): Promise<{ failed: boolean; resultUrl: string }> {
+    for await (const event of this._iterSseEvents(statusUrl, sessionId)) {
       if (event.status === 'running') {
         continue;
       }
@@ -182,9 +202,14 @@ export class PlatformApiClient {
     fileOrFiles: File | File[],
     options: RunOptions,
   ): Promise<{ body: Buffer; contentType: string }> {
+    const sessionId = crypto.randomUUID();
     const form = new FormData();
 
     _validateRunOptions(path, options);
+
+    logger.info(
+      `[PlatformApiClient] Running \`${options.method ?? path}\` with session ID: ${sessionId}`,
+    );
 
     if (options.method !== null) {
       form.append('method', options.method);
@@ -206,20 +231,20 @@ export class PlatformApiClient {
     const submitRes = await fetch(triggerUrl, {
       method: 'POST',
       headers: {
-        ...this._authHeaders(),
+        ...(await this._requestHeaders(sessionId)),
         Prefer: 'respond-async',
       },
       body: form,
       signal: AbortSignal.timeout(this._defaultTimeout),
     });
 
-    await checkHttpResponse(submitRes);
+    await checkHttpResponse(submitRes, sessionId);
 
     if (submitRes.status !== 202) {
       logger.error(
         `[PlatformApiClient] Job submission returned unexpected status ${String(submitRes.status)} for ${triggerUrl}; expected 202`,
       );
-      throw new GenericFailedError();
+      throw new GenericFailedError(sessionId);
     }
 
     const statusUrl = submitRes.headers.get('Location');
@@ -227,17 +252,17 @@ export class PlatformApiClient {
       logger.error(
         `[PlatformApiClient] Job submission returned 202 without a Location header for ${triggerUrl}`,
       );
-      throw new GenericFailedError();
+      throw new GenericFailedError(sessionId);
     }
 
-    const { failed, resultUrl } = await this._waitForJob(statusUrl);
+    const { failed, resultUrl } = await this._waitForJob(statusUrl, sessionId);
 
     if (failed) {
       const errRes = await fetch(resultUrl, {
-        headers: this._authHeaders(),
+        headers: await this._requestHeaders(sessionId),
         signal: AbortSignal.timeout(this._defaultTimeout),
       });
-      await checkHttpResponse(errRes);
+      await checkHttpResponse(errRes, sessionId);
       const rawErrBody = await errRes.text();
       let loggedError = rawErrBody;
       try {
@@ -256,17 +281,19 @@ export class PlatformApiClient {
         loggedError = `${loggedError.slice(0, 1000)}... [truncated]`;
       }
       logger.error(`[PlatformApiClient] Job failed: ${loggedError}`);
-      throw new GenericFailedError();
+      throw new GenericFailedError(sessionId);
     }
 
+    const acceptHeader =
+      options.acceptFormat === 'json' ? 'application/json' : 'application/octet-stream';
     const resultRes = await fetch(resultUrl, {
       headers: {
-        ...this._authHeaders(),
-        Accept: 'application/octet-stream',
+        ...(await this._requestHeaders(sessionId)),
+        Accept: acceptHeader,
       },
       signal: AbortSignal.timeout(this._defaultTimeout),
     });
-    await checkHttpResponse(resultRes);
+    await checkHttpResponse(resultRes, sessionId);
 
     const arrayBuffer = await resultRes.arrayBuffer();
     const contentType = resultRes.headers.get('content-type') ?? 'application/octet-stream';

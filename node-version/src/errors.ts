@@ -8,8 +8,14 @@ export class UserFacingError extends Error {
 }
 
 export class GenericFailedError extends Error {
-  constructor() {
-    super('Platform operation failed. Try again or contact Nitro support if the issue persists.');
+  constructor(referenceCode?: string) {
+    const base =
+      'Platform operation failed. Try again or contact Nitro support if the issue persists.';
+    const message =
+      referenceCode !== undefined
+        ? `${base} Please provide the following reference code to Nitro support: ${referenceCode}`
+        : base;
+    super(message);
     this.name = 'GenericFailedError';
   }
 }
@@ -32,7 +38,13 @@ export function handleToolError(
   return { isError: true, content: [{ type: 'text' as const, text: message }] };
 }
 
-export async function checkHttpResponse(res: Response): Promise<void> {
+export async function checkHttpResponse(res: Response, sessionId?: string): Promise<void> {
+  if (res.status === 429) {
+    const retryAfter = res.headers.get('Retry-After');
+    const waitClause =
+      retryAfter !== null ? ` Please wait ${retryAfter} seconds before trying again.` : '';
+    throw new UserFacingError(`You have used up your current Nitro allowance.${waitClause}`);
+  }
   if (res.status !== 200 && res.status !== 202) {
     const summary = { url: res.url, status: res.status };
     if (!res.bodyUsed) {
@@ -47,6 +59,6 @@ export async function checkHttpResponse(res: Response): Promise<void> {
     } else {
       logger.error(`HTTP request failed: ${JSON.stringify(summary)}`);
     }
-    throw new GenericFailedError();
+    throw new GenericFailedError(sessionId);
   }
 }
