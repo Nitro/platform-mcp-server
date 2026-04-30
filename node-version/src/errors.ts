@@ -62,13 +62,15 @@ export async function checkHttpResponse(res: Response, sessionId?: string): Prom
         `HTTP request failed: ${JSON.stringify({ ...summary, body: bodyText !== undefined ? bodyText.slice(0, 500) : undefined })}`,
       );
       if (bodyText !== undefined && res.status < 500) {
+        let parsed: unknown;
         try {
-          const result = _httpErrorBodySchema.safeParse(JSON.parse(bodyText));
-          if (result.success) {
-            throw new UserFacingError(appendReferenceCode(result.data.title, sessionId));
-          }
-        } catch (e) {
-          if (e instanceof UserFacingError) throw e;
+          parsed = JSON.parse(bodyText);
+        } catch {
+          // intentionally empty
+        }
+        const result = _httpErrorBodySchema.safeParse(parsed);
+        if (result.success) {
+          throw new UserFacingError(appendReferenceCode(result.data.title, sessionId));
         }
       }
     } else {
