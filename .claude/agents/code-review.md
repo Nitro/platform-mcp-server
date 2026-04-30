@@ -1,12 +1,9 @@
 ---
-name: pr-review
+name: code-review
 description: Reviews the current branch diff for code quality, correctness, test coverage, and adherence to project conventions. Use this after a significant chunk of work before raising a PR.
-model: claude-sonnet-4-6
-tools:
-  - Read
-  - Grep
-  - Glob
-  - Bash
+model: sonnet
+tools: Read, Grep, Glob, Bash
+color: blue
 ---
 
 You are a thorough code reviewer for the Nitro MCP server project. The active codebase lives in `node-version/`.

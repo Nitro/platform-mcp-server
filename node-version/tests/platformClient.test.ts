@@ -25,6 +25,23 @@ function _makeResultResponse(content: Buffer, contentType: string): Response {
   });
 }
 
+function _makeFailedJobFetch(errorBody: object): void {
+  vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
+    const urlStr = url instanceof URL ? url.href : (url as string);
+    if (urlStr.includes('/conversions')) {
+      return Promise.resolve(_makeJobResponse('https://status.example.com/job-1'));
+    }
+    if (urlStr.includes('status.example.com')) {
+      return Promise.resolve(
+        _makeSseResponse([
+          `event: message\ndata: ${JSON.stringify({ jobID: 'job-1', status: 'failed', location: 'https://error.example.com/job-1' })}`,
+        ]),
+      );
+    }
+    return Promise.resolve(new Response(JSON.stringify(errorBody), { status: 200 }));
+  });
+}
+
 describe('PlatformApiClient', () => {
   const baseUrl = 'https://api.example.com';
   const authToken = 'auth-token';
@@ -63,34 +80,68 @@ describe('PlatformApiClient', () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
-  it('throws GenericFailedError with session reference code when job fails', async () => {
-    vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
-      const urlStr = url instanceof URL ? url.href : (url as string);
-      if (urlStr.includes('/conversions')) {
-        return Promise.resolve(_makeJobResponse('https://status.example.com/job-1'));
-      }
-      if (urlStr.includes('status.example.com')) {
-        return Promise.resolve(
-          _makeSseResponse([
-            `event: message\ndata: ${JSON.stringify({ jobID: 'job-1', status: 'failed', location: 'https://error.example.com/job-1' })}`,
-          ]),
-        );
-      }
-      return Promise.resolve(
-        new Response(JSON.stringify({ error: { message: 'api-error' } }), { status: 200 }),
-      );
-    });
+  it('throws UserFacingError with title when job fails with a user-facing error type', async () => {
+    _makeFailedJobFetch({ error: { type: 'type', title: 'title' } });
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
-    const promise = client.run('conversions', file, { method: null });
-    await expect(promise).rejects.toThrow(GenericFailedError);
-    await expect(promise).rejects.toThrow(
-      /Please provide the following reference code to Nitro support:/,
+    const error = await client.run('conversions', file, { method: null }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(UserFacingError);
+    expect((error as UserFacingError).message).toContain('title');
+  });
+
+  it('throws GenericFailedError with session reference code when job fails with a server-fault type', async () => {
+    _makeFailedJobFetch({ error: { type: 'JobHasFailed', title: 'title' } });
+
+    const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
+    await expect(client.run('conversions', file, { method: null })).rejects.toThrow(
+      GenericFailedError,
     );
   });
 
-  it('throws GenericFailedError when submit returns non-202', async () => {
+  it('throws GenericFailedError when job fails with unrecognised error body shape', async () => {
+    _makeFailedJobFetch({ error: { message: 'message' } });
+
+    const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
+    await expect(client.run('conversions', file, { method: null })).rejects.toThrow(
+      GenericFailedError,
+    );
+  });
+
+  it('throws GenericFailedError when submit returns 500', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 500 }));
+
+    const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
+    await expect(client.run('conversions', file, { method: null })).rejects.toThrow(
+      GenericFailedError,
+    );
+  });
+
+  it('throws UserFacingError with title when submit returns 422 with structured body', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ title: 'title' }), { status: 422 }),
+    );
+
+    const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
+    const error = await client.run('conversions', file, { method: null }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(UserFacingError);
+    expect((error as UserFacingError).message).toContain('title');
+  });
+
+  it('throws GenericFailedError when submit returns 422 with no title in body', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ status: 422, type: 'InvalidPDF' }), { status: 422 }),
+    );
+
+    const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
+    await expect(client.run('conversions', file, { method: null })).rejects.toThrow(
+      GenericFailedError,
+    );
+  });
+
+  it('throws GenericFailedError when submit returns 500 with title in body', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ title: 'Server error' }), { status: 500 }),
+    );
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
     await expect(client.run('conversions', file, { method: null })).rejects.toThrow(

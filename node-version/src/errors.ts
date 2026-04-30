@@ -1,4 +1,8 @@
+import { z } from 'zod';
+
 import { logger } from './logger.js';
+
+const _httpErrorBodySchema = z.object({ title: z.string() });
 
 export class UserFacingError extends Error {
   constructor(message: string) {
@@ -48,17 +52,34 @@ export async function checkHttpResponse(res: Response, sessionId?: string): Prom
   if (res.status !== 200 && res.status !== 202) {
     const summary = { url: res.url, status: res.status };
     if (!res.bodyUsed) {
+      let bodyText: string | undefined;
       try {
-        const body = await res.text();
-        logger.error(
-          `HTTP request failed: ${JSON.stringify({ ...summary, body: body.slice(0, 500) })}`,
-        );
+        bodyText = await res.text();
       } catch {
-        logger.error(`HTTP request failed: ${JSON.stringify(summary)}`);
+        // ignore read failure; fall through to log without body
+      }
+      logger.error(
+        `HTTP request failed: ${JSON.stringify({ ...summary, body: bodyText !== undefined ? bodyText.slice(0, 500) : undefined })}`,
+      );
+      if (bodyText !== undefined && res.status < 500) {
+        try {
+          const result = _httpErrorBodySchema.safeParse(JSON.parse(bodyText));
+          if (result.success) {
+            throw new UserFacingError(appendReferenceCode(result.data.title, sessionId));
+          }
+        } catch (e) {
+          if (e instanceof UserFacingError) throw e;
+        }
       }
     } else {
       logger.error(`HTTP request failed: ${JSON.stringify(summary)}`);
     }
     throw new GenericFailedError(sessionId);
   }
+}
+
+export function appendReferenceCode(message: string, referenceCode?: string): string {
+  return referenceCode !== undefined
+    ? `${message} Please provide the following reference code to Nitro support: ${referenceCode}`
+    : message;
 }
