@@ -1,5 +1,12 @@
 version: '3'
 
+includes:
+  node:
+    dir: ./node-version
+    taskfile: ./node-version
+    aliases: [n]
+
+
 tasks:
   install:
     desc: Install the virtual environment and install the pre-commit hooks
