@@ -37,7 +37,7 @@ Run from the repo root using the `n:` namespace (aliased from `node-version/Task
 
 The codebase is **fully typed**. Treat any type error as a build failure.
 
-- Use `X | undefined` over optional chaining where explicitness matters
+- Prefer explicit `X | undefined` union types in function signatures over optional parameters (`x?: X`) when the absence of a value is meaningful and should be visible at the call site
 - No `any`, no `// @ts-ignore` without explicit user permission
 - Follow existing patterns for error handling: `UserFacingError` for user-caused errors, `GenericFailedError` (with session reference code) for platform failures
 
