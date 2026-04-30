@@ -31,6 +31,7 @@ Run from the repo root using the `n:` namespace (aliased from `node-version/Task
 - **Never force push**
 - **Never push directly to `main`** — if the user asks to commit and no branch is checked out, ask whether to create one first
 - **Always run `task n:check` after making code changes** and fix any errors before considering the task done
+- **Never commit untracked files speculatively** — the working directory may contain scratch files, local tools, and other artefacts that must not be committed; only stage files that are directly part of the change
 
 ## TypeScript
 
