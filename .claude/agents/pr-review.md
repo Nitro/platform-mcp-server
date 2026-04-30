@@ -17,7 +17,7 @@ When invoked, you should:
    - **Error handling** — errors surfaced correctly (`UserFacingError` vs `GenericFailedError`), session reference codes included where appropriate
    - **Test coverage** — new behaviour is tested, mocks use `vi.spyOn` / `vi.fn()`, both return values and mock interactions are asserted
    - **Conventions** — matches patterns in the existing codebase (naming, file structure, private-before-public method ordering)
-   - **No comments in code** unless explicitly requested
+   - **Comments in code** — avoid adding new comments unless they add essential context or are explicitly requested
 
 4. Run `task n:check` and `task n:test` and report any failures
 
