@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { ContentType } from './enums.js';
-import { checkHttpResponse, GenericFailedError } from '../errors.js';
+import { checkHttpResponse, GenericFailedError, UserFacingError } from '../errors.js';
 import { logger } from '../logger.js';
 import { settings } from '../config.js';
 
@@ -227,76 +227,85 @@ export class PlatformApiClient {
       }
     }
 
-    const triggerUrl = `${this._baseUrl}/${path}`;
-    const submitRes = await fetch(triggerUrl, {
-      method: 'POST',
-      headers: {
-        ...(await this._requestHeaders(sessionId)),
-        Prefer: 'respond-async',
-      },
-      body: form,
-      signal: AbortSignal.timeout(this._defaultTimeout),
-    });
-
-    await checkHttpResponse(submitRes, sessionId);
-
-    if (submitRes.status !== 202) {
-      logger.error(
-        `[PlatformApiClient] Job submission returned unexpected status ${String(submitRes.status)} for ${triggerUrl}; expected 202`,
-      );
-      throw new GenericFailedError(sessionId);
-    }
-
-    const statusUrl = submitRes.headers.get('Location');
-    if (statusUrl === null) {
-      logger.error(
-        `[PlatformApiClient] Job submission returned 202 without a Location header for ${triggerUrl}`,
-      );
-      throw new GenericFailedError(sessionId);
-    }
-
-    const { failed, resultUrl } = await this._waitForJob(statusUrl, sessionId);
-
-    if (failed) {
-      const errRes = await fetch(resultUrl, {
-        headers: await this._requestHeaders(sessionId),
+    try {
+      const triggerUrl = `${this._baseUrl}/${path}`;
+      const submitRes = await fetch(triggerUrl, {
+        method: 'POST',
+        headers: {
+          ...(await this._requestHeaders(sessionId)),
+          Prefer: 'respond-async',
+        },
+        body: form,
         signal: AbortSignal.timeout(this._defaultTimeout),
       });
-      await checkHttpResponse(errRes, sessionId);
-      const rawErrBody = await errRes.text();
-      let loggedError = rawErrBody;
-      try {
-        const parsedErrBody: unknown = JSON.parse(rawErrBody);
-        if (typeof parsedErrBody === 'object' && parsedErrBody !== null) {
-          const errorField = 'error' in parsedErrBody ? parsedErrBody.error : undefined;
-          const messageField = 'message' in parsedErrBody ? parsedErrBody.message : undefined;
-          if (typeof errorField === 'string') {
-            loggedError = errorField;
-          } else if (typeof messageField === 'string') {
-            loggedError = messageField;
-          }
-        }
-      } catch {}
-      if (loggedError.length > 1000) {
-        loggedError = `${loggedError.slice(0, 1000)}... [truncated]`;
+
+      await checkHttpResponse(submitRes, sessionId);
+
+      if (submitRes.status !== 202) {
+        logger.error(
+          `[PlatformApiClient] Job submission returned unexpected status ${String(submitRes.status)} for ${triggerUrl}; expected 202`,
+        );
+        throw new GenericFailedError(sessionId);
       }
-      logger.error(`[PlatformApiClient] Job failed: ${loggedError}`);
+
+      const statusUrl = submitRes.headers.get('Location');
+      if (statusUrl === null) {
+        logger.error(
+          `[PlatformApiClient] Job submission returned 202 without a Location header for ${triggerUrl}`,
+        );
+        throw new GenericFailedError(sessionId);
+      }
+
+      const { failed, resultUrl } = await this._waitForJob(statusUrl, sessionId);
+
+      if (failed) {
+        const errRes = await fetch(resultUrl, {
+          headers: await this._requestHeaders(sessionId),
+          signal: AbortSignal.timeout(this._defaultTimeout),
+        });
+        await checkHttpResponse(errRes, sessionId);
+        const rawErrBody = await errRes.text();
+        let loggedError = rawErrBody;
+        try {
+          const parsedErrBody: unknown = JSON.parse(rawErrBody);
+          if (typeof parsedErrBody === 'object' && parsedErrBody !== null) {
+            const errorField = 'error' in parsedErrBody ? parsedErrBody.error : undefined;
+            const messageField = 'message' in parsedErrBody ? parsedErrBody.message : undefined;
+            if (typeof errorField === 'string') {
+              loggedError = errorField;
+            } else if (typeof messageField === 'string') {
+              loggedError = messageField;
+            }
+          }
+        } catch {}
+        if (loggedError.length > 1000) {
+          loggedError = `${loggedError.slice(0, 1000)}... [truncated]`;
+        }
+        logger.error(`[PlatformApiClient] Job failed: ${loggedError}`);
+        throw new GenericFailedError(sessionId);
+      }
+
+      const acceptHeader =
+        options.acceptFormat === 'json' ? 'application/json' : 'application/octet-stream';
+      const resultRes = await fetch(resultUrl, {
+        headers: {
+          ...(await this._requestHeaders(sessionId)),
+          Accept: acceptHeader,
+        },
+        signal: AbortSignal.timeout(this._defaultTimeout),
+      });
+      await checkHttpResponse(resultRes, sessionId);
+
+      const arrayBuffer = await resultRes.arrayBuffer();
+      const contentType = resultRes.headers.get('content-type') ?? 'application/octet-stream';
+      return { body: Buffer.from(arrayBuffer), contentType };
+    } catch (err) {
+      if (err instanceof UserFacingError || err instanceof GenericFailedError) {
+        throw err;
+      }
+      const loggedError = err instanceof Error ? (err.stack ?? err.message) : String(err);
+      logger.error(`[PlatformApiClient] Unexpected error: ${loggedError}`);
       throw new GenericFailedError(sessionId);
     }
-
-    const acceptHeader =
-      options.acceptFormat === 'json' ? 'application/json' : 'application/octet-stream';
-    const resultRes = await fetch(resultUrl, {
-      headers: {
-        ...(await this._requestHeaders(sessionId)),
-        Accept: acceptHeader,
-      },
-      signal: AbortSignal.timeout(this._defaultTimeout),
-    });
-    await checkHttpResponse(resultRes, sessionId);
-
-    const arrayBuffer = await resultRes.arrayBuffer();
-    const contentType = resultRes.headers.get('content-type') ?? 'application/octet-stream';
-    return { body: Buffer.from(arrayBuffer), contentType };
   }
 }

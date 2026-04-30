@@ -216,7 +216,7 @@ describe('PlatformApiClient', () => {
     expect(headers?.Accept).toBe('text/event-stream');
   });
 
-  it('throws when SSE stream closes without a terminal event', async () => {
+  it('throws GenericFailedError with reference code when SSE stream closes without a terminal event', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
       const urlStr = url instanceof URL ? url.href : (url as string);
       if (urlStr.includes('/conversions')) {
@@ -230,8 +230,10 @@ describe('PlatformApiClient', () => {
     });
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('bytes'));
-    await expect(client.run('conversions', file, { method: null })).rejects.toThrow(
-      'SSE stream closed before job finished',
+    const promise = client.run('conversions', file, { method: null });
+    await expect(promise).rejects.toThrow(GenericFailedError);
+    await expect(promise).rejects.toThrow(
+      /Please provide the following reference code to Nitro support:/,
     );
   });
 
@@ -282,7 +284,7 @@ describe('PlatformApiClient', () => {
     );
   });
 
-  it('throws when SSE event contains malformed JSON', async () => {
+  it('throws GenericFailedError with reference code when SSE event contains malformed JSON', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
       const urlStr = url instanceof URL ? url.href : (url as string);
       if (urlStr.includes('/conversions')) {
@@ -292,8 +294,10 @@ describe('PlatformApiClient', () => {
     });
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('bytes'));
-    await expect(client.run('conversions', file, { method: null })).rejects.toThrow(
-      'Failed to parse SSE event as JSON',
+    const promise = client.run('conversions', file, { method: null });
+    await expect(promise).rejects.toThrow(GenericFailedError);
+    await expect(promise).rejects.toThrow(
+      /Please provide the following reference code to Nitro support:/,
     );
   });
 });

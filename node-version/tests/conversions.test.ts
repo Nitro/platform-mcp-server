@@ -158,6 +158,24 @@ describe('convert_file tool', () => {
     expect(filesHandlerMock.write).not.toHaveBeenCalled();
   });
 
+  it('includes reference code in error message when platform handler throws with one', async () => {
+    filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-content'));
+    platformHandlerMock.convertFile.mockRejectedValue(new GenericFailedError('ref-code'));
+
+    const result = await caller.call(
+      'convert_file',
+      { inputPath: path.join(tmpDir, 'a.pdf'), to: 'docx' },
+      { expectError: true },
+    );
+
+    expect(result.content).toEqual([
+      {
+        type: 'text',
+        text: 'Platform operation failed. Try again or contact Nitro support if the issue persists. Please provide the following reference code to Nitro support: ref-code',
+      },
+    ]);
+  });
+
   it('uses zip extension for pdf to jpeg conversion', async () => {
     filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-content'));
     platformHandlerMock.convertFile.mockResolvedValue(Buffer.from('zip-with-images'));
