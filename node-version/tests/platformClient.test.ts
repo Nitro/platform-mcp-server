@@ -126,9 +126,14 @@ describe('PlatformApiClient', () => {
     );
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
-    const error = await client.run('conversions', file, { method: null }).catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(UserFacingError);
-    expect((error as UserFacingError).message).toContain('title');
+
+    try {
+      await client.run('conversions', file, { method: null });
+      throw new Error('Expected client.run to throw');
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(UserFacingError);
+      expect((error as UserFacingError).message).toContain('title');
+    }
   });
 
   it('throws GenericFailedError when submit returns 422 with no title in body', async () => {
