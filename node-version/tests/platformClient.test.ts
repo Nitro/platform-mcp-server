@@ -94,12 +94,15 @@ describe('PlatformApiClient', () => {
   });
 
   it('throws GenericFailedError with session reference code when job fails with a server-fault type', async () => {
-    _makeFailedJobFetch({ error: { type: 'JobHasFailed', title: 'title' } });
+    const fetchMock = _makeFailedJobFetch({ error: { type: 'JobHasFailed', title: 'title' } });
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
-    await expect(client.run('conversions', file, { method: null })).rejects.toThrow(
-      GenericFailedError,
-    );
+    const error = await client.run('conversions', file, { method: null }).catch((e: unknown) => e);
+    const sessionId = (fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>)[
+      'X-Analytics-Session-Id'
+    ];
+    expect(error).toBeInstanceOf(GenericFailedError);
+    expect((error as GenericFailedError).message).toContain(sessionId);
   });
 
   it('throws GenericFailedError when job fails with unrecognised error body shape', async () => {
