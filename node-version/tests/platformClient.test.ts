@@ -102,12 +102,16 @@ describe('PlatformApiClient', () => {
     const fetchMock = _makeFailedJobFetch({ error: { type: 'JobHasFailed', title: 'title' } });
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
-    const error = await client.run('conversions', file, { method: null }).catch((e: unknown) => e);
-    const sessionId = (fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>)[
-      'X-Analytics-Session-Id'
-    ];
-    expect(error).toBeInstanceOf(GenericFailedError);
-    expect((error as GenericFailedError).message).toContain(sessionId);
+    try {
+      await client.run('conversions', file, { method: null });
+      throw new Error('Expected client.run to throw');
+    } catch (error: unknown) {
+      const sessionId = (fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>)[
+        'X-Analytics-Session-Id'
+      ];
+      expect(error).toBeInstanceOf(GenericFailedError);
+      expect((error as GenericFailedError).message).toContain(sessionId);
+    }
   });
 
   it('throws GenericFailedError when job fails with unrecognised error body shape', async () => {
@@ -120,12 +124,21 @@ describe('PlatformApiClient', () => {
   });
 
   it('throws GenericFailedError when submit returns 500', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 500 }));
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(null, { status: 500 }));
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
-    await expect(client.run('conversions', file, { method: null })).rejects.toThrow(
-      GenericFailedError,
-    );
+    try {
+      await client.run('conversions', file, { method: null });
+      throw new Error('Expected client.run to throw');
+    } catch (error: unknown) {
+      const sessionId = (fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>)[
+        'X-Analytics-Session-Id'
+      ];
+      expect(error).toBeInstanceOf(GenericFailedError);
+      expect((error as GenericFailedError).message).toContain(sessionId);
+    }
   });
 
   it('throws UserFacingError with title when submit returns 422 with structured body', async () => {
@@ -145,25 +158,43 @@ describe('PlatformApiClient', () => {
   });
 
   it('throws GenericFailedError when submit returns 422 with no title in body', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify({ status: 422, type: 'InvalidPDF' }), { status: 422 }),
-    );
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ status: 422, type: 'InvalidPDF' }), { status: 422 }),
+      );
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
-    await expect(client.run('conversions', file, { method: null })).rejects.toThrow(
-      GenericFailedError,
-    );
+    try {
+      await client.run('conversions', file, { method: null });
+      throw new Error('Expected client.run to throw');
+    } catch (error: unknown) {
+      const sessionId = (fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>)[
+        'X-Analytics-Session-Id'
+      ];
+      expect(error).toBeInstanceOf(GenericFailedError);
+      expect((error as GenericFailedError).message).toContain(sessionId);
+    }
   });
 
   it('throws GenericFailedError when submit returns 500 with title in body', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify({ title: 'Server error' }), { status: 500 }),
-    );
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ title: 'Server error' }), { status: 500 }),
+      );
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
-    await expect(client.run('conversions', file, { method: null })).rejects.toThrow(
-      GenericFailedError,
-    );
+    try {
+      await client.run('conversions', file, { method: null });
+      throw new Error('Expected client.run to throw');
+    } catch (error: unknown) {
+      const sessionId = (fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>)[
+        'X-Analytics-Session-Id'
+      ];
+      expect(error).toBeInstanceOf(GenericFailedError);
+      expect((error as GenericFailedError).message).toContain(sessionId);
+    }
   });
 
   it('uses a different session ID for each run() call', async () => {

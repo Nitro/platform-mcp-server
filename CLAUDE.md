@@ -50,9 +50,10 @@ The codebase is **fully typed**. Treat any type error as a build failure.
 
 ## Code Conventions
 
-- **Private before public** — define private methods/functions before the public ones that use them
+- **Private before public** — define private methods/functions (prefix module-level helpers with `_`) before the public ones that use them
 - **Settings decoupling** — each class should define and accept its own settings, thus decoupled from global config
-- **Always prefer awaits over promise chains** — for readability and error handling
+- **Always prefer awaits over promise chains** — use `await` + `try/catch` instead of `.then()` / `.catch()` chains; `Promise.all` is fine
+- **No nested functions** — define helpers at module scope (prefixed with `_` if private) rather than inside other functions
 
 ## Sub-Agents
 
