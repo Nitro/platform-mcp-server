@@ -1,4 +1,8 @@
+import { z } from 'zod';
+
 import { logger } from './logger.js';
+
+const _httpErrorBodySchema = z.object({ title: z.string() });
 
 export class UserFacingError extends Error {
   constructor(message: string) {
@@ -11,11 +15,7 @@ export class GenericFailedError extends Error {
   constructor(referenceCode?: string) {
     const base =
       'Platform operation failed. Try again or contact Nitro support if the issue persists.';
-    const message =
-      referenceCode !== undefined
-        ? `${base} Please provide the following reference code to Nitro support: ${referenceCode}`
-        : base;
-    super(message);
+    super(appendReferenceCode(base, referenceCode));
     this.name = 'GenericFailedError';
   }
 }
@@ -38,27 +38,50 @@ export function handleToolError(
   return { isError: true, content: [{ type: 'text' as const, text: message }] };
 }
 
+async function _readBody(res: Response): Promise<string | undefined> {
+  try {
+    return await res.text();
+  } catch {
+    return undefined;
+  }
+}
+
+function _parseJson(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+}
+
 export async function checkHttpResponse(res: Response, sessionId?: string): Promise<void> {
+  if (res.status === 200 || res.status === 202) return;
+
   if (res.status === 429) {
     const retryAfter = res.headers.get('Retry-After');
     const waitClause =
       retryAfter !== null ? ` Please wait ${retryAfter} seconds before trying again.` : '';
     throw new UserFacingError(`You have used up your current Nitro allowance.${waitClause}`);
   }
-  if (res.status !== 200 && res.status !== 202) {
-    const summary = { url: res.url, status: res.status };
-    if (!res.bodyUsed) {
-      try {
-        const body = await res.text();
-        logger.error(
-          `HTTP request failed: ${JSON.stringify({ ...summary, body: body.slice(0, 500) })}`,
-        );
-      } catch {
-        logger.error(`HTTP request failed: ${JSON.stringify(summary)}`);
-      }
-    } else {
-      logger.error(`HTTP request failed: ${JSON.stringify(summary)}`);
+
+  const summary = { url: res.url, status: res.status };
+  const bodyText = res.bodyUsed ? undefined : await _readBody(res);
+  logger.error(
+    `HTTP request failed: ${JSON.stringify({ ...summary, body: bodyText?.slice(0, 500) })}`,
+  );
+
+  if (bodyText !== undefined && res.status < 500) {
+    const result = _httpErrorBodySchema.safeParse(_parseJson(bodyText));
+    if (result.success) {
+      throw new UserFacingError(appendReferenceCode(result.data.title, sessionId));
     }
-    throw new GenericFailedError(sessionId);
   }
+
+  throw new GenericFailedError(sessionId);
+}
+
+export function appendReferenceCode(message: string, referenceCode?: string): string {
+  return referenceCode !== undefined
+    ? `${message} Please provide the following reference code to Nitro support: ${referenceCode}`
+    : message;
 }

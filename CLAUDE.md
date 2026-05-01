@@ -45,13 +45,15 @@ The codebase is **fully typed**. Treat any type error as a build failure.
 - Use Vitest (`task n:test`)
 - When testing tool calls, assert both the structured return value and mock interactions
 - Use `vi.spyOn` / `vi.fn()` for mocks — follow patterns in existing test files
-- Use simple test values, not pseudo-realistic ones — e.g. `"file-id"` not `"00000000-0000-0000-0000-000000000000"`
+- Use simple test values, not pseudo-realistic ones — e.g. `"file-id"` not `"00000000-0000-0000-0000-000000000000"`; for field values just use a kebab-case version of the field name, e.g. `{firstName: "first-name", lastName: "last-name"}`
 - Almost never test private methods — test via the public interface; use mock assertions to verify interactions with dependencies
 
 ## Code Conventions
 
-- **Private before public** — define private methods/functions before the public ones that use them
+- **Private before public** — define private methods/functions (prefix module-level helpers with `_`) before the public ones that use them
 - **Settings decoupling** — each class should define and accept its own settings, thus decoupled from global config
+- **Always prefer awaits over promise chains** — use `await` + `try/catch` instead of `.then()` / `.catch()` chains; `Promise.all` is fine
+- **No nested functions** — define helpers at module scope (prefixed with `_` if private) rather than inside other functions
 
 ## Sub-Agents
 

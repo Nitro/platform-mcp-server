@@ -1,7 +1,12 @@
 import { z } from 'zod';
 
 import { ContentType } from './enums.js';
-import { checkHttpResponse, GenericFailedError } from '../errors.js';
+import {
+  appendReferenceCode,
+  checkHttpResponse,
+  GenericFailedError,
+  UserFacingError,
+} from '../errors.js';
 import { logger } from '../logger.js';
 import { settings } from '../config.js';
 
@@ -30,6 +35,15 @@ const _sseEventSchema = z.discriminatedUnion('status', [
 ]);
 
 type SseEvent = z.infer<typeof _sseEventSchema>;
+
+const _SERVER_FAULT_TYPES = new Set(['JobHasFailed']);
+
+const _jobErrorBodySchema = z.object({
+  error: z.object({
+    type: z.string(),
+    title: z.string(),
+  }),
+});
 
 export interface UrlFile {
   readonly kind: 'url';
@@ -266,17 +280,15 @@ export class PlatformApiClient {
       const rawErrBody = await errRes.text();
       let loggedError = rawErrBody;
       try {
-        const parsedErrBody: unknown = JSON.parse(rawErrBody);
-        if (typeof parsedErrBody === 'object' && parsedErrBody !== null) {
-          const errorField = 'error' in parsedErrBody ? parsedErrBody.error : undefined;
-          const messageField = 'message' in parsedErrBody ? parsedErrBody.message : undefined;
-          if (typeof errorField === 'string') {
-            loggedError = errorField;
-          } else if (typeof messageField === 'string') {
-            loggedError = messageField;
-          }
+        const parsed = _jobErrorBodySchema.parse(JSON.parse(rawErrBody));
+        loggedError = parsed.error.title;
+        if (!_SERVER_FAULT_TYPES.has(parsed.error.type)) {
+          logger.error(`[PlatformApiClient] Job failed: ${loggedError}`);
+          throw new UserFacingError(appendReferenceCode(parsed.error.title, sessionId));
         }
-      } catch {}
+      } catch (e) {
+        if (e instanceof UserFacingError) throw e;
+      }
       if (loggedError.length > 1000) {
         loggedError = `${loggedError.slice(0, 1000)}... [truncated]`;
       }
