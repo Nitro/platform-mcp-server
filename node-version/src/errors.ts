@@ -11,6 +11,14 @@ export class UserFacingError extends Error {
   }
 }
 
+export class OperationTimeoutError extends Error {
+  constructor(referenceCode?: string) {
+    const base = "Your operation didn't complete in a reasonable amount of time.";
+    super(appendReferenceCode(base, referenceCode));
+    this.name = 'OperationTimeoutError';
+  }
+}
+
 export class GenericFailedError extends Error {
   constructor(referenceCode?: string) {
     const base =
@@ -28,9 +36,12 @@ export function handleToolError(
   const isUserFacing =
     err instanceof UserFacingError ||
     err instanceof GenericFailedError ||
+    err instanceof OperationTimeoutError ||
     extraUserFacingClasses.some((cls) => err instanceof cls);
-  if (!isUserFacing) {
-    const loggedError = err instanceof Error ? (err.stack ?? err.message) : String(err);
+  const loggedError = err instanceof Error ? (err.stack ?? err.message) : String(err);
+  if (isUserFacing) {
+    logger.error(`[${toolName}] ${loggedError}`);
+  } else {
     logger.error(`[${toolName}] Unexpected error: ${loggedError}`);
   }
   const message =

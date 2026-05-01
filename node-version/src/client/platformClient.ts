@@ -5,6 +5,7 @@ import {
   appendReferenceCode,
   checkHttpResponse,
   GenericFailedError,
+  OperationTimeoutError,
   UserFacingError,
 } from '../errors.js';
 import { logger } from '../logger.js';
@@ -110,7 +111,7 @@ export class PlatformApiClient {
   private readonly _baseUrl: string;
   private readonly _tokenProvider: TokenProvider;
   private readonly _defaultTimeout = 30_000;
-  private readonly _jobWaitTimeout = 120_000;
+  private readonly _jobWaitTimeout = 300_000;
 
   static fromStaticToken(baseUrl: string, token: string): PlatformApiClient {
     return new PlatformApiClient(baseUrl, () => Promise.resolve(token));
@@ -202,12 +203,22 @@ export class PlatformApiClient {
     statusUrl: string,
     sessionId: string,
   ): Promise<{ failed: boolean; resultUrl: string }> {
-    for await (const event of this._iterSseEvents(statusUrl, sessionId)) {
-      if (event.status === 'running') {
-        continue;
+    try {
+      for await (const event of this._iterSseEvents(statusUrl, sessionId)) {
+        if (event.status === 'running') {
+          continue;
+        }
+        return { failed: event.status === 'failed', resultUrl: event.location };
       }
-      return { failed: event.status === 'failed', resultUrl: event.location };
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'TimeoutError') {
+        throw new OperationTimeoutError(sessionId);
+      }
+      throw e;
     }
+    logger.error(
+      `[PlatformApiClient] SSE stream ended without completion event for session ID: ${sessionId}. Status URL: ${statusUrl}`,
+    );
     throw new Error(`SSE stream closed before job finished at ${statusUrl}`);
   }
 
@@ -269,9 +280,16 @@ export class PlatformApiClient {
       throw new GenericFailedError(sessionId);
     }
 
+    logger.info(
+      `[PlatformApiClient] Job submitted successfully for session ID: ${sessionId}. Status URL: ${statusUrl}`,
+    );
+
     const { failed, resultUrl } = await this._waitForJob(statusUrl, sessionId);
 
     if (failed) {
+      logger.error(
+        `[PlatformApiClient] Job failed for session ID: ${sessionId}. Fetching error details from ${resultUrl}`,
+      );
       const errRes = await fetch(resultUrl, {
         headers: await this._requestHeaders(sessionId),
         signal: AbortSignal.timeout(this._defaultTimeout),
