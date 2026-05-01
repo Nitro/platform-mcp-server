@@ -15,11 +15,7 @@ export class GenericFailedError extends Error {
   constructor(referenceCode?: string) {
     const base =
       'Platform operation failed. Try again or contact Nitro support if the issue persists.';
-    const message =
-      referenceCode !== undefined
-        ? `${base} Please provide the following reference code to Nitro support: ${referenceCode}`
-        : base;
-    super(message);
+    super(appendReferenceCode(base, referenceCode));
     this.name = 'GenericFailedError';
   }
 }
