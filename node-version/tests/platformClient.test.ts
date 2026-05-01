@@ -84,13 +84,18 @@ describe('PlatformApiClient', () => {
     const fetchMock = _makeFailedJobFetch({ error: { type: 'type', title: 'title' } });
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
-    const error = await client.run('conversions', file, { method: null }).catch((e: unknown) => e);
-    const sessionId = (fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>)[
-      'X-Analytics-Session-Id'
-    ];
-    expect(error).toBeInstanceOf(UserFacingError);
-    expect((error as UserFacingError).message).toContain('title');
-    expect((error as UserFacingError).message).toContain(sessionId);
+
+    try {
+      await client.run('conversions', file, { method: null });
+      throw new Error('Expected client.run to throw');
+    } catch (error: unknown) {
+      const sessionId = (fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>)[
+        'X-Analytics-Session-Id'
+      ];
+      expect(error).toBeInstanceOf(UserFacingError);
+      expect((error as UserFacingError).message).toContain('title');
+      expect((error as UserFacingError).message).toContain(sessionId);
+    }
   });
 
   it('throws GenericFailedError with session reference code when job fails with a server-fault type', async () => {
