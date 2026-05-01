@@ -89,3 +89,5 @@ tasks:
     cmds:
       - rm -rf ./corpus/*converted*
       - rm -rf ./corpus/*merged*
+
+  tail-logs: tail -f ~/Library/Logs/Claude/main.log

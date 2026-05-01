@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { PlatformApiClient, createBytesFile } from '../src/client/platformClient.js';
 import { ContentType } from '../src/client/enums.js';
-import { GenericFailedError, UserFacingError } from '../src/errors.js';
+import { GenericFailedError, OperationTimeoutError, UserFacingError } from '../src/errors.js';
 
 function _makeSseResponse(events: string[]): Response {
   const body = events.join('\n\n') + '\n\n';
@@ -379,6 +379,29 @@ describe('PlatformApiClient', () => {
     await expect(client.run('conversions', file, { method: null })).rejects.toThrow(
       new UserFacingError('You have used up your current Nitro allowance.'),
     );
+  });
+
+  it('throws OperationTimeoutError with session ID when SSE fetch times out', async () => {
+    const timeoutError = new DOMException('The operation timed out.', 'TimeoutError');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
+      const urlStr = url instanceof URL ? url.href : (url as string);
+      if (urlStr.includes('/conversions')) {
+        return Promise.resolve(_makeJobResponse('https://status.example.com/job-1'));
+      }
+      return Promise.reject(timeoutError);
+    });
+
+    const file = createBytesFile(ContentType.PDF, Buffer.from('bytes'));
+    try {
+      await client.run('conversions', file, { method: null });
+      throw new Error('Expected client.run to throw');
+    } catch (error: unknown) {
+      const sessionId = (fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>)[
+        'X-Analytics-Session-Id'
+      ];
+      expect(error).toBeInstanceOf(OperationTimeoutError);
+      expect((error as OperationTimeoutError).message).toContain(sessionId);
+    }
   });
 
   it('throws when SSE event contains malformed JSON', async () => {
