@@ -1,5 +1,6 @@
 import path from 'node:path';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { DESTRUCTIVE, NON_DESTRUCTIVE } from './annotations.js';
 import { z } from 'zod';
 import type { AppContext } from '../context.js';
 import { getDep } from '../context.js';
@@ -93,7 +94,7 @@ export function register(server: McpServer, context: AppContext): void {
               "Example: ['~/Downloads/a.pdf', '~/Downloads/b.pdf']",
           ),
       },
-      annotations: { destructiveHint: true },
+      annotations: NON_DESTRUCTIVE('Merge PDFs'),
     },
     async (args) => {
       try {
@@ -140,7 +141,7 @@ export function register(server: McpServer, context: AppContext): void {
           .default('medium')
           .describe('Compression level: "light", "medium", or "heavy"'),
       },
-      annotations: { destructiveHint: true },
+      annotations: NON_DESTRUCTIVE('Compress PDF'),
     },
     async (args) => {
       try {
@@ -182,7 +183,7 @@ export function register(server: McpServer, context: AppContext): void {
           .min(1)
           .describe('Page ranges to split (e.g., ["1-3", "5", "7-9"]). Pages are 1-indexed.'),
       },
-      annotations: { destructiveHint: true },
+      annotations: NON_DESTRUCTIVE('Split PDF'),
     },
     async (args) => {
       try {
@@ -230,7 +231,7 @@ export function register(server: McpServer, context: AppContext): void {
           .min(1)
           .describe('List of page rotations to apply. Pages are 1-indexed.'),
       },
-      annotations: { destructiveHint: true },
+      annotations: NON_DESTRUCTIVE('Rotate PDF'),
     },
     async (args) => {
       try {
@@ -275,7 +276,7 @@ export function register(server: McpServer, context: AppContext): void {
           .optional()
           .describe('List of permissions to grant'),
       },
-      annotations: { destructiveHint: true },
+      annotations: DESTRUCTIVE('Password-Protect PDF'),
     },
     async (args) => {
       try {
@@ -326,7 +327,7 @@ export function register(server: McpServer, context: AppContext): void {
           .optional()
           .describe('User password to remove protection (optional)'),
       },
-      annotations: { destructiveHint: true },
+      annotations: DESTRUCTIVE('Remove PDF Password'),
     },
     async (args) => {
       try {
@@ -372,7 +373,7 @@ export function register(server: McpServer, context: AppContext): void {
               'Pages are 1-indexed.',
           ),
       },
-      annotations: { destructiveHint: true },
+      annotations: DESTRUCTIVE('Delete PDF Pages'),
     },
     async (args) => {
       try {
@@ -417,7 +418,7 @@ export function register(server: McpServer, context: AppContext): void {
           .describe("Modification date in PDF format 'D:YYYYMMDDhhmmss'"),
         trapped: z.string().optional().describe('Trapping status'),
       },
-      annotations: { destructiveHint: true },
+      annotations: NON_DESTRUCTIVE('Set PDF Metadata'),
     },
     async (args) => {
       try {
@@ -464,7 +465,7 @@ export function register(server: McpServer, context: AppContext): void {
         'Use this tool to flatten a PDF, converting all interactive form fields and ' +
         'annotations into static, non-editable content.',
       inputSchema: singleFileInputSchema.shape,
-      annotations: { destructiveHint: true },
+      annotations: NON_DESTRUCTIVE('Flatten PDF'),
     },
     async (args) => {
       try {

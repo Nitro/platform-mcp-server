@@ -1,5 +1,6 @@
 import path from 'node:path';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { DESTRUCTIVE, READ_ONLY } from './annotations.js';
 import { z } from 'zod';
 import type { AppContext } from '../context.js';
 import { getDep } from '../context.js';
@@ -66,7 +67,7 @@ export function register(server: McpServer, context: AppContext): void {
           .default('en')
           .describe('Language code for PII detection (en=English, es=Spanish)'),
       },
-      annotations: { destructiveHint: true },
+      annotations: READ_ONLY('Extract PII'),
     },
     async (args) => {
       try {
@@ -129,7 +130,7 @@ export function register(server: McpServer, context: AppContext): void {
               'If provided, redactions will be extracted automatically from this file.',
           ),
       },
-      annotations: { destructiveHint: true },
+      annotations: DESTRUCTIVE('Redact PDF'),
     },
     async (args) => {
       try {

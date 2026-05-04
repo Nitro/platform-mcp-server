@@ -1,5 +1,6 @@
 import path from 'node:path';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { NON_DESTRUCTIVE } from './annotations.js';
 import { z } from 'zod';
 import type { AppContext } from '../context.js';
 import { getDep } from '../context.js';
@@ -33,7 +34,7 @@ export function register(server: McpServer, context: AppContext): void {
     {
       description,
       inputSchema: conversionRequestSchema,
-      annotations: { destructiveHint: true },
+      annotations: NON_DESTRUCTIVE('Convert File'),
     },
     async (args) => {
       try {

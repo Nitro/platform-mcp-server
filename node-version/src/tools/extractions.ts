@@ -1,5 +1,6 @@
 import path from 'node:path';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { READ_ONLY } from './annotations.js';
 import { z } from 'zod';
 import type { AppContext } from '../context.js';
 import { getDep } from '../context.js';
@@ -32,7 +33,7 @@ export function register(server: McpServer, context: AppContext): void {
     {
       description: 'Use this tool when the user asks for the metadata of a PDF file.',
       inputSchema: singleFileInputSchema.shape,
-      annotations: { destructiveHint: true },
+      annotations: READ_ONLY('Get PDF Metadata'),
     },
     async (args) => {
       try {
@@ -67,7 +68,7 @@ export function register(server: McpServer, context: AppContext): void {
             "Output format: 'excel' (always the default) or 'json' if explicitly requested",
           ),
       },
-      annotations: { destructiveHint: true },
+      annotations: READ_ONLY('Extract PDF Forms'),
     },
     async (args) => {
       try {
@@ -121,7 +122,7 @@ export function register(server: McpServer, context: AppContext): void {
             "Output format: 'excel' (always the default) or 'json' if explicitly requested",
           ),
       },
-      annotations: { destructiveHint: true },
+      annotations: READ_ONLY('Extract PDF Tables'),
     },
     async (args) => {
       try {
@@ -172,7 +173,7 @@ export function register(server: McpServer, context: AppContext): void {
           .default(false)
           .describe('Whether to use reading order for text extraction'),
       },
-      annotations: { destructiveHint: true },
+      annotations: READ_ONLY('Extract PDF Text'),
     },
     async (args) => {
       try {
@@ -216,7 +217,7 @@ export function register(server: McpServer, context: AppContext): void {
         ...singleFileInputSchema.shape,
         texts: z.array(z.string()).min(1).describe('List of text strings to search for in the PDF'),
       },
-      annotations: { destructiveHint: true },
+      annotations: READ_ONLY('Search Text in PDF'),
     },
     async (args) => {
       try {
