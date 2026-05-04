@@ -1,3 +1,7 @@
+> **Legacy / archived.** This file describes the v0.9.0 Python build and no longer applies. The active codebase is `node-version/` (Node.js bundle, v0.16.0+). See `README.md` for installation and usage, and `node-version/` for development setup.
+
+---
+
 # Nitro MCP — Development Guide
 
 ## Prerequisites

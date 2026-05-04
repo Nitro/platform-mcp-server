@@ -6,84 +6,11 @@ includes:
     taskfile: ./node-version
     aliases: [n]
 
-
 tasks:
-  install:
-    desc: Install the virtual environment and install the pre-commit hooks
-    cmds:
-      - uv sync --all-groups
-      - uv run pre-commit install
-
-  uv-lock:
-    desc: Update the lock file
-    cmd: uv lock {{.CLI_ARGS}}
-
-  run:
-    desc: Run the MCP server
-    cmds:
-      - cmd: echo "🚀 Starting Nitro MCP server..."
-        silent: true
-      - uv run nitro-mcp
-
-  autoformat: uv run ruff check --fix {{.CLI_ARGS}}
-
-  pre-commit:
-    desc: Run all pre-commit hooks
-    cmds:
-      - cmd: echo "🚀 Running pre-commit hooks..."
-        silent: true
-      - uv run pre-commit run --all-files
-
-  check-lock:
-    desc: Check lock file consistency with 'pyproject.toml'
-    cmds:
-      - uv lock --locked
-
-  check-lint:
-    desc: Run pre-commit linting
-    cmds:
-      - uv run pre-commit run ruff-check -a
-
-  check-types:
-    desc: Run static type checking with pyright
-    cmds:
-      - uv run pre-commit run pyright -a
-
-  check:
-    desc: Run all code quality tools
-    cmds:
-      - cmd: echo "🚀 Running all checks..."
-        silent: true
-      - task: check-lock
-      - task: pre-commit
-
-  test:
-    desc: Run tests
-    cmds:
-      - cmd: echo "🚀 Running tests..."
-        silent: true
-      - uv run pytest --cov --cov-config=pyproject.toml --cov-report=xml -s -vv -rA {{.CLI_ARGS}}
-
   publish:
     desc: "Trigger the publish release workflow (optional version: task publish -- 1.2.3)"
     cmds:
       - 'gh workflow run publish.yml --repo Nitro/platform-mcp-server {{if .CLI_ARGS}}-f version={{.CLI_ARGS}}{{end}}'
-
-  build:
-    desc: Build mcpb package
-    vars:
-      VERSION:
-        sh: uv run python -c "import json; print(json.load(open('manifest.json'))['version'])"
-    cmds:
-      - cmd: echo "🚀 Building binary {{.VERSION}}..."
-        silent: true
-      - mcpb pack . build/nitro-pdf-services-{{.VERSION}}.mcpb
-
-  clean:
-    desc: Clean build artifacts
-    cmds:
-      - rm -rf dist/ build/ *.egg-info .pytest_cache .ruff_cache __pycache__
-      - find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 
   clean-corpus:
     cmds:
