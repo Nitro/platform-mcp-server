@@ -4,10 +4,30 @@
   "display_name": "Nitro PDF Services",
   "version": "0.17.0",
   "description": "Nitro PDF Services MCP server",
+  "icon": "icon.png",
+  "keywords": [
+    "pdf",
+    "convert",
+    "merge",
+    "split",
+    "redact",
+    "pii",
+    "extract",
+    "ocr"
+  ],
   "author": {
-    "name": "Nitro Software Inc."
+    "name": "Nitro Software Inc.",
+    "email": "support@gonitro.com",
+    "url": "https://www.gonitro.com"
   },
   "license": "Proprietary",
+  "homepage_url": "https://www.gonitro.com/products/platform",
+  "support_url": "https://www.gonitro.com/support",
+  "documentation_url": "https://github.com/Nitro/platform-mcp-server#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Nitro/platform-mcp-server"
+  },
   "privacy_policies": [
     "https://www.gonitro.com/legal/privacy-policy"
   ],
