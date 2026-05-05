@@ -296,21 +296,22 @@ export class PlatformApiClient {
       });
       await checkHttpResponse(errRes, sessionId);
       const rawErrBody = await errRes.text();
-      let loggedError = rawErrBody;
+      let parsedJson: unknown;
       try {
-        const parsed = _jobErrorBodySchema.parse(JSON.parse(rawErrBody));
-        loggedError = parsed.error.title;
-        if (!_SERVER_FAULT_TYPES.has(parsed.error.type)) {
-          logger.error(`[PlatformApiClient] Job failed: ${loggedError}`);
-          throw new UserFacingError(appendReferenceCode(parsed.error.title, sessionId));
+        parsedJson = JSON.parse(rawErrBody);
+      } catch {
+        parsedJson = undefined;
+      }
+      const parsedErr = _jobErrorBodySchema.safeParse(parsedJson);
+      if (parsedErr.success) {
+        const { type, title } = parsedErr.data.error;
+        logger.error(`[PlatformApiClient] Job failed: ${title}`);
+        if (!_SERVER_FAULT_TYPES.has(type)) {
+          throw new UserFacingError(appendReferenceCode(title, sessionId));
         }
-      } catch (e) {
-        if (e instanceof UserFacingError) throw e;
+      } else {
+        logger.error(`[PlatformApiClient] Job failed with unrecognized error response`);
       }
-      if (loggedError.length > 1000) {
-        loggedError = `${loggedError.slice(0, 1000)}... [truncated]`;
-      }
-      logger.error(`[PlatformApiClient] Job failed: ${loggedError}`);
       throw new GenericFailedError(sessionId);
     }
 

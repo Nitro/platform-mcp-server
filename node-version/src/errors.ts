@@ -77,9 +77,7 @@ export async function checkHttpResponse(res: Response, sessionId?: string): Prom
 
   const summary = { url: res.url, status: res.status };
   const bodyText = res.bodyUsed ? undefined : await _readBody(res);
-  logger.error(
-    `HTTP request failed: ${JSON.stringify({ ...summary, body: bodyText?.slice(0, 500) })}`,
-  );
+  logger.error(`HTTP request failed: ${JSON.stringify(summary)}`);
 
   if (bodyText !== undefined && res.status < 500) {
     const result = _httpErrorBodySchema.safeParse(_parseJson(bodyText));
