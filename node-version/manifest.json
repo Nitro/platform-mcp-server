@@ -21,9 +21,6 @@
     "url": "https://www.gonitro.com"
   },
   "license": "Proprietary",
-  "homepage_url": "https://www.gonitro.com/products/platform",
-  "support_url": "https://www.gonitro.com/support",
-  "documentation_url": "https://github.com/Nitro/platform-mcp-server#readme",
   "repository": {
     "type": "git",
     "url": "https://github.com/Nitro/platform-mcp-server"
