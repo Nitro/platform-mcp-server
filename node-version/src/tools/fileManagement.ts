@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { expandUser } from '../utils.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { READ_ONLY } from './annotations.js';
 import { z } from 'zod';
 import type { AppContext } from '../context.js';
 import { getDep } from '../context.js';
@@ -78,7 +79,7 @@ export function register(server: McpServer, context: AppContext): void {
         ' Use this tool whenever the user asks about files they have locally,' +
         ' wants to find PDFs, or before any other Nitro MCP operation that requires a file.',
       inputSchema: listFilesRequestSchema,
-      annotations: { readOnlyHint: true },
+      annotations: READ_ONLY('List Files'),
     },
     (args) => {
       try {
