@@ -1,3 +1,7 @@
+> **Legacy / archived.** This file describes the v0.9.0 Python build (binary + `NITRO_AUTH_TOKEN`) and no longer applies. The active bundle (v0.16.0+) uses PKCE OAuth and installs as an `.mcpb` via Claude Desktop Extensions. See the repo-root `README.md` for current installation and authentication instructions.
+
+---
+
 # Claude Desktop Configuration Guide
 
 This guide explains how to configure Claude Desktop to use the Nitro MCP server.
