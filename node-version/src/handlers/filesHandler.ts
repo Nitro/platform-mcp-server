@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { UserFacingError } from '../errors.js';
 import { expandUser } from '../utils.js';
@@ -7,6 +8,15 @@ export interface FileEntry {
   readonly filePath: string;
   readonly mtimeMs: number;
   readonly sizeBytes: number;
+}
+
+function _resolveAndValidate(filePath: string): string {
+  const home = os.homedir();
+  const resolved = path.resolve(expandUser(filePath));
+  if (!resolved.startsWith(home + path.sep) && resolved !== home) {
+    throw new UserFacingError(`File path must be within the home directory: ${filePath}`);
+  }
+  return resolved;
 }
 
 function _findAvailablePath(stem: string, extension: string, directory: string): string {
@@ -45,7 +55,7 @@ export class FilesHandler {
         `inputPath must point to a file, not the home directory. Provide a full file path such as '~/Downloads/file.pdf'.`,
       );
     }
-    const resolved = path.resolve(expandUser(filePath));
+    const resolved = _resolveAndValidate(filePath);
     if (!fs.existsSync(resolved)) {
       throw new UserFacingError(`File does not exist: ${resolved}`);
     }
@@ -56,7 +66,7 @@ export class FilesHandler {
   }
 
   write(inputPath: string, data: Buffer, options?: { stemSuffix?: string; ext?: string }): string {
-    const resolved = path.resolve(expandUser(inputPath));
+    const resolved = _resolveAndValidate(inputPath);
     const directory = path.dirname(resolved);
     const parsed = path.parse(resolved);
 

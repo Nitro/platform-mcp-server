@@ -9,7 +9,7 @@ describe('FilesHandler', () => {
   let handler: FilesHandler;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'files-handler-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.homedir(), '.nitro-test-'));
     handler = new FilesHandler();
   });
 
@@ -66,6 +66,34 @@ describe('FilesHandler', () => {
         ext: 'docx',
       });
       expect(path.basename(outputPath)).toBe('input-converted(3).docx');
+    });
+  });
+
+  describe('home directory restriction', () => {
+    it('read rejects an absolute path under a system directory', () => {
+      expect(() => handler.read('/etc/passwd')).toThrow(/within the home directory/);
+    });
+
+    it('read rejects a path that traverses out of the home directory', () => {
+      const traversal = path.join(os.homedir(), '..', 'other-user', 'secret.pdf');
+      expect(() => handler.read(traversal)).toThrow(/within the home directory/);
+    });
+
+    it('read accepts a path inside the home directory', () => {
+      const filePath = path.join(tmpDir, 'allowed.pdf');
+      fs.writeFileSync(filePath, Buffer.from('pdf-content'));
+      expect(handler.read(filePath)).toEqual(Buffer.from('pdf-content'));
+    });
+
+    it('write rejects an absolute path under a system directory', () => {
+      expect(() => handler.write('/etc/output.pdf', Buffer.from('x'))).toThrow(
+        /within the home directory/,
+      );
+    });
+
+    it('write rejects a path that traverses out of the home directory', () => {
+      const traversal = path.join(os.homedir(), '..', 'other-user', 'output.pdf');
+      expect(() => handler.write(traversal, Buffer.from('x'))).toThrow(/within the home directory/);
     });
   });
 
