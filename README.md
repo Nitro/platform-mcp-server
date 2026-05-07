@@ -63,6 +63,17 @@ Split contract.pdf into two files: pages 1-5 and pages 6-10 using Nitro
 Add password protection to confidential.pdf in Desktop using Nitro
 ```
 
+## Data Handling
+
+When you invoke a Nitro PDF Services tool, the file you specify is uploaded to Nitro's hosted Platform API at `api.gonitro.com` for processing. Results are written back to your local disk. Your OAuth refresh token is stored only on your local device at `~/.nitro-mcp/session.json`; access tokens are kept in memory and never stored server-side.
+
+For full details on data retention, AI/ML training policy, subprocessors, and processing regions:
+
+- [Privacy Policy](https://www.gonitro.com/legal/privacy-policy)
+- [AI Policy](https://www.gonitro.com/security-compliance/artificial-intelligence)
+- [Subprocessors & Subcontractors](https://www.gonitro.com/security-compliance/data-protection/subprocessors-and-subcontractors)
+- [Processing of Personal Data](https://www.gonitro.com/security-compliance/data-protection/processing-of-personal-data)
+
 ## Troubleshooting
 
 **"Address already in use" during sign-in** — another process is listening on the OAuth callback port. Close it and retry, or restart Claude Desktop.
