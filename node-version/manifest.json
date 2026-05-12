@@ -29,7 +29,8 @@
     "https://www.gonitro.com/legal/privacy-policy",
     "https://www.gonitro.com/security-compliance/artificial-intelligence",
     "https://www.gonitro.com/security-compliance/data-protection/subprocessors-and-subcontractors",
-    "https://www.gonitro.com/security-compliance/data-protection/processing-of-personal-data"
+    "https://www.gonitro.com/security-compliance/data-protection/processing-of-personal-data",
+    "https://www.gonitro.com/hubfs/information-security-policy.pdf"
   ],
   "server": {
     "type": "node",

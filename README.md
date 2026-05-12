@@ -73,6 +73,7 @@ For full details on data retention, AI/ML training policy, subprocessors, and pr
 - [AI Policy](https://www.gonitro.com/security-compliance/artificial-intelligence)
 - [Subprocessors & Subcontractors](https://www.gonitro.com/security-compliance/data-protection/subprocessors-and-subcontractors)
 - [Processing of Personal Data](https://www.gonitro.com/security-compliance/data-protection/processing-of-personal-data)
+- [Information Security Policy](https://www.gonitro.com/hubfs/information-security-policy.pdf)
 
 ## Troubleshooting
 
