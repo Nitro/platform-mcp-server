@@ -2,6 +2,8 @@
 
 MCP server connecting Claude Desktop to Nitro's Document Intelligence Platform, enabling PDF processing and document automation through natural language.
 
+> **Anthropic Software Directory reviewers:** see [docs/REVIEWER-ACCESS.md](docs/REVIEWER-ACCESS.md) for test account details, sample files, and 18 suggested prompts covering every tool.
+
 ## Description
 
 Nitro PDF Services brings the power of Nitro's Document Intelligence Platform directly into Claude Desktop. Perform advanced PDF operations — merging, splitting, converting, compressing, extracting data, and more — simply by describing what you want in natural language. No manual file uploads or external tools required.
