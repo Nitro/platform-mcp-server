@@ -4,9 +4,9 @@ This document is for Anthropic Software Directory reviewers verifying the Nitro 
 
 ## Test account
 
-Credentials and sign-in instructions for the reviewer account have been provided to your Anthropic contact through Anthropic's secure submission channel. If you did not receive them, contact `partnerships@gonitro.com`.
+Credentials and sign-in instructions for the reviewer account have been provided to your Anthropic contact through Anthropic's secure submission channel. If you did not receive them, contact `ivan.kalgashkin@gonitro.com`.
 
-The account has API quota sufficient for a full functional sweep across all tools. If you need additional quota, contact `partnerships@gonitro.com` and we will adjust within one business day.
+The account has API quota sufficient for a full functional sweep across all tools. If you need additional quota, contact `ivan.kalgashkin@gonitro.com` and we will adjust within one business day.
 
 ## Sample documents
 
@@ -56,4 +56,4 @@ These cover all 18 tools. Each is one prompt; Claude will route to the appropria
 
 ## Support
 
-For any issue blocking review: `partnerships@gonitro.com` (response within 1 business day).
+For any issue blocking review: `ivan.kalgashkin@gonitro.com` (response within 1 business day).
