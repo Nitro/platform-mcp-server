@@ -20,7 +20,7 @@
     "email": "support@gonitro.com",
     "url": "https://www.gonitro.com"
   },
-  "license": "Proprietary",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/Nitro/platform-mcp-server"

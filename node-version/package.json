@@ -3,6 +3,7 @@
   "version": "0.8.0",
   "type": "module",
   "description": "Nitro MCP server for PDF processing",
+  "license": "MIT",
   "scripts": {
     "dev": "tsx src/index.ts",
     "bundle": "node build.mjs",
