@@ -65,6 +65,7 @@ describe('PII tools', () => {
       redactPdf: vi.fn(),
       watermarkPdf: vi.fn(),
       ocrPdf: vi.fn(),
+      optimizePdf: vi.fn(),
       extractExpenseData: vi.fn(),
     };
     const context = createAppContext({

@@ -65,6 +65,7 @@ describe('transformation tools', () => {
       redactPdf: vi.fn(),
       watermarkPdf: vi.fn(),
       ocrPdf: vi.fn(),
+      optimizePdf: vi.fn(),
       extractExpenseData: vi.fn(),
     };
     const context = createAppContext({
@@ -608,6 +609,42 @@ describe('transformation tools', () => {
       await caller.call(
         'ocr_pdf',
         { inputPath: path.join(tmpDir, 'doc.pdf') },
+        { expectError: true },
+      );
+
+      expect(filesHandlerMock.write).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('optimize_pdf', () => {
+    it('optimizes with given profile and returns output filename', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.optimizePdf.mockResolvedValue(Buffer.from('optimized'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-optimized.pdf'));
+
+      await caller.call(
+        'optimize_pdf',
+        { inputPath: path.join(tmpDir, 'doc.pdf'), profile: 'web' },
+        { expectedResult: { outputFilename: 'doc-optimized.pdf' } },
+      );
+
+      expect(platformHandlerMock.optimizePdf).toHaveBeenCalledWith(Buffer.from('pdf-bytes'), {
+        profile: 'web',
+      });
+      expect(filesHandlerMock.write).toHaveBeenCalledWith(
+        path.join(tmpDir, 'doc.pdf'),
+        Buffer.from('optimized'),
+        { stemSuffix: 'optimized', ext: 'pdf' },
+      );
+    });
+
+    it('returns error when platform handler throws', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.optimizePdf.mockRejectedValue(new GenericFailedError());
+
+      await caller.call(
+        'optimize_pdf',
+        { inputPath: path.join(tmpDir, 'doc.pdf'), profile: 'print' },
         { expectError: true },
       );
 

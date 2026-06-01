@@ -66,6 +66,7 @@ describe('convert_file tool', () => {
       redactPdf: vi.fn(),
       watermarkPdf: vi.fn(),
       ocrPdf: vi.fn(),
+      optimizePdf: vi.fn(),
       extractExpenseData: vi.fn(),
     };
     const context = createAppContext({
@@ -195,6 +196,69 @@ describe('convert_file tool', () => {
       Buffer.from('zip-with-images'),
       { stemSuffix: 'converted', ext: 'zip' },
     );
+  });
+
+  describe('convert to pdfa', () => {
+    it('converts pdf to pdfa with conformance and returns output filename', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.convertFile.mockResolvedValue(Buffer.from('pdfa-bytes'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-pdfa.pdf'));
+
+      await caller.call(
+        'convert_file',
+        { inputPath: path.join(tmpDir, 'doc.pdf'), to: 'pdfa', conformance: '2b' },
+        { expectedResult: { outputFilename: 'doc-pdfa.pdf' } },
+      );
+
+      expect(platformHandlerMock.convertFile).toHaveBeenCalledWith(
+        Buffer.from('pdf-bytes'),
+        'pdf',
+        'pdfa',
+        { conformance: '2b' },
+      );
+      expect(filesHandlerMock.write).toHaveBeenCalledWith(
+        path.join(tmpDir, 'doc.pdf'),
+        Buffer.from('pdfa-bytes'),
+        { stemSuffix: 'pdfa', ext: 'pdf' },
+      );
+    });
+
+    it('passes optional imageQuality and copyMetadata params', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.convertFile.mockResolvedValue(Buffer.from('pdfa-bytes'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-pdfa.pdf'));
+
+      await caller.call('convert_file', {
+        inputPath: path.join(tmpDir, 'doc.pdf'),
+        to: 'pdfa',
+        conformance: '3a',
+        imageQuality: 0.5,
+        copyMetadata: false,
+      });
+
+      expect(platformHandlerMock.convertFile).toHaveBeenCalledWith(
+        Buffer.from('pdf-bytes'),
+        'pdf',
+        'pdfa',
+        {
+          conformance: '3a',
+          imageQuality: 0.5,
+          copyMetadata: false,
+        },
+      );
+    });
+
+    it('returns error when conformance is missing', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+
+      await caller.call(
+        'convert_file',
+        { inputPath: path.join(tmpDir, 'doc.pdf'), to: 'pdfa' },
+        { expectError: true },
+      );
+
+      expect(platformHandlerMock.convertFile).not.toHaveBeenCalled();
+    });
   });
 
   it('writes output via files handler', async () => {

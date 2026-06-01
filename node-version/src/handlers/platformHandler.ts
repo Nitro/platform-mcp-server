@@ -13,6 +13,7 @@ export const SupportedConversions = {
     FileFormat.PPTX,
     FileFormat.JPEG,
     FileFormat.PNG,
+    FileFormat.PDFA,
   ]),
   toPdfFrom: new Set<FileFormat>([
     FileFormat.DOC,
@@ -110,6 +111,16 @@ export interface OcrParams {
   readonly pageIndices?: number[] | null;
 }
 
+export interface PdfAParams {
+  readonly conformance: '1b' | '1a' | '2b' | '2u' | '2a' | '3b' | '3u' | '3a';
+  readonly imageQuality?: number;
+  readonly copyMetadata?: boolean;
+}
+
+export interface OptimizationParams {
+  readonly profile: 'web' | 'print' | 'archive' | 'minimal-file-size' | 'mixed-raster-content';
+}
+
 export class ConversionNotSupportedError extends Error {
   constructor(fromFormat: FileFormat, toFormat: FileFormat) {
     super(`Conversion from ${fromFormat} to ${toFormat} is not supported`);
@@ -151,6 +162,7 @@ const FORMAT_TO_CONTENT_TYPE: Record<FileFormat, ContentType> = {
   [FileFormat.CSV]: ContentType.CSV,
   [FileFormat.RTF]: ContentType.RTF,
   [FileFormat.HTML]: ContentType.HTML,
+  [FileFormat.PDFA]: ContentType.PDF,
 };
 
 function _contentTypeForFormat(format: FileFormat): ContentType {
@@ -204,7 +216,12 @@ export class PlatformHandler {
     );
   }
 
-  async convertFile(fileBytes: Buffer, fileType: FileFormat, to: FileFormat): Promise<Buffer> {
+  async convertFile(
+    fileBytes: Buffer,
+    fileType: FileFormat,
+    to: FileFormat,
+    pdfaParams?: PdfAParams,
+  ): Promise<Buffer> {
     if (!this._isValidConversion(fileType, to)) {
       throw new ConversionNotSupportedError(fileType, to);
     }
@@ -214,7 +231,7 @@ export class PlatformHandler {
 
     const { body } = await this._client.run('conversions', file, {
       method: null,
-      params: { to },
+      params: { to, ...pdfaParams },
     });
 
     return body;
@@ -404,6 +421,15 @@ export class PlatformHandler {
     const { body } = await this._client.run('transformations', file, {
       method: 'ocr',
       params: params as Record<string, unknown>,
+    });
+    return body;
+  }
+
+  async optimizePdf(fileBytes: Buffer, params: OptimizationParams): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
+    const { body } = await this._client.run('transformations', file, {
+      method: 'optimize',
+      params: params as unknown as Record<string, unknown>,
     });
     return body;
   }

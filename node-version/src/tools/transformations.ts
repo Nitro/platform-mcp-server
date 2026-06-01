@@ -8,6 +8,7 @@ import { handleToolError, UserFacingError } from '../errors.js';
 import { singleFileInputSchema } from '../models.js';
 import type {
   OcrParams,
+  OptimizationParams,
   PageRotation,
   PdfMetadata,
   WatermarkParams,
@@ -681,6 +682,46 @@ export function register(server: McpServer, context: AppContext): void {
         return _successResult(path.basename(outputPath));
       } catch (err) {
         return handleToolError('ocr_pdf', err);
+      }
+    },
+  );
+
+  server.registerTool(
+    'optimize_pdf',
+    {
+      description: 'Use this tool to optimize a PDF file for a specific use case.',
+      inputSchema: {
+        ...singleFileInputSchema.shape,
+        profile: z
+          .enum(['web', 'print', 'archive', 'minimal-file-size', 'mixed-raster-content'])
+          .describe(
+            'Optimization profile to apply:\n' +
+              '- "web": Linearizes the PDF for fast web delivery; downsamples images for screen resolution. Best for online viewing and email attachments.\n' +
+              '- "print": Preserves print-resolution images; optimizes for fidelity over size. Best for high-quality printing.\n' +
+              '- "archive": Optimizes for archival workflows (size reduction with minimal quality loss). Note: does NOT produce ISO-compliant PDF/A output — use the pdf_to_pdfa conversion tool for that.\n' +
+              '- "minimal-file-size": Aggressively downsamples images and removes redundant data to produce the smallest possible file.\n' +
+              '- "mixed-raster-content": Applies MRC compression, separating text and background layers for better compression on scanned content.',
+          ),
+      },
+      annotations: NON_DESTRUCTIVE('Optimize PDF'),
+    },
+    async (args) => {
+      try {
+        const filesHandler = getDep(context, 'filesHandler');
+        const platformHandler = getDep(context, 'platformHandler');
+
+        const params: OptimizationParams = { profile: args.profile };
+        const inputBytes = filesHandler.read(args.inputPath);
+        const optimizedBytes = await platformHandler.optimizePdf(inputBytes, params);
+
+        const outputPath = filesHandler.write(args.inputPath, optimizedBytes, {
+          stemSuffix: 'optimized',
+          ext: 'pdf',
+        });
+
+        return _successResult(path.basename(outputPath));
+      } catch (err) {
+        return handleToolError('optimize_pdf', err);
       }
     },
   );
