@@ -6,12 +6,35 @@ import type { AppContext } from '../context.js';
 import { getDep } from '../context.js';
 import { handleToolError, UserFacingError } from '../errors.js';
 import { singleFileInputSchema } from '../models.js';
+import { ContentType } from '../client/enums.js';
 import type {
   OcrParams,
   PageRotation,
   PdfMetadata,
   WatermarkParams,
 } from '../handlers/platformHandler.js';
+
+const _IMAGE_CONTENT_TYPES: Partial<Record<string, ContentType>> = {
+  jpg: ContentType.JPEG,
+  jpeg: ContentType.JPEG,
+  png: ContentType.PNG,
+  tiff: ContentType.TIFF,
+  tif: ContentType.TIFF,
+  bmp: ContentType.BMP,
+  gif: ContentType.GIF,
+  svg: ContentType.SVG,
+};
+
+function _imageContentTypeFromPath(imagePath: string): ContentType {
+  const ext = path.extname(imagePath).replace(/^\./, '').toLowerCase();
+  const contentType = _IMAGE_CONTENT_TYPES[ext];
+  if (contentType === undefined) {
+    throw new UserFacingError(
+      `Unsupported image format: .${ext}. Supported formats: jpg, jpeg, png, tiff, bmp, gif, svg.`,
+    );
+  }
+  return contentType;
+}
 
 const _PDF_PERMISSION_VALUES = [
   'print',
@@ -495,9 +518,15 @@ export function register(server: McpServer, context: AppContext): void {
   server.registerTool(
     'watermark_pdf',
     {
-      description: 'Use this tool to add a watermark to a PDF file.',
+      description: 'Use this tool to add an image watermark to a PDF file.',
       inputSchema: {
         ...singleFileInputSchema.shape,
+        imagePath: z
+          .string()
+          .describe(
+            "Full path to the watermark image file (e.g., '~/Downloads/watermark.png'). " +
+              'Supported formats: JPG, JPEG, PNG, TIFF, BMP, GIF, SVG.',
+          ),
         boundingBox: z
           .tuple([z.number(), z.number(), z.number(), z.number()])
           .optional()
@@ -575,8 +604,15 @@ export function register(server: McpServer, context: AppContext): void {
           ...(args.rotation !== undefined && { rotation: args.rotation }),
         };
 
-        const inputBytes = filesHandler.read(args.inputPath);
-        const watermarkedBytes = await platformHandler.watermarkPdf(inputBytes, params);
+        const pdfBytes = filesHandler.read(args.inputPath);
+        const imageBytes = filesHandler.read(args.imagePath);
+        const imageContentType = _imageContentTypeFromPath(args.imagePath);
+        const watermarkedBytes = await platformHandler.watermarkPdf(
+          pdfBytes,
+          imageBytes,
+          imageContentType,
+          params,
+        );
 
         const outputPath = filesHandler.write(args.inputPath, watermarkedBytes, {
           stemSuffix: 'watermarked',
