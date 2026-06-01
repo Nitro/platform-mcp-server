@@ -407,9 +407,15 @@ export class PlatformHandler {
     return body;
   }
 
-  async watermarkPdf(fileBytes: Buffer, params: WatermarkParams): Promise<Buffer> {
-    const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
-    const { body } = await this._client.run('transformations', file, {
+  async watermarkPdf(
+    pdfBytes: Buffer,
+    imageBytes: Buffer,
+    imageContentType: ContentType,
+    params: WatermarkParams,
+  ): Promise<Buffer> {
+    const pdfFile = createBytesFile(ContentType.PDF, pdfBytes, 'input.pdf');
+    const imageFile = createBytesFile(imageContentType, imageBytes, 'watermark');
+    const { body } = await this._client.run('transformations', [pdfFile, imageFile], {
       method: 'watermark',
       params: params as Record<string, unknown>,
     });
