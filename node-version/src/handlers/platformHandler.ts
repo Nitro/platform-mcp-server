@@ -76,6 +76,40 @@ export interface PdfMetadata {
   readonly trapped?: string;
 }
 
+export interface WatermarkParams {
+  readonly boundingBox?: [number, number, number, number] | null;
+  readonly centerOnPage?: boolean;
+  readonly contentDepth?: 'above_existing' | 'below_existing';
+  readonly fitToPageWidth?: boolean;
+  readonly fitToPageHeight?: boolean;
+  readonly flip?: 'horizontal' | 'vertical' | 'both' | null;
+  readonly opacity?: number;
+  readonly pageIndices?: number[] | null;
+  readonly rotateWithPage?: boolean;
+  readonly rotation?: number;
+}
+
+export interface OcrParams {
+  readonly language?:
+    | 'english'
+    | 'german'
+    | 'french'
+    | 'spanish'
+    | 'italian'
+    | 'finnish'
+    | 'swedish'
+    | 'danish'
+    | 'norwegian'
+    | 'dutch'
+    | 'portuguese'
+    | 'brazilian';
+  readonly quality?: 'low' | 'medium' | 'high';
+  readonly isOutputPDFEditable?: boolean;
+  readonly compressionLevel?: 'low' | 'medium' | 'high';
+  readonly PDFVersion?: 'pdf14' | 'pdf15' | 'pdf16' | 'pdf17';
+  readonly pageIndices?: number[] | null;
+}
+
 export class ConversionNotSupportedError extends Error {
   constructor(fromFormat: FileFormat, toFormat: FileFormat) {
     super(`Conversion from ${fromFormat} to ${toFormat} is not supported`);
@@ -354,5 +388,33 @@ export class PlatformHandler {
       params: { redactions },
     });
     return body;
+  }
+
+  async watermarkPdf(fileBytes: Buffer, params: WatermarkParams): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
+    const { body } = await this._client.run('transformations', file, {
+      method: 'watermark',
+      params: params as Record<string, unknown>,
+    });
+    return body;
+  }
+
+  async ocrPdf(fileBytes: Buffer, params: OcrParams): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
+    const { body } = await this._client.run('transformations', file, {
+      method: 'ocr',
+      params: params as Record<string, unknown>,
+    });
+    return body;
+  }
+
+  async extractExpenseData(fileBytes: Buffer): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'document.pdf');
+    const { body } = await this._client.run('extractions', file, {
+      method: 'extract-expense-data',
+      params: {},
+      acceptFormat: 'json',
+    });
+    return this._extractResult(body);
   }
 }

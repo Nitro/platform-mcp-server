@@ -63,6 +63,9 @@ describe('transformation tools', () => {
       flattenPdf: vi.fn(),
       extractPiiBoundingBoxes: vi.fn(),
       redactPdf: vi.fn(),
+      watermarkPdf: vi.fn(),
+      ocrPdf: vi.fn(),
+      extractExpenseData: vi.fn(),
     };
     const context = createAppContext({
       filesHandler: filesHandlerMock as unknown as FilesHandler,
@@ -452,6 +455,158 @@ describe('transformation tools', () => {
 
       await caller.call(
         'flatten_pdf',
+        { inputPath: path.join(tmpDir, 'doc.pdf') },
+        { expectError: true },
+      );
+
+      expect(filesHandlerMock.write).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('watermark_pdf', () => {
+    it('applies watermark with minimal params and returns output filename', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.watermarkPdf.mockResolvedValue(Buffer.from('watermarked'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-watermarked.pdf'));
+
+      await caller.call(
+        'watermark_pdf',
+        { inputPath: path.join(tmpDir, 'doc.pdf') },
+        { expectedResult: { outputFilename: 'doc-watermarked.pdf' } },
+      );
+
+      expect(platformHandlerMock.watermarkPdf).toHaveBeenCalledWith(Buffer.from('pdf-bytes'), {});
+      expect(filesHandlerMock.write).toHaveBeenCalledWith(
+        path.join(tmpDir, 'doc.pdf'),
+        Buffer.from('watermarked'),
+        { stemSuffix: 'watermarked', ext: 'pdf' },
+      );
+    });
+
+    it('passes all positioning and rendering params to the handler', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.watermarkPdf.mockResolvedValue(Buffer.from('watermarked'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-watermarked.pdf'));
+
+      await caller.call('watermark_pdf', {
+        inputPath: path.join(tmpDir, 'doc.pdf'),
+        boundingBox: [100, 100, 200, 120],
+        centerOnPage: true,
+        contentDepth: 'above_existing',
+        fitToPageWidth: false,
+        fitToPageHeight: false,
+        flip: 'horizontal',
+        opacity: 0.5,
+        rotateWithPage: true,
+        rotation: 45,
+      });
+
+      expect(platformHandlerMock.watermarkPdf).toHaveBeenCalledWith(Buffer.from('pdf-bytes'), {
+        boundingBox: [100, 100, 200, 120],
+        centerOnPage: true,
+        contentDepth: 'above_existing',
+        fitToPageWidth: false,
+        fitToPageHeight: false,
+        flip: 'horizontal',
+        opacity: 0.5,
+        rotateWithPage: true,
+        rotation: 45,
+      });
+    });
+
+    it('converts 1-indexed page numbers to 0-indexed pageIndices', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.watermarkPdf.mockResolvedValue(Buffer.from('watermarked'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-watermarked.pdf'));
+
+      await caller.call('watermark_pdf', {
+        inputPath: path.join(tmpDir, 'doc.pdf'),
+        pageNumbers: ['1', '3-5'],
+      });
+
+      expect(platformHandlerMock.watermarkPdf).toHaveBeenCalledWith(Buffer.from('pdf-bytes'), {
+        pageIndices: [0, 2, 3, 4],
+      });
+    });
+
+    it('returns error when platform handler throws', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.watermarkPdf.mockRejectedValue(new GenericFailedError());
+
+      await caller.call(
+        'watermark_pdf',
+        { inputPath: path.join(tmpDir, 'doc.pdf') },
+        { expectError: true },
+      );
+
+      expect(filesHandlerMock.write).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('ocr_pdf', () => {
+    it('applies OCR with minimal params and returns output filename', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.ocrPdf.mockResolvedValue(Buffer.from('ocr-output'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-ocr.pdf'));
+
+      await caller.call(
+        'ocr_pdf',
+        { inputPath: path.join(tmpDir, 'doc.pdf') },
+        { expectedResult: { outputFilename: 'doc-ocr.pdf' } },
+      );
+
+      expect(platformHandlerMock.ocrPdf).toHaveBeenCalledWith(Buffer.from('pdf-bytes'), {});
+      expect(filesHandlerMock.write).toHaveBeenCalledWith(
+        path.join(tmpDir, 'doc.pdf'),
+        Buffer.from('ocr-output'),
+        { stemSuffix: 'ocr', ext: 'pdf' },
+      );
+    });
+
+    it('passes all params to the handler, mapping pdfVersion to PDFVersion', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.ocrPdf.mockResolvedValue(Buffer.from('ocr-output'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-ocr.pdf'));
+
+      await caller.call('ocr_pdf', {
+        inputPath: path.join(tmpDir, 'doc.pdf'),
+        language: 'french',
+        quality: 'low',
+        isOutputPDFEditable: true,
+        compressionLevel: 'high',
+        pdfVersion: 'pdf14',
+      });
+
+      expect(platformHandlerMock.ocrPdf).toHaveBeenCalledWith(Buffer.from('pdf-bytes'), {
+        language: 'french',
+        quality: 'low',
+        isOutputPDFEditable: true,
+        compressionLevel: 'high',
+        PDFVersion: 'pdf14',
+      });
+    });
+
+    it('converts 1-indexed page numbers to 0-indexed pageIndices', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.ocrPdf.mockResolvedValue(Buffer.from('ocr-output'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-ocr.pdf'));
+
+      await caller.call('ocr_pdf', {
+        inputPath: path.join(tmpDir, 'doc.pdf'),
+        pageNumbers: ['1', '3-4'],
+      });
+
+      expect(platformHandlerMock.ocrPdf).toHaveBeenCalledWith(Buffer.from('pdf-bytes'), {
+        pageIndices: [0, 2, 3],
+      });
+    });
+
+    it('returns error when platform handler throws', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.ocrPdf.mockRejectedValue(new GenericFailedError());
+
+      await caller.call(
+        'ocr_pdf',
         { inputPath: path.join(tmpDir, 'doc.pdf') },
         { expectError: true },
       );

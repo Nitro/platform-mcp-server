@@ -6,7 +6,12 @@ import type { AppContext } from '../context.js';
 import { getDep } from '../context.js';
 import { handleToolError, UserFacingError } from '../errors.js';
 import { singleFileInputSchema } from '../models.js';
-import type { PageRotation, PdfMetadata } from '../handlers/platformHandler.js';
+import type {
+  OcrParams,
+  PageRotation,
+  PdfMetadata,
+  WatermarkParams,
+} from '../handlers/platformHandler.js';
 
 const _PDF_PERMISSION_VALUES = [
   'print',
@@ -483,6 +488,199 @@ export function register(server: McpServer, context: AppContext): void {
         return _successResult(path.basename(outputPath));
       } catch (err) {
         return handleToolError('flatten_pdf', err);
+      }
+    },
+  );
+
+  server.registerTool(
+    'watermark_pdf',
+    {
+      description: 'Use this tool to add a watermark to a PDF file.',
+      inputSchema: {
+        ...singleFileInputSchema.shape,
+        boundingBox: z
+          .tuple([z.number(), z.number(), z.number(), z.number()])
+          .optional()
+          .nullable()
+          .describe(
+            'Bounding box [x0, y0, x1, y1] in PDF points for watermark placement. ' +
+              'Required unless both fitToPageWidth and fitToPageHeight are true.',
+          ),
+        centerOnPage: z.boolean().optional().describe('Center the watermark on the page'),
+        contentDepth: z
+          .enum(['above_existing', 'below_existing'])
+          .optional()
+          .describe('Whether to render the watermark above or below existing page content'),
+        fitToPageWidth: z
+          .boolean()
+          .optional()
+          .describe(
+            'Scale watermark to fit the page width. ' +
+              'Requires boundingBox for vertical positioning unless fitToPageHeight is also true.',
+          ),
+        fitToPageHeight: z
+          .boolean()
+          .optional()
+          .describe(
+            'Scale watermark to fit the page height. ' +
+              'Requires boundingBox for horizontal positioning unless fitToPageWidth is also true.',
+          ),
+        flip: z
+          .enum(['horizontal', 'vertical', 'both'])
+          .optional()
+          .nullable()
+          .describe('Flip direction for the watermark'),
+        opacity: z
+          .number()
+          .min(0)
+          .max(1)
+          .optional()
+          .describe('Opacity of the watermark (0.0 to 1.0, default 1.0)'),
+        pageNumbers: z
+          .array(z.string())
+          .optional()
+          .nullable()
+          .describe(
+            'Page numbers to watermark (e.g., ["1", "3", "5-7"]). ' +
+              'Pages are 1-indexed. Defaults to all pages.',
+          ),
+        rotateWithPage: z
+          .boolean()
+          .optional()
+          .describe('Whether the watermark rotates along with page rotation'),
+        rotation: z.number().optional().describe('Rotation angle for the watermark in degrees'),
+      },
+      annotations: NON_DESTRUCTIVE('Add Watermark'),
+    },
+    async (args) => {
+      try {
+        const filesHandler = getDep(context, 'filesHandler');
+        const platformHandler = getDep(context, 'platformHandler');
+
+        const pageIndices =
+          args.pageNumbers !== null && args.pageNumbers !== undefined
+            ? _parsePageNumbers(args.pageNumbers)
+            : undefined;
+
+        const params: WatermarkParams = {
+          ...(args.boundingBox !== undefined && { boundingBox: args.boundingBox }),
+          ...(args.centerOnPage !== undefined && { centerOnPage: args.centerOnPage }),
+          ...(args.contentDepth !== undefined && { contentDepth: args.contentDepth }),
+          ...(args.fitToPageWidth !== undefined && { fitToPageWidth: args.fitToPageWidth }),
+          ...(args.fitToPageHeight !== undefined && { fitToPageHeight: args.fitToPageHeight }),
+          ...(args.flip !== undefined && { flip: args.flip }),
+          ...(args.opacity !== undefined && { opacity: args.opacity }),
+          ...(pageIndices !== undefined && { pageIndices }),
+          ...(args.rotateWithPage !== undefined && { rotateWithPage: args.rotateWithPage }),
+          ...(args.rotation !== undefined && { rotation: args.rotation }),
+        };
+
+        const inputBytes = filesHandler.read(args.inputPath);
+        const watermarkedBytes = await platformHandler.watermarkPdf(inputBytes, params);
+
+        const outputPath = filesHandler.write(args.inputPath, watermarkedBytes, {
+          stemSuffix: 'watermarked',
+          ext: 'pdf',
+        });
+
+        return _successResult(path.basename(outputPath));
+      } catch (err) {
+        return handleToolError('watermark_pdf', err);
+      }
+    },
+  );
+
+  server.registerTool(
+    'ocr_pdf',
+    {
+      description:
+        'Use this tool to apply OCR to a PDF file, producing a searchable or editable PDF.',
+      inputSchema: {
+        ...singleFileInputSchema.shape,
+        language: z
+          .enum([
+            'english',
+            'german',
+            'french',
+            'spanish',
+            'italian',
+            'finnish',
+            'swedish',
+            'danish',
+            'norwegian',
+            'dutch',
+            'portuguese',
+            'brazilian',
+          ])
+          .optional()
+          .describe(
+            'Language of the text in the document. Selecting the correct language improves recognition accuracy (default: english).',
+          ),
+        quality: z
+          .enum(['low', 'medium', 'high'])
+          .optional()
+          .describe(
+            'Trade-off between processing speed and recognition accuracy. "low" is fastest, "high" is most accurate (default: high).',
+          ),
+        isOutputPDFEditable: z
+          .boolean()
+          .optional()
+          .describe(
+            'When true, recognised text is rendered over the page image, making it editable. ' +
+              'When false (default), text is placed behind the image, keeping the PDF searchable while preserving its visual appearance.',
+          ),
+        compressionLevel: z
+          .enum(['low', 'medium', 'high'])
+          .optional()
+          .describe(
+            'Compression level for the output PDF. "low" retains the best image quality, "high" produces the smallest file size (default: low).',
+          ),
+        pdfVersion: z
+          .enum(['pdf14', 'pdf15', 'pdf16', 'pdf17'])
+          .optional()
+          .describe('PDF specification version for the output file (default: pdf17).'),
+        pageNumbers: z
+          .array(z.string())
+          .optional()
+          .nullable()
+          .describe(
+            'Page numbers to apply OCR to (e.g., ["1", "3", "5-7"]). Pages are 1-indexed. Defaults to all pages.',
+          ),
+      },
+      annotations: NON_DESTRUCTIVE('Apply OCR'),
+    },
+    async (args) => {
+      try {
+        const filesHandler = getDep(context, 'filesHandler');
+        const platformHandler = getDep(context, 'platformHandler');
+
+        const pageIndices =
+          args.pageNumbers !== null && args.pageNumbers !== undefined
+            ? _parsePageNumbers(args.pageNumbers)
+            : undefined;
+
+        const params: OcrParams = {
+          ...(args.language !== undefined && { language: args.language }),
+          ...(args.quality !== undefined && { quality: args.quality }),
+          ...(args.isOutputPDFEditable !== undefined && {
+            isOutputPDFEditable: args.isOutputPDFEditable,
+          }),
+          ...(args.compressionLevel !== undefined && { compressionLevel: args.compressionLevel }),
+          ...(args.pdfVersion !== undefined && { PDFVersion: args.pdfVersion }),
+          ...(pageIndices !== undefined && { pageIndices }),
+        };
+
+        const inputBytes = filesHandler.read(args.inputPath);
+        const ocrBytes = await platformHandler.ocrPdf(inputBytes, params);
+
+        const outputPath = filesHandler.write(args.inputPath, ocrBytes, {
+          stemSuffix: 'ocr',
+          ext: 'pdf',
+        });
+
+        return _successResult(path.basename(outputPath));
+      } catch (err) {
+        return handleToolError('ocr_pdf', err);
       }
     },
   );

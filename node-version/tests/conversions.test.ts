@@ -64,6 +64,9 @@ describe('convert_file tool', () => {
       flattenPdf: vi.fn(),
       extractPiiBoundingBoxes: vi.fn(),
       redactPdf: vi.fn(),
+      watermarkPdf: vi.fn(),
+      ocrPdf: vi.fn(),
+      extractExpenseData: vi.fn(),
     };
     const context = createAppContext({
       filesHandler: filesHandlerMock as unknown as FilesHandler,

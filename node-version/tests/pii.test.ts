@@ -63,6 +63,9 @@ describe('PII tools', () => {
       setPdfMetadata: vi.fn(),
       flattenPdf: vi.fn(),
       redactPdf: vi.fn(),
+      watermarkPdf: vi.fn(),
+      ocrPdf: vi.fn(),
+      extractExpenseData: vi.fn(),
     };
     const context = createAppContext({
       filesHandler: filesHandlerMock as unknown as FilesHandler,
