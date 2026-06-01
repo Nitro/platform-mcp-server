@@ -98,7 +98,7 @@ describe('generation tools', () => {
 
       expect(platformHandlerMock.fillForms).toHaveBeenCalledWith(
         Buffer.from('pdf-bytes'),
-        Buffer.from('first-name,first-name-value\nlast-name,last-name-value'),
+        Buffer.from('first-name,last-name\nfirst-name-value,last-name-value'),
         {},
       );
       expect(filesHandlerMock.write).toHaveBeenCalledWith(
@@ -120,7 +120,7 @@ describe('generation tools', () => {
 
       expect(platformHandlerMock.fillForms).toHaveBeenCalledWith(
         Buffer.from('pdf-bytes'),
-        Buffer.from('Name,"value,with,commas"'),
+        Buffer.from('Name\n"value,with,commas"'),
         {},
       );
     });
@@ -138,7 +138,7 @@ describe('generation tools', () => {
 
       expect(platformHandlerMock.fillForms).toHaveBeenCalledWith(
         Buffer.from('pdf-bytes'),
-        Buffer.from('field-name,field-value'),
+        Buffer.from('field-name\nfield-value'),
         { strict: true },
       );
     });

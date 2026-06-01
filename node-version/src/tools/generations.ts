@@ -27,10 +27,10 @@ function _csvField(value: string): string {
 }
 
 function _fieldsToCsvBytes(fields: Record<string, string>): Buffer {
-  const rows = Object.entries(fields).map(
-    ([name, value]) => `${_csvField(name)},${_csvField(value)}`,
-  );
-  return Buffer.from(rows.join('\n'), 'utf-8');
+  const entries = Object.entries(fields);
+  const header = entries.map(([name]) => _csvField(name)).join(',');
+  const values = entries.map(([, value]) => _csvField(value)).join(',');
+  return Buffer.from(`${header}\n${values}`, 'utf-8');
 }
 
 export function register(server: McpServer, context: AppContext): void {
