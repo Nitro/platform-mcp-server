@@ -67,6 +67,7 @@ describe('transformation tools', () => {
       watermarkPdf: vi.fn(),
       ocrPdf: vi.fn(),
       optimizePdf: vi.fn(),
+      fillForms: vi.fn(),
       extractExpenseData: vi.fn(),
     };
     const context = createAppContext({

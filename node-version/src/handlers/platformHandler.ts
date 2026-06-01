@@ -121,6 +121,10 @@ export interface OptimizationParams {
   readonly profile: 'web' | 'print' | 'archive' | 'minimal-file-size' | 'mixed-raster-content';
 }
 
+export interface FillFormsParams {
+  readonly strict?: boolean;
+}
+
 export class ConversionNotSupportedError extends Error {
   constructor(fromFormat: FileFormat, toFormat: FileFormat) {
     super(`Conversion from ${fromFormat} to ${toFormat} is not supported`);
@@ -436,6 +440,19 @@ export class PlatformHandler {
     const { body } = await this._client.run('transformations', file, {
       method: 'optimize',
       params: params as unknown as Record<string, unknown>,
+    });
+    return body;
+  }
+
+  async fillForms(
+    fileBytes: Buffer,
+    fields: Record<string, string>,
+    params: FillFormsParams,
+  ): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
+    const { body } = await this._client.run('generations', file, {
+      method: 'fill-forms',
+      params: { ...params, fields },
     });
     return body;
   }
