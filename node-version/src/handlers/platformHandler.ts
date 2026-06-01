@@ -444,15 +444,12 @@ export class PlatformHandler {
     return body;
   }
 
-  async fillForms(
-    fileBytes: Buffer,
-    fields: Record<string, string>,
-    params: FillFormsParams,
-  ): Promise<Buffer> {
-    const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
-    const { body } = await this._client.run('generations', file, {
+  async fillForms(fileBytes: Buffer, csvBytes: Buffer, params: FillFormsParams): Promise<Buffer> {
+    const pdfFile = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
+    const csvFile = createBytesFile(ContentType.CSV, csvBytes, 'fields.csv');
+    const { body } = await this._client.run('generations', [pdfFile, csvFile], {
       method: 'fill-forms',
-      params: { ...params, fields },
+      params: params as Record<string, unknown>,
     });
     return body;
   }

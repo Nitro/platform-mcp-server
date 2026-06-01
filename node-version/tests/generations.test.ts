@@ -82,7 +82,7 @@ describe('generation tools', () => {
   });
 
   describe('fill_forms', () => {
-    it('fills form fields and returns output filename', async () => {
+    it('serializes fields to CSV bytes and returns output filename', async () => {
       filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
       platformHandlerMock.fillForms.mockResolvedValue(Buffer.from('filled-bytes'));
       filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'form-filled.pdf'));
@@ -98,13 +98,30 @@ describe('generation tools', () => {
 
       expect(platformHandlerMock.fillForms).toHaveBeenCalledWith(
         Buffer.from('pdf-bytes'),
-        { 'first-name': 'first-name-value', 'last-name': 'last-name-value' },
+        Buffer.from('first-name,first-name-value\nlast-name,last-name-value'),
         {},
       );
       expect(filesHandlerMock.write).toHaveBeenCalledWith(
         path.join(tmpDir, 'form.pdf'),
         Buffer.from('filled-bytes'),
         { stemSuffix: 'filled', ext: 'pdf' },
+      );
+    });
+
+    it('quotes CSV field values containing commas', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.fillForms.mockResolvedValue(Buffer.from('filled-bytes'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'form-filled.pdf'));
+
+      await caller.call('fill_forms', {
+        inputPath: path.join(tmpDir, 'form.pdf'),
+        fields: { Name: 'value,with,commas' },
+      });
+
+      expect(platformHandlerMock.fillForms).toHaveBeenCalledWith(
+        Buffer.from('pdf-bytes'),
+        Buffer.from('Name,"value,with,commas"'),
+        {},
       );
     });
 
@@ -121,8 +138,33 @@ describe('generation tools', () => {
 
       expect(platformHandlerMock.fillForms).toHaveBeenCalledWith(
         Buffer.from('pdf-bytes'),
-        { 'field-name': 'field-value' },
+        Buffer.from('field-name,field-value'),
         { strict: true },
+      );
+    });
+
+    it('passes raw CSV bytes through when csvPath is provided', async () => {
+      const csvContent = 'first-name,first-name-value\nlast-name,last-name-value\n';
+      filesHandlerMock.read.mockImplementation((filePath: string) => {
+        if (filePath === path.join(tmpDir, 'fields.csv')) return Buffer.from(csvContent);
+        return Buffer.from('pdf-bytes');
+      });
+      platformHandlerMock.fillForms.mockResolvedValue(Buffer.from('filled-bytes'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'form-filled.pdf'));
+
+      await caller.call(
+        'fill_forms',
+        {
+          inputPath: path.join(tmpDir, 'form.pdf'),
+          csvPath: path.join(tmpDir, 'fields.csv'),
+        },
+        { expectedResult: { outputFilename: 'form-filled.pdf' } },
+      );
+
+      expect(platformHandlerMock.fillForms).toHaveBeenCalledWith(
+        Buffer.from('pdf-bytes'),
+        Buffer.from(csvContent),
+        {},
       );
     });
 
@@ -137,6 +179,30 @@ describe('generation tools', () => {
       );
 
       expect(filesHandlerMock.write).not.toHaveBeenCalled();
+    });
+
+    it('returns error when neither fields nor csvPath is provided', async () => {
+      await caller.call(
+        'fill_forms',
+        { inputPath: path.join(tmpDir, 'form.pdf') },
+        { expectError: true },
+      );
+
+      expect(platformHandlerMock.fillForms).not.toHaveBeenCalled();
+    });
+
+    it('returns error when both fields and csvPath are provided', async () => {
+      await caller.call(
+        'fill_forms',
+        {
+          inputPath: path.join(tmpDir, 'form.pdf'),
+          fields: { 'field-name': 'field-value' },
+          csvPath: path.join(tmpDir, 'fields.csv'),
+        },
+        { expectError: true },
+      );
+
+      expect(platformHandlerMock.fillForms).not.toHaveBeenCalled();
     });
   });
 });
