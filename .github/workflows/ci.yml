@@ -3,6 +3,11 @@ name: CI -- Test & Check
 on:
   pull_request:
 
+concurrency:
+  # For pull_request events only, cancel previous runs for the same pull request
+  group: build-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.number || github.job_id }}
+  cancel-in-progress: true
+
 jobs:
   node-check:
     runs-on: [self-hosted, linux, x64, nitrosys]
