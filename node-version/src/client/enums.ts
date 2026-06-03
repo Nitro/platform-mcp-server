@@ -60,6 +60,7 @@ export const FileFormat = {
   CSV: 'csv',
   RTF: 'rtf',
   HTML: 'html',
+  PDFA: 'pdfa',
 } as const;
 
 export type FileFormat = (typeof FileFormat)[keyof typeof FileFormat];

@@ -385,4 +385,51 @@ describe('PlatformHandler', () => {
       );
     });
   });
+
+  describe('fillForms', () => {
+    it('passes pdf and csv as two files to generations', async () => {
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from('filled-pdf'),
+        contentType: 'application/pdf',
+      });
+
+      const result = await handler.fillForms(
+        Buffer.from('pdf-bytes'),
+        Buffer.from('csv-bytes'),
+        {},
+      );
+
+      expect(result).toEqual(Buffer.from('filled-pdf'));
+      expect(runMock).toHaveBeenCalledWith(
+        'generations',
+        [
+          expect.objectContaining({
+            kind: 'bytes',
+            contentType: ContentType.PDF,
+            name: 'input.pdf',
+          }),
+          expect.objectContaining({
+            kind: 'bytes',
+            contentType: ContentType.CSV,
+            name: 'fields.csv',
+          }),
+        ],
+        { method: 'fill-forms', params: {} },
+      );
+    });
+
+    it('passes strict param', async () => {
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from('filled-pdf'),
+        contentType: 'application/pdf',
+      });
+
+      await handler.fillForms(Buffer.from('pdf-bytes'), Buffer.from('csv-bytes'), { strict: true });
+
+      expect(runMock).toHaveBeenCalledWith('generations', expect.anything(), {
+        method: 'fill-forms',
+        params: { strict: true },
+      });
+    });
+  });
 });

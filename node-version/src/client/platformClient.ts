@@ -91,7 +91,7 @@ function _fileToFormData(file: File, fieldName: string, form: FormData): void {
   }
 }
 
-export type ApiPath = 'conversions' | 'extractions' | 'transformations';
+export type ApiPath = 'conversions' | 'extractions' | 'generations' | 'transformations';
 
 export interface RunOptions {
   readonly method: string | null;
