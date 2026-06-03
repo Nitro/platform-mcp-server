@@ -10,7 +10,7 @@ concurrency:
 
 jobs:
   node-check:
-    runs-on: [self-hosted, linux, x64, nitrosys]
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -60,7 +60,7 @@ jobs:
   # does not publish wheels for the target platform.
   cross-platform-install:
     name: Verify dependencies resolve for ${{ matrix.platform }}
-    runs-on: [self-hosted, linux, x64, nitrosys]
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         platform: [windows, macos]
@@ -82,7 +82,7 @@ jobs:
   result:
     name: Result
     if: ${{ always() }}
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest
     needs: [node-check, cross-platform-install]
     steps:
       - name: Check results

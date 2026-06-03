@@ -10,7 +10,7 @@ on:
 
 jobs:
   publish:
-    runs-on: [self-hosted, linux, x64, nitrosys]
+    runs-on: ubuntu-latest
     permissions:
       contents: write
 
