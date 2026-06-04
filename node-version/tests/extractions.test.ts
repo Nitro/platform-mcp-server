@@ -63,6 +63,11 @@ describe('extraction tools', () => {
       flattenPdf: vi.fn(),
       extractPiiBoundingBoxes: vi.fn(),
       redactPdf: vi.fn(),
+      watermarkPdf: vi.fn(),
+      ocrPdf: vi.fn(),
+      optimizePdf: vi.fn(),
+      fillForms: vi.fn(),
+      extractExpenseData: vi.fn(),
     };
     const context = createAppContext({
       filesHandler: filesHandlerMock as unknown as FilesHandler,
@@ -310,6 +315,42 @@ describe('extraction tools', () => {
         'text',
         { readingOrder: true, pageIndices: [0] },
       );
+    });
+  });
+
+  describe('extract_invoice_data', () => {
+    it('returns output filename', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.extractExpenseData.mockResolvedValue(
+        Buffer.from('{"vendor":"vendor-name"}'),
+      );
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-invoice.json'));
+
+      await caller.call(
+        'extract_invoice_data',
+        { inputPath: path.join(tmpDir, 'doc.pdf') },
+        { expectedResult: { outputFilename: 'doc-invoice.json' } },
+      );
+
+      expect(platformHandlerMock.extractExpenseData).toHaveBeenCalledWith(Buffer.from('pdf-bytes'));
+      expect(filesHandlerMock.write).toHaveBeenCalledWith(
+        path.join(tmpDir, 'doc.pdf'),
+        Buffer.from('{"vendor":"vendor-name"}'),
+        { stemSuffix: 'invoice', ext: 'json' },
+      );
+    });
+
+    it('returns error when platform handler throws', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.extractExpenseData.mockRejectedValue(new GenericFailedError());
+
+      await caller.call(
+        'extract_invoice_data',
+        { inputPath: path.join(tmpDir, 'doc.pdf') },
+        { expectError: true },
+      );
+
+      expect(filesHandlerMock.write).not.toHaveBeenCalled();
     });
   });
 

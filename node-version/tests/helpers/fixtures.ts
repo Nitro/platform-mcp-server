@@ -19,6 +19,11 @@ export interface MockPlatformHandler {
   setPdfMetadata: ReturnType<typeof vi.fn>;
   flattenPdf: ReturnType<typeof vi.fn>;
   redactPdf: ReturnType<typeof vi.fn>;
+  watermarkPdf: ReturnType<typeof vi.fn>;
+  ocrPdf: ReturnType<typeof vi.fn>;
+  optimizePdf: ReturnType<typeof vi.fn>;
+  fillForms: ReturnType<typeof vi.fn>;
+  extractExpenseData: ReturnType<typeof vi.fn>;
 }
 
 export interface MockFilesHandler {
@@ -44,6 +49,11 @@ export function createPlatformHandlerMock(): MockPlatformHandler {
     setPdfMetadata: vi.fn(),
     flattenPdf: vi.fn(),
     redactPdf: vi.fn(),
+    watermarkPdf: vi.fn(),
+    ocrPdf: vi.fn(),
+    optimizePdf: vi.fn(),
+    fillForms: vi.fn(),
+    extractExpenseData: vi.fn(),
   };
 }
 

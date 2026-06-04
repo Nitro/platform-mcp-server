@@ -6,7 +6,36 @@ import type { AppContext } from '../context.js';
 import { getDep } from '../context.js';
 import { handleToolError, UserFacingError } from '../errors.js';
 import { singleFileInputSchema } from '../models.js';
-import type { PageRotation, PdfMetadata } from '../handlers/platformHandler.js';
+import { ContentType } from '../client/enums.js';
+import type {
+  OcrParams,
+  OptimizationParams,
+  PageRotation,
+  PdfMetadata,
+  WatermarkParams,
+} from '../handlers/platformHandler.js';
+
+const _IMAGE_CONTENT_TYPES: Partial<Record<string, ContentType>> = {
+  jpg: ContentType.JPEG,
+  jpeg: ContentType.JPEG,
+  png: ContentType.PNG,
+  tiff: ContentType.TIFF,
+  tif: ContentType.TIFF,
+  bmp: ContentType.BMP,
+  gif: ContentType.GIF,
+  svg: ContentType.SVG,
+};
+
+function _imageContentTypeFromPath(imagePath: string): ContentType {
+  const ext = path.extname(imagePath).replace(/^\./, '').toLowerCase();
+  const contentType = _IMAGE_CONTENT_TYPES[ext];
+  if (contentType === undefined) {
+    throw new UserFacingError(
+      `Unsupported image format: .${ext}. Supported formats: jpg, jpeg, png, tiff, bmp, gif, svg.`,
+    );
+  }
+  return contentType;
+}
 
 const _PDF_PERMISSION_VALUES = [
   'print',
@@ -483,6 +512,252 @@ export function register(server: McpServer, context: AppContext): void {
         return _successResult(path.basename(outputPath));
       } catch (err) {
         return handleToolError('flatten_pdf', err);
+      }
+    },
+  );
+
+  server.registerTool(
+    'watermark_pdf',
+    {
+      description: 'Use this tool to add an image watermark to a PDF file.',
+      inputSchema: {
+        ...singleFileInputSchema.shape,
+        imagePath: z
+          .string()
+          .describe(
+            "Full path to the watermark image file (e.g., '~/Downloads/watermark.png'). " +
+              'Supported formats: JPG, JPEG, PNG, TIFF, BMP, GIF, SVG.',
+          ),
+        boundingBox: z
+          .tuple([z.number(), z.number(), z.number(), z.number()])
+          .optional()
+          .nullable()
+          .describe(
+            'Bounding box [x0, y0, x1, y1] in PDF points for watermark placement. ' +
+              'Required unless both fitToPageWidth and fitToPageHeight are true.',
+          ),
+        centerOnPage: z.boolean().optional().describe('Center the watermark on the page'),
+        contentDepth: z
+          .enum(['above_existing', 'below_existing'])
+          .optional()
+          .describe('Whether to render the watermark above or below existing page content'),
+        fitToPageWidth: z
+          .boolean()
+          .optional()
+          .describe(
+            'Scale watermark to fit the page width. ' +
+              'Requires boundingBox for vertical positioning unless fitToPageHeight is also true.',
+          ),
+        fitToPageHeight: z
+          .boolean()
+          .optional()
+          .describe(
+            'Scale watermark to fit the page height. ' +
+              'Requires boundingBox for horizontal positioning unless fitToPageWidth is also true.',
+          ),
+        flip: z
+          .enum(['horizontal', 'vertical', 'both'])
+          .optional()
+          .nullable()
+          .describe('Flip direction for the watermark'),
+        opacity: z
+          .number()
+          .min(0)
+          .max(1)
+          .optional()
+          .describe('Opacity of the watermark (0.0 to 1.0, default 1.0)'),
+        pageNumbers: z
+          .array(z.string())
+          .optional()
+          .nullable()
+          .describe(
+            'Page numbers to watermark (e.g., ["1", "3", "5-7"]). ' +
+              'Pages are 1-indexed. Defaults to all pages.',
+          ),
+        rotateWithPage: z
+          .boolean()
+          .optional()
+          .describe('Whether the watermark rotates along with page rotation'),
+        rotation: z.number().optional().describe('Rotation angle for the watermark in degrees'),
+      },
+      annotations: NON_DESTRUCTIVE('Add Watermark'),
+    },
+    async (args) => {
+      try {
+        const filesHandler = getDep(context, 'filesHandler');
+        const platformHandler = getDep(context, 'platformHandler');
+
+        const pageIndices =
+          args.pageNumbers !== null && args.pageNumbers !== undefined
+            ? _parsePageNumbers(args.pageNumbers)
+            : undefined;
+
+        const params: WatermarkParams = {
+          ...(args.boundingBox !== undefined && { boundingBox: args.boundingBox }),
+          ...(args.centerOnPage !== undefined && { centerOnPage: args.centerOnPage }),
+          ...(args.contentDepth !== undefined && { contentDepth: args.contentDepth }),
+          ...(args.fitToPageWidth !== undefined && { fitToPageWidth: args.fitToPageWidth }),
+          ...(args.fitToPageHeight !== undefined && { fitToPageHeight: args.fitToPageHeight }),
+          ...(args.flip !== undefined && { flip: args.flip }),
+          ...(args.opacity !== undefined && { opacity: args.opacity }),
+          ...(pageIndices !== undefined && { pageIndices }),
+          ...(args.rotateWithPage !== undefined && { rotateWithPage: args.rotateWithPage }),
+          ...(args.rotation !== undefined && { rotation: args.rotation }),
+        };
+
+        const pdfBytes = filesHandler.read(args.inputPath);
+        const imageBytes = filesHandler.read(args.imagePath);
+        const imageContentType = _imageContentTypeFromPath(args.imagePath);
+        const watermarkedBytes = await platformHandler.watermarkPdf(
+          pdfBytes,
+          imageBytes,
+          imageContentType,
+          params,
+        );
+
+        const outputPath = filesHandler.write(args.inputPath, watermarkedBytes, {
+          stemSuffix: 'watermarked',
+          ext: 'pdf',
+        });
+
+        return _successResult(path.basename(outputPath));
+      } catch (err) {
+        return handleToolError('watermark_pdf', err);
+      }
+    },
+  );
+
+  server.registerTool(
+    'ocr_pdf',
+    {
+      description:
+        'Use this tool to apply OCR to a PDF file, producing a searchable or editable PDF.',
+      inputSchema: {
+        ...singleFileInputSchema.shape,
+        language: z
+          .enum([
+            'english',
+            'german',
+            'french',
+            'spanish',
+            'italian',
+            'finnish',
+            'swedish',
+            'danish',
+            'norwegian',
+            'dutch',
+            'portuguese',
+            'brazilian',
+          ])
+          .optional()
+          .describe(
+            'Language of the text in the document. Selecting the correct language improves recognition accuracy (default: english).',
+          ),
+        quality: z
+          .enum(['low', 'medium', 'high'])
+          .optional()
+          .describe(
+            'Trade-off between processing speed and recognition accuracy. "low" is fastest, "high" is most accurate (default: high).',
+          ),
+        isOutputPDFEditable: z
+          .boolean()
+          .optional()
+          .describe(
+            'When true, recognised text is rendered over the page image, making it editable. ' +
+              'When false (default), text is placed behind the image, keeping the PDF searchable while preserving its visual appearance.',
+          ),
+        compressionLevel: z
+          .enum(['low', 'medium', 'high'])
+          .optional()
+          .describe(
+            'Compression level for the output PDF. "low" retains the best image quality, "high" produces the smallest file size (default: low).',
+          ),
+        pdfVersion: z
+          .enum(['pdf14', 'pdf15', 'pdf16', 'pdf17'])
+          .optional()
+          .describe('PDF specification version for the output file (default: pdf17).'),
+        pageNumbers: z
+          .array(z.string())
+          .optional()
+          .nullable()
+          .describe(
+            'Page numbers to apply OCR to (e.g., ["1", "3", "5-7"]). Pages are 1-indexed. Defaults to all pages.',
+          ),
+      },
+      annotations: NON_DESTRUCTIVE('Apply OCR'),
+    },
+    async (args) => {
+      try {
+        const filesHandler = getDep(context, 'filesHandler');
+        const platformHandler = getDep(context, 'platformHandler');
+
+        const pageIndices =
+          args.pageNumbers !== null && args.pageNumbers !== undefined
+            ? _parsePageNumbers(args.pageNumbers)
+            : undefined;
+
+        const params: OcrParams = {
+          ...(args.language !== undefined && { language: args.language }),
+          ...(args.quality !== undefined && { quality: args.quality }),
+          ...(args.isOutputPDFEditable !== undefined && {
+            isOutputPDFEditable: args.isOutputPDFEditable,
+          }),
+          ...(args.compressionLevel !== undefined && { compressionLevel: args.compressionLevel }),
+          ...(args.pdfVersion !== undefined && { PDFVersion: args.pdfVersion }),
+          ...(pageIndices !== undefined && { pageIndices }),
+        };
+
+        const inputBytes = filesHandler.read(args.inputPath);
+        const ocrBytes = await platformHandler.ocrPdf(inputBytes, params);
+
+        const outputPath = filesHandler.write(args.inputPath, ocrBytes, {
+          stemSuffix: 'ocr',
+          ext: 'pdf',
+        });
+
+        return _successResult(path.basename(outputPath));
+      } catch (err) {
+        return handleToolError('ocr_pdf', err);
+      }
+    },
+  );
+
+  server.registerTool(
+    'optimize_pdf',
+    {
+      description: 'Use this tool to optimize a PDF file for a specific use case.',
+      inputSchema: {
+        ...singleFileInputSchema.shape,
+        profile: z
+          .enum(['web', 'print', 'archive', 'minimal-file-size', 'mixed-raster-content'])
+          .describe(
+            'Optimization profile to apply:\n' +
+              '- "web": Linearizes the PDF for fast web delivery; downsamples images for screen resolution. Best for online viewing and email attachments.\n' +
+              '- "print": Preserves print-resolution images; optimizes for fidelity over size. Best for high-quality printing.\n' +
+              '- "archive": Optimizes for archival workflows (size reduction with minimal quality loss). Note: does NOT produce ISO-compliant PDF/A output — use the pdf_to_pdfa conversion tool for that.\n' +
+              '- "minimal-file-size": Aggressively downsamples images and removes redundant data to produce the smallest possible file.\n' +
+              '- "mixed-raster-content": Applies MRC compression, separating text and background layers for better compression on scanned content.',
+          ),
+      },
+      annotations: NON_DESTRUCTIVE('Optimize PDF'),
+    },
+    async (args) => {
+      try {
+        const filesHandler = getDep(context, 'filesHandler');
+        const platformHandler = getDep(context, 'platformHandler');
+
+        const params: OptimizationParams = { profile: args.profile };
+        const inputBytes = filesHandler.read(args.inputPath);
+        const optimizedBytes = await platformHandler.optimizePdf(inputBytes, params);
+
+        const outputPath = filesHandler.write(args.inputPath, optimizedBytes, {
+          stemSuffix: 'optimized',
+          ext: 'pdf',
+        });
+
+        return _successResult(path.basename(outputPath));
+      } catch (err) {
+        return handleToolError('optimize_pdf', err);
       }
     },
   );

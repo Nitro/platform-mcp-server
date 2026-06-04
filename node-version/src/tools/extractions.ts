@@ -205,6 +205,34 @@ export function register(server: McpServer, context: AppContext): void {
     },
   );
 
+  server.registerTool(
+    'extract_invoice_data',
+    {
+      description:
+        'Use this tool to extract structured invoice or expense data from a PDF, ' +
+        'such as vendor details, line items, totals, and dates.',
+      inputSchema: singleFileInputSchema.shape,
+      annotations: READ_ONLY('Extract Invoice Data'),
+    },
+    async (args) => {
+      try {
+        const filesHandler = getDep(context, 'filesHandler');
+        const platformHandler = getDep(context, 'platformHandler');
+
+        const inputBytes = filesHandler.read(args.inputPath);
+        const result = await platformHandler.extractExpenseData(inputBytes);
+        const outputPath = filesHandler.write(args.inputPath, result, {
+          stemSuffix: 'invoice',
+          ext: 'json',
+        });
+
+        return _successResult(path.basename(outputPath));
+      } catch (err) {
+        return handleToolError('extract_invoice_data', err);
+      }
+    },
+  );
+
   // extract_pdf_accessibility is intentionally not registered — tool is not yet released
 
   server.registerTool(

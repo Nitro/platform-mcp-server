@@ -13,6 +13,7 @@ export const SupportedConversions = {
     FileFormat.PPTX,
     FileFormat.JPEG,
     FileFormat.PNG,
+    FileFormat.PDFA,
   ]),
   toPdfFrom: new Set<FileFormat>([
     FileFormat.DOC,
@@ -76,6 +77,54 @@ export interface PdfMetadata {
   readonly trapped?: string;
 }
 
+export interface WatermarkParams {
+  readonly boundingBox?: [number, number, number, number] | null;
+  readonly centerOnPage?: boolean;
+  readonly contentDepth?: 'above_existing' | 'below_existing';
+  readonly fitToPageWidth?: boolean;
+  readonly fitToPageHeight?: boolean;
+  readonly flip?: 'horizontal' | 'vertical' | 'both' | null;
+  readonly opacity?: number;
+  readonly pageIndices?: number[] | null;
+  readonly rotateWithPage?: boolean;
+  readonly rotation?: number;
+}
+
+export interface OcrParams {
+  readonly language?:
+    | 'english'
+    | 'german'
+    | 'french'
+    | 'spanish'
+    | 'italian'
+    | 'finnish'
+    | 'swedish'
+    | 'danish'
+    | 'norwegian'
+    | 'dutch'
+    | 'portuguese'
+    | 'brazilian';
+  readonly quality?: 'low' | 'medium' | 'high';
+  readonly isOutputPDFEditable?: boolean;
+  readonly compressionLevel?: 'low' | 'medium' | 'high';
+  readonly PDFVersion?: 'pdf14' | 'pdf15' | 'pdf16' | 'pdf17';
+  readonly pageIndices?: number[] | null;
+}
+
+export interface PdfAParams {
+  readonly conformance: '1b' | '1a' | '2b' | '2u' | '2a' | '3b' | '3u' | '3a';
+  readonly imageQuality?: number;
+  readonly copyMetadata?: boolean;
+}
+
+export interface OptimizationParams {
+  readonly profile: 'web' | 'print' | 'archive' | 'minimal-file-size' | 'mixed-raster-content';
+}
+
+export interface FillFormsParams {
+  readonly strict?: boolean;
+}
+
 export class ConversionNotSupportedError extends Error {
   constructor(fromFormat: FileFormat, toFormat: FileFormat) {
     super(`Conversion from ${fromFormat} to ${toFormat} is not supported`);
@@ -117,6 +166,7 @@ const FORMAT_TO_CONTENT_TYPE: Record<FileFormat, ContentType> = {
   [FileFormat.CSV]: ContentType.CSV,
   [FileFormat.RTF]: ContentType.RTF,
   [FileFormat.HTML]: ContentType.HTML,
+  [FileFormat.PDFA]: ContentType.PDF,
 };
 
 function _contentTypeForFormat(format: FileFormat): ContentType {
@@ -170,7 +220,12 @@ export class PlatformHandler {
     );
   }
 
-  async convertFile(fileBytes: Buffer, fileType: FileFormat, to: FileFormat): Promise<Buffer> {
+  async convertFile(
+    fileBytes: Buffer,
+    fileType: FileFormat,
+    to: FileFormat,
+    pdfaParams?: PdfAParams,
+  ): Promise<Buffer> {
     if (!this._isValidConversion(fileType, to)) {
       throw new ConversionNotSupportedError(fileType, to);
     }
@@ -180,7 +235,7 @@ export class PlatformHandler {
 
     const { body } = await this._client.run('conversions', file, {
       method: null,
-      params: { to },
+      params: { to, ...pdfaParams },
     });
 
     return body;
@@ -354,5 +409,58 @@ export class PlatformHandler {
       params: { redactions },
     });
     return body;
+  }
+
+  async watermarkPdf(
+    pdfBytes: Buffer,
+    imageBytes: Buffer,
+    imageContentType: ContentType,
+    params: WatermarkParams,
+  ): Promise<Buffer> {
+    const pdfFile = createBytesFile(ContentType.PDF, pdfBytes, 'input.pdf');
+    const imageFile = createBytesFile(imageContentType, imageBytes, 'watermark');
+    const { body } = await this._client.run('transformations', [pdfFile, imageFile], {
+      method: 'watermark',
+      params: params as Record<string, unknown>,
+    });
+    return body;
+  }
+
+  async ocrPdf(fileBytes: Buffer, params: OcrParams): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
+    const { body } = await this._client.run('transformations', file, {
+      method: 'ocr',
+      params: params as Record<string, unknown>,
+    });
+    return body;
+  }
+
+  async optimizePdf(fileBytes: Buffer, params: OptimizationParams): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
+    const { body } = await this._client.run('transformations', file, {
+      method: 'optimize',
+      params: params as unknown as Record<string, unknown>,
+    });
+    return body;
+  }
+
+  async fillForms(fileBytes: Buffer, csvBytes: Buffer, params: FillFormsParams): Promise<Buffer> {
+    const pdfFile = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
+    const csvFile = createBytesFile(ContentType.CSV, csvBytes, 'fields.csv');
+    const { body } = await this._client.run('generations', [pdfFile, csvFile], {
+      method: 'fill-forms',
+      params: params as Record<string, unknown>,
+    });
+    return body;
+  }
+
+  async extractExpenseData(fileBytes: Buffer): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'document.pdf');
+    const { body } = await this._client.run('extractions', file, {
+      method: 'extract-expense-data',
+      params: {},
+      acceptFormat: 'json',
+    });
+    return this._extractResult(body);
   }
 }
