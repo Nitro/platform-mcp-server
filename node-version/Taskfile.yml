@@ -57,6 +57,15 @@ tasks:
       - task: bundle
       - npx @anthropic-ai/mcpb pack . ../build/nitro-pdf-services-node-{{.VERSION}}.mcpb
 
+  deploy-viewer:
+    desc: Copy viewer-app/index.html into the installed Claude Desktop extension (hot-reload without reinstalling mcpb)
+    vars:
+      EXT_DIR: "{{.HOME}}/Library/Application Support/Claude/Claude Extensions/local.mcpb.nitro-software-inc..nitro-mcp"
+    cmds:
+      - cp viewer-app/index.html "{{.EXT_DIR}}/viewer-app/index.html"
+      - cp viewer-app/index.html "{{.EXT_DIR}}/dist/viewer-app/index.html"
+      - echo "✓ viewer deployed"
+
   clean:
     desc: Clean build artifacts
     cmds:

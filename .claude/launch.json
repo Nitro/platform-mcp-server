@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "nitro-viewer",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["-e", "setTimeout(()=>{},999999999)"],
+      "port": 3742
+    }
+  ]
+}
