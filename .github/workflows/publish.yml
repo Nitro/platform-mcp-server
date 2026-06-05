@@ -17,8 +17,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
-        with:
-          persist-credentials: false
 
       - name: Resolve version
         id: version
