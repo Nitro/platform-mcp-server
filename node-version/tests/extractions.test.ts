@@ -82,22 +82,35 @@ describe('extraction tools', () => {
   });
 
   describe('get_pdf_metadata', () => {
-    it('returns output filename', async () => {
+    it('returns metadata json inline by default', async () => {
       filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
-      platformHandlerMock.getPdfMetadata.mockResolvedValue(Buffer.from('{}'));
-      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-metadata.json'));
+      platformHandlerMock.getPdfMetadata.mockResolvedValue(Buffer.from('{"title":"the-title"}'));
 
       await caller.call(
         'get_pdf_metadata',
         { inputPath: path.join(tmpDir, 'doc.pdf') },
-        { expectedResult: { outputFilename: 'doc-metadata.json' } },
+        { expectedResult: { data: { title: 'the-title' } } },
       );
 
       expect(filesHandlerMock.read).toHaveBeenCalledWith(path.join(tmpDir, 'doc.pdf'));
       expect(platformHandlerMock.getPdfMetadata).toHaveBeenCalledWith(Buffer.from('pdf-bytes'));
+      expect(filesHandlerMock.write).not.toHaveBeenCalled();
+    });
+
+    it('writes metadata to file when outputTarget is file', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.getPdfMetadata.mockResolvedValue(Buffer.from('{"title":"the-title"}'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-metadata.json'));
+
+      await caller.call(
+        'get_pdf_metadata',
+        { inputPath: path.join(tmpDir, 'doc.pdf'), outputTarget: 'file' },
+        { expectedResult: { outputFilename: 'doc-metadata.json' } },
+      );
+
       expect(filesHandlerMock.write).toHaveBeenCalledWith(
         path.join(tmpDir, 'doc.pdf'),
-        Buffer.from('{}'),
+        Buffer.from('{"title":"the-title"}'),
         { stemSuffix: 'metadata', ext: 'json' },
       );
     });
@@ -117,15 +130,14 @@ describe('extraction tools', () => {
   });
 
   describe('extract_pdf_forms', () => {
-    it('extracts forms as JSON when outputFormat is json', async () => {
+    it('returns forms JSON inline by default when outputFormat is json', async () => {
       filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
       platformHandlerMock.extractPdfData.mockResolvedValue(Buffer.from('{"fields":[]}'));
-      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-forms.json'));
 
       await caller.call(
         'extract_pdf_forms',
         { inputPath: path.join(tmpDir, 'doc.pdf'), outputFormat: 'json' },
-        { expectedResult: { outputFilename: 'doc-forms.json', dataType: 'forms' } },
+        { expectedResult: { dataType: 'forms', data: { fields: [] } } },
       );
 
       expect(platformHandlerMock.extractPdfData).toHaveBeenCalledWith(
@@ -133,11 +145,45 @@ describe('extraction tools', () => {
         'forms',
         { language: 'en' },
       );
+      expect(filesHandlerMock.write).not.toHaveBeenCalled();
+    });
+
+    it('writes forms JSON to file when outputTarget is file', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.extractPdfData.mockResolvedValue(Buffer.from('{"fields":[]}'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-forms.json'));
+
+      await caller.call(
+        'extract_pdf_forms',
+        { inputPath: path.join(tmpDir, 'doc.pdf'), outputFormat: 'json', outputTarget: 'file' },
+        { expectedResult: { dataType: 'forms', outputFilename: 'doc-forms.json' } },
+      );
+
       expect(filesHandlerMock.write).toHaveBeenCalledWith(
         path.join(tmpDir, 'doc.pdf'),
         Buffer.from('{"fields":[]}'),
         { stemSuffix: 'forms', ext: 'json' },
       );
+    });
+
+    it('returns inline and writes file when outputTarget is both', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.extractPdfData.mockResolvedValue(Buffer.from('{"fields":[]}'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-forms.json'));
+
+      await caller.call(
+        'extract_pdf_forms',
+        { inputPath: path.join(tmpDir, 'doc.pdf'), outputFormat: 'json', outputTarget: 'both' },
+        {
+          expectedResult: {
+            dataType: 'forms',
+            data: { fields: [] },
+            outputFilename: 'doc-forms.json',
+          },
+        },
+      );
+
+      expect(filesHandlerMock.write).toHaveBeenCalledTimes(1);
     });
 
     it('extracts forms as Excel by default', async () => {
@@ -197,21 +243,39 @@ describe('extraction tools', () => {
   });
 
   describe('extract_pdf_tables', () => {
-    it('extracts tables as JSON when outputFormat is json', async () => {
+    it('returns tables JSON inline by default when outputFormat is json', async () => {
       filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
       platformHandlerMock.extractPdfData.mockResolvedValue(Buffer.from('{"tables":[]}'));
-      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-tables.json'));
 
       await caller.call(
         'extract_pdf_tables',
         { inputPath: path.join(tmpDir, 'doc.pdf'), outputFormat: 'json' },
-        { expectedResult: { outputFilename: 'doc-tables.json', dataType: 'tables' } },
+        { expectedResult: { dataType: 'tables', data: { tables: [] } } },
       );
 
       expect(platformHandlerMock.extractPdfData).toHaveBeenCalledWith(
         Buffer.from('pdf-bytes'),
         'tables',
         {},
+      );
+      expect(filesHandlerMock.write).not.toHaveBeenCalled();
+    });
+
+    it('writes tables JSON to file when outputTarget is file', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.extractPdfData.mockResolvedValue(Buffer.from('{"tables":[]}'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-tables.json'));
+
+      await caller.call(
+        'extract_pdf_tables',
+        { inputPath: path.join(tmpDir, 'doc.pdf'), outputFormat: 'json', outputTarget: 'file' },
+        { expectedResult: { dataType: 'tables', outputFilename: 'doc-tables.json' } },
+      );
+
+      expect(filesHandlerMock.write).toHaveBeenCalledWith(
+        path.join(tmpDir, 'doc.pdf'),
+        Buffer.from('{"tables":[]}'),
+        { stemSuffix: 'tables', ext: 'json' },
       );
     });
 
@@ -274,7 +338,27 @@ describe('extraction tools', () => {
   });
 
   describe('extract_pdf_text', () => {
-    it('extracts text and returns word/character counts', async () => {
+    it('returns text inline by default with word/character counts', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.extractPdfData.mockResolvedValue(
+        Buffer.from(JSON.stringify('hello world')),
+      );
+
+      await caller.call(
+        'extract_pdf_text',
+        { inputPath: path.join(tmpDir, 'doc.pdf') },
+        { expectedResult: { wordCount: 2, characterCount: 11, text: 'hello world' } },
+      );
+
+      expect(platformHandlerMock.extractPdfData).toHaveBeenCalledWith(
+        Buffer.from('pdf-bytes'),
+        'text',
+        { readingOrder: false },
+      );
+      expect(filesHandlerMock.write).not.toHaveBeenCalled();
+    });
+
+    it('writes text file when outputTarget is file', async () => {
       filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
       platformHandlerMock.extractPdfData.mockResolvedValue(
         Buffer.from(JSON.stringify('hello world')),
@@ -283,15 +367,10 @@ describe('extraction tools', () => {
 
       await caller.call(
         'extract_pdf_text',
-        { inputPath: path.join(tmpDir, 'doc.pdf') },
-        { expectedResult: { outputFilename: 'doc-text.txt', wordCount: 2, characterCount: 11 } },
+        { inputPath: path.join(tmpDir, 'doc.pdf'), outputTarget: 'file' },
+        { expectedResult: { wordCount: 2, characterCount: 11, outputFilename: 'doc-text.txt' } },
       );
 
-      expect(platformHandlerMock.extractPdfData).toHaveBeenCalledWith(
-        Buffer.from('pdf-bytes'),
-        'text',
-        { readingOrder: false },
-      );
       expect(filesHandlerMock.write).toHaveBeenCalledWith(
         path.join(tmpDir, 'doc.pdf'),
         Buffer.from('hello world'),
@@ -319,7 +398,23 @@ describe('extraction tools', () => {
   });
 
   describe('extract_invoice_data', () => {
-    it('returns output filename', async () => {
+    it('returns invoice data inline by default', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.extractExpenseData.mockResolvedValue(
+        Buffer.from('{"vendor":"vendor-name"}'),
+      );
+
+      await caller.call(
+        'extract_invoice_data',
+        { inputPath: path.join(tmpDir, 'doc.pdf') },
+        { expectedResult: { data: { vendor: 'vendor-name' } } },
+      );
+
+      expect(platformHandlerMock.extractExpenseData).toHaveBeenCalledWith(Buffer.from('pdf-bytes'));
+      expect(filesHandlerMock.write).not.toHaveBeenCalled();
+    });
+
+    it('writes invoice data to file when outputTarget is file', async () => {
       filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
       platformHandlerMock.extractExpenseData.mockResolvedValue(
         Buffer.from('{"vendor":"vendor-name"}'),
@@ -328,11 +423,10 @@ describe('extraction tools', () => {
 
       await caller.call(
         'extract_invoice_data',
-        { inputPath: path.join(tmpDir, 'doc.pdf') },
+        { inputPath: path.join(tmpDir, 'doc.pdf'), outputTarget: 'file' },
         { expectedResult: { outputFilename: 'doc-invoice.json' } },
       );
 
-      expect(platformHandlerMock.extractExpenseData).toHaveBeenCalledWith(Buffer.from('pdf-bytes'));
       expect(filesHandlerMock.write).toHaveBeenCalledWith(
         path.join(tmpDir, 'doc.pdf'),
         Buffer.from('{"vendor":"vendor-name"}'),
@@ -375,7 +469,7 @@ describe('extraction tools', () => {
   });
 
   describe('search_text_in_pdf', () => {
-    it('returns total matches and unique texts found', async () => {
+    it('returns matches inline by default with summary counts', async () => {
       const searchResult = {
         textBoxes: [{ text: 'hello' }, { text: 'hello' }, { text: 'world' }],
       };
@@ -383,16 +477,15 @@ describe('extraction tools', () => {
       platformHandlerMock.extractTextBoundingBoxes.mockResolvedValue(
         Buffer.from(JSON.stringify(searchResult)),
       );
-      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-search.json'));
 
       await caller.call(
         'search_text_in_pdf',
         { inputPath: path.join(tmpDir, 'doc.pdf'), texts: ['hello', 'world'] },
         {
           expectedResult: {
-            outputFilename: 'doc-search.json',
             totalMatches: 3,
             uniqueTextsFound: 2,
+            data: searchResult,
           },
         },
       );
@@ -401,6 +494,32 @@ describe('extraction tools', () => {
         Buffer.from('pdf-bytes'),
         ['hello', 'world'],
       );
+      expect(filesHandlerMock.write).not.toHaveBeenCalled();
+    });
+
+    it('writes search results to file when outputTarget is file', async () => {
+      const searchResult = { textBoxes: [{ text: 'hello' }] };
+      const buffer = Buffer.from(JSON.stringify(searchResult));
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.extractTextBoundingBoxes.mockResolvedValue(buffer);
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-search.json'));
+
+      await caller.call(
+        'search_text_in_pdf',
+        { inputPath: path.join(tmpDir, 'doc.pdf'), texts: ['hello'], outputTarget: 'file' },
+        {
+          expectedResult: {
+            totalMatches: 1,
+            uniqueTextsFound: 1,
+            outputFilename: 'doc-search.json',
+          },
+        },
+      );
+
+      expect(filesHandlerMock.write).toHaveBeenCalledWith(path.join(tmpDir, 'doc.pdf'), buffer, {
+        stemSuffix: 'search',
+        ext: 'json',
+      });
     });
 
     it('returns error when platform handler throws', async () => {
