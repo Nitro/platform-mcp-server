@@ -18,8 +18,8 @@ export const outputTargetSchema = z
   .enum(['inline', 'file', 'both'])
   .default('inline')
   .describe(
-    "Where to send the extracted JSON data. 'inline' (default) returns the data " +
-      'directly in the tool result so you can use it immediately or feed it into a ' +
+    "Where to send the extracted output (JSON or text). 'inline' (default) returns the " +
+      'data directly in the tool result so you can use it immediately or feed it into a ' +
       "follow-up step. 'file' writes the data to a file on disk and returns only the " +
       "filename (use when the user wants to keep the data). 'both' does both. " +
       "Prefer 'inline' for chained or transient work; choose 'file'/'both' only when " +

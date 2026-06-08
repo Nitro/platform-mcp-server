@@ -272,7 +272,9 @@ export function register(server: McpServer, context: AppContext): void {
     {
       description:
         'Use this tool to search for specific text strings in a PDF and get their locations. ' +
-        'Returns a JSON file with bounding box coordinates for each match.',
+        'Returns bounding box coordinates for each match. By default (outputTarget "inline") ' +
+        'the matches are returned directly in the result; set outputTarget to "file" or "both" ' +
+        'to also write them to a JSON file on disk.',
       inputSchema: {
         ...singleFileInputSchema.shape,
         texts: z.array(z.string()).min(1).describe('List of text strings to search for in the PDF'),
