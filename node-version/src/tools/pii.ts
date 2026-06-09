@@ -5,7 +5,8 @@ import { z } from 'zod';
 import type { AppContext } from '../context.js';
 import { getDep } from '../context.js';
 import { handleToolError, UserFacingError } from '../errors.js';
-import { singleFileInputSchema } from '../models.js';
+import { outputTargetSchema, singleFileInputSchema } from '../models.js';
+import { jsonResult } from './jsonOutput.js';
 
 interface _PIIBox {
   PIIType: string;
@@ -59,13 +60,16 @@ export function register(server: McpServer, context: AppContext): void {
     {
       description:
         'Use this tool to extract PII (Personally Identifiable Information) from a PDF file. ' +
-        'Returns a JSON file with detected PII entities, bounding boxes, and confidence scores.',
+        'Returns detected PII entities, bounding boxes, and confidence scores. By default ' +
+        '(outputTarget "inline") the detections are returned directly in the result; set ' +
+        'outputTarget to "file" or "both" to also write them to a JSON file on disk.',
       inputSchema: {
         ...singleFileInputSchema.shape,
         language: z
           .enum(['en', 'es'])
           .default('en')
           .describe('Language code for PII detection (en=English, es=Spanish)'),
+        outputTarget: outputTargetSchema,
       },
       annotations: READ_ONLY('Extract PII'),
     },
@@ -91,15 +95,14 @@ export function register(server: McpServer, context: AppContext): void {
               ) / 1000
             : 0;
 
-        const outputPath = filesHandler.write(args.inputPath, piiJson, {
+        return jsonResult({
+          outputTarget: args.outputTarget,
+          data: piiResult,
+          bytes: piiJson,
+          filesHandler,
+          inputPath: args.inputPath,
           stemSuffix: 'pii',
-          ext: 'json',
-        });
-
-        return _successResult(path.basename(outputPath), {
-          totalEntities,
-          entitiesByType,
-          averageConfidence,
+          extra: { totalEntities, entitiesByType, averageConfidence },
         });
       } catch (err) {
         return handleToolError('extract_pii', err);
@@ -126,8 +129,10 @@ export function register(server: McpServer, context: AppContext): void {
           .string()
           .optional()
           .describe(
-            'Full path to PII detection JSON file (from extract_pii tool). ' +
-              'If provided, redactions will be extracted automatically from this file.',
+            'Full path to PII detection JSON file (from extract_pii with outputTarget ' +
+              "'file' or 'both'). If provided, redactions will be extracted automatically " +
+              'from this file. To redact only a subset of detected PII (e.g. just names ' +
+              'and emails), omit this and pass the chosen bounding boxes via redactions instead.',
           ),
       },
       annotations: DESTRUCTIVE('Redact PDF'),

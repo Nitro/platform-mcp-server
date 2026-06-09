@@ -5,7 +5,8 @@ import { z } from 'zod';
 import type { AppContext } from '../context.js';
 import { getDep } from '../context.js';
 import { handleToolError, UserFacingError } from '../errors.js';
-import { singleFileInputSchema } from '../models.js';
+import { outputTargetSchema, singleFileInputSchema } from '../models.js';
+import { jsonResult } from './jsonOutput.js';
 import {
   createFormsExcel,
   createTablesExcel,
@@ -32,7 +33,10 @@ export function register(server: McpServer, context: AppContext): void {
     'get_pdf_metadata',
     {
       description: 'Use this tool when the user asks for the metadata of a PDF file.',
-      inputSchema: singleFileInputSchema.shape,
+      inputSchema: {
+        ...singleFileInputSchema.shape,
+        outputTarget: outputTargetSchema,
+      },
       annotations: READ_ONLY('Get PDF Metadata'),
     },
     async (args) => {
@@ -42,12 +46,15 @@ export function register(server: McpServer, context: AppContext): void {
 
         const inputBytes = filesHandler.read(args.inputPath);
         const metadata = await platformHandler.getPdfMetadata(inputBytes);
-        const outputPath = filesHandler.write(args.inputPath, metadata, {
-          stemSuffix: 'metadata',
-          ext: 'json',
-        });
 
-        return _successResult(path.basename(outputPath));
+        return jsonResult({
+          outputTarget: args.outputTarget,
+          data: JSON.parse(metadata.toString()),
+          bytes: metadata,
+          filesHandler,
+          inputPath: args.inputPath,
+          stemSuffix: 'metadata',
+        });
       } catch (err) {
         return handleToolError('get_pdf_metadata', err);
       }
@@ -67,6 +74,7 @@ export function register(server: McpServer, context: AppContext): void {
           .describe(
             "Output format: 'excel' (always the default) or 'json' if explicitly requested",
           ),
+        outputTarget: outputTargetSchema,
       },
       annotations: READ_ONLY('Extract PDF Forms'),
     },
@@ -80,25 +88,28 @@ export function register(server: McpServer, context: AppContext): void {
           language: args.language,
         });
 
-        let outputPath: string;
         if (args.outputFormat === 'excel') {
           const formsResult = JSON.parse(result.toString()) as FormsResult;
           if (formsResult.fields.length === 0) {
             throw new UserFacingError('No data available to generate Excel output');
           }
           const excelBytes = await createFormsExcel(formsResult, path.basename(args.inputPath));
-          outputPath = filesHandler.write(args.inputPath, excelBytes, {
+          const outputPath = filesHandler.write(args.inputPath, excelBytes, {
             stemSuffix: 'forms',
             ext: 'xlsx',
           });
-        } else {
-          outputPath = filesHandler.write(args.inputPath, result, {
-            stemSuffix: 'forms',
-            ext: 'json',
-          });
+          return _successResult(path.basename(outputPath), { dataType: 'forms' });
         }
 
-        return _successResult(path.basename(outputPath), { dataType: 'forms' });
+        return jsonResult({
+          outputTarget: args.outputTarget,
+          data: JSON.parse(result.toString()),
+          bytes: result,
+          filesHandler,
+          inputPath: args.inputPath,
+          stemSuffix: 'forms',
+          extra: { dataType: 'forms' },
+        });
       } catch (err) {
         return handleToolError('extract_pdf_forms', err);
       }
@@ -121,6 +132,7 @@ export function register(server: McpServer, context: AppContext): void {
           .describe(
             "Output format: 'excel' (always the default) or 'json' if explicitly requested",
           ),
+        outputTarget: outputTargetSchema,
       },
       annotations: READ_ONLY('Extract PDF Tables'),
     },
@@ -133,25 +145,28 @@ export function register(server: McpServer, context: AppContext): void {
         const params = args.pageIndices !== undefined ? { pageIndices: args.pageIndices } : {};
         const result = await platformHandler.extractPdfData(inputBytes, 'tables', params);
 
-        let outputPath: string;
         if (args.outputFormat === 'excel') {
           const tablesResult = JSON.parse(result.toString()) as TablesResult;
           if (tablesResult.tables.length === 0) {
             throw new UserFacingError('No data available to generate Excel output');
           }
           const excelBytes = await createTablesExcel(tablesResult, path.basename(args.inputPath));
-          outputPath = filesHandler.write(args.inputPath, excelBytes, {
+          const outputPath = filesHandler.write(args.inputPath, excelBytes, {
             stemSuffix: 'tables',
             ext: 'xlsx',
           });
-        } else {
-          outputPath = filesHandler.write(args.inputPath, result, {
-            stemSuffix: 'tables',
-            ext: 'json',
-          });
+          return _successResult(path.basename(outputPath), { dataType: 'tables' });
         }
 
-        return _successResult(path.basename(outputPath), { dataType: 'tables' });
+        return jsonResult({
+          outputTarget: args.outputTarget,
+          data: JSON.parse(result.toString()),
+          bytes: result,
+          filesHandler,
+          inputPath: args.inputPath,
+          stemSuffix: 'tables',
+          extra: { dataType: 'tables' },
+        });
       } catch (err) {
         return handleToolError('extract_pdf_tables', err);
       }
@@ -172,6 +187,7 @@ export function register(server: McpServer, context: AppContext): void {
           .boolean()
           .default(false)
           .describe('Whether to use reading order for text extraction'),
+        outputTarget: outputTargetSchema,
       },
       annotations: READ_ONLY('Extract PDF Text'),
     },
@@ -193,12 +209,22 @@ export function register(server: McpServer, context: AppContext): void {
         const wordCount = extractedText.split(/\s+/).filter((w) => w.length > 0).length;
         const characterCount = extractedText.length;
 
-        const outputPath = filesHandler.write(args.inputPath, Buffer.from(extractedText), {
-          stemSuffix: 'text',
-          ext: 'txt',
-        });
+        const structured: Record<string, unknown> = { wordCount, characterCount };
+        if (args.outputTarget === 'inline' || args.outputTarget === 'both') {
+          structured.data = extractedText;
+        }
+        if (args.outputTarget === 'file' || args.outputTarget === 'both') {
+          const outputPath = filesHandler.write(args.inputPath, Buffer.from(extractedText), {
+            stemSuffix: 'text',
+            ext: 'txt',
+          });
+          structured.outputFilename = path.basename(outputPath);
+        }
 
-        return _successResult(path.basename(outputPath), { wordCount, characterCount });
+        return {
+          structuredContent: structured,
+          content: [{ type: 'text' as const, text: JSON.stringify(structured) }],
+        };
       } catch (err) {
         return handleToolError('extract_pdf_text', err);
       }
@@ -211,7 +237,10 @@ export function register(server: McpServer, context: AppContext): void {
       description:
         'Use this tool to extract structured invoice or expense data from a PDF, ' +
         'such as vendor details, line items, totals, and dates.',
-      inputSchema: singleFileInputSchema.shape,
+      inputSchema: {
+        ...singleFileInputSchema.shape,
+        outputTarget: outputTargetSchema,
+      },
       annotations: READ_ONLY('Extract Invoice Data'),
     },
     async (args) => {
@@ -221,12 +250,15 @@ export function register(server: McpServer, context: AppContext): void {
 
         const inputBytes = filesHandler.read(args.inputPath);
         const result = await platformHandler.extractExpenseData(inputBytes);
-        const outputPath = filesHandler.write(args.inputPath, result, {
-          stemSuffix: 'invoice',
-          ext: 'json',
-        });
 
-        return _successResult(path.basename(outputPath));
+        return jsonResult({
+          outputTarget: args.outputTarget,
+          data: JSON.parse(result.toString()),
+          bytes: result,
+          filesHandler,
+          inputPath: args.inputPath,
+          stemSuffix: 'invoice',
+        });
       } catch (err) {
         return handleToolError('extract_invoice_data', err);
       }
@@ -240,10 +272,13 @@ export function register(server: McpServer, context: AppContext): void {
     {
       description:
         'Use this tool to search for specific text strings in a PDF and get their locations. ' +
-        'Returns a JSON file with bounding box coordinates for each match.',
+        'Returns bounding box coordinates for each match. By default (outputTarget "inline") ' +
+        'the matches are returned directly in the result; set outputTarget to "file" or "both" ' +
+        'to also write them to a JSON file on disk.',
       inputSchema: {
         ...singleFileInputSchema.shape,
         texts: z.array(z.string()).min(1).describe('List of text strings to search for in the PDF'),
+        outputTarget: outputTargetSchema,
       },
       annotations: READ_ONLY('Search Text in PDF'),
     },
@@ -259,12 +294,15 @@ export function register(server: McpServer, context: AppContext): void {
         const totalMatches = parsed.textBoxes.length;
         const uniqueTextsFound = new Set(parsed.textBoxes.map((b) => b.text)).size;
 
-        const outputPath = filesHandler.write(args.inputPath, resultBuffer, {
+        return jsonResult({
+          outputTarget: args.outputTarget,
+          data: parsed,
+          bytes: resultBuffer,
+          filesHandler,
+          inputPath: args.inputPath,
           stemSuffix: 'search',
-          ext: 'json',
+          extra: { totalMatches, uniqueTextsFound },
         });
-
-        return _successResult(path.basename(outputPath), { totalMatches, uniqueTextsFound });
       } catch (err) {
         return handleToolError('search_text_in_pdf', err);
       }

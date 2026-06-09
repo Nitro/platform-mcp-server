@@ -82,32 +82,59 @@ describe('PII tools', () => {
   });
 
   describe('extract_pii', () => {
-    it('returns stats and output filename', async () => {
-      const piiResult = {
-        PIIBoxes: [
-          {
-            PIIType: 'EMAIL',
-            text: 'a@b.com',
-            confidence: 0.9,
-            pageIndex: 0,
-            boundingBox: [0, 0, 10, 10],
+    const piiResult = {
+      PIIBoxes: [
+        {
+          PIIType: 'EMAIL',
+          text: 'a@b.com',
+          confidence: 0.9,
+          pageIndex: 0,
+          boundingBox: [0, 0, 10, 10],
+        },
+        {
+          PIIType: 'EMAIL',
+          text: 'c@d.com',
+          confidence: 0.8,
+          pageIndex: 1,
+          boundingBox: [0, 0, 10, 10],
+        },
+        {
+          PIIType: 'NAME',
+          text: 'Jane',
+          confidence: 1.0,
+          pageIndex: 0,
+          boundingBox: [0, 0, 10, 10],
+        },
+      ],
+    };
+
+    it('returns stats and detections inline by default', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.extractPiiBoundingBoxes.mockResolvedValue(
+        Buffer.from(JSON.stringify(piiResult)),
+      );
+
+      await caller.call(
+        'extract_pii',
+        { inputPath: path.join(tmpDir, 'doc.pdf') },
+        {
+          expectedResult: {
+            totalEntities: 3,
+            entitiesByType: { EMAIL: 2, NAME: 1 },
+            averageConfidence: 0.9,
+            data: piiResult,
           },
-          {
-            PIIType: 'EMAIL',
-            text: 'c@d.com',
-            confidence: 0.8,
-            pageIndex: 1,
-            boundingBox: [0, 0, 10, 10],
-          },
-          {
-            PIIType: 'NAME',
-            text: 'Jane',
-            confidence: 1.0,
-            pageIndex: 0,
-            boundingBox: [0, 0, 10, 10],
-          },
-        ],
-      };
+        },
+      );
+
+      expect(platformHandlerMock.extractPiiBoundingBoxes).toHaveBeenCalledWith(
+        Buffer.from('pdf-bytes'),
+        'en',
+      );
+      expect(filesHandlerMock.write).not.toHaveBeenCalled();
+    });
+
+    it('writes detections to file when outputTarget is file', async () => {
       filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
       platformHandlerMock.extractPiiBoundingBoxes.mockResolvedValue(
         Buffer.from(JSON.stringify(piiResult)),
@@ -116,7 +143,7 @@ describe('PII tools', () => {
 
       await caller.call(
         'extract_pii',
-        { inputPath: path.join(tmpDir, 'doc.pdf') },
+        { inputPath: path.join(tmpDir, 'doc.pdf'), outputTarget: 'file' },
         {
           expectedResult: {
             outputFilename: 'doc-pii.json',
@@ -127,10 +154,6 @@ describe('PII tools', () => {
         },
       );
 
-      expect(platformHandlerMock.extractPiiBoundingBoxes).toHaveBeenCalledWith(
-        Buffer.from('pdf-bytes'),
-        'en',
-      );
       expect(filesHandlerMock.write).toHaveBeenCalledWith(
         path.join(tmpDir, 'doc.pdf'),
         Buffer.from(JSON.stringify(piiResult)),

@@ -529,7 +529,8 @@ export function register(server: McpServer, context: AppContext): void {
               'Supported formats: JPG, JPEG, PNG, TIFF, BMP, GIF, SVG.',
           ),
         boundingBox: z
-          .tuple([z.number(), z.number(), z.number(), z.number()])
+          .array(z.number())
+          .length(4)
           .optional()
           .nullable()
           .describe(

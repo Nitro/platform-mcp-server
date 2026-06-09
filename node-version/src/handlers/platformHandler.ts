@@ -78,7 +78,7 @@ export interface PdfMetadata {
 }
 
 export interface WatermarkParams {
-  readonly boundingBox?: [number, number, number, number] | null;
+  readonly boundingBox?: number[] | null;
   readonly centerOnPage?: boolean;
   readonly contentDepth?: 'above_existing' | 'below_existing';
   readonly fitToPageWidth?: boolean;

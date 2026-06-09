@@ -54,6 +54,9 @@ The codebase is **fully typed**. Treat any type error as a build failure.
 - **Settings decoupling** — each class should define and accept its own settings, thus decoupled from global config
 - **Always prefer awaits over promise chains** — use `await` + `try/catch` instead of `.then()` / `.catch()` chains; `Promise.all` is fine
 - **No nested functions** — define helpers at module scope (prefixed with `_` if private) rather than inside other functions
+- **JSON-returning tools must use `outputTarget`** — any tool that produces JSON takes the shared `outputTargetSchema` param (`inline` | `file` | `both`, default `inline`) and returns via the `jsonResult` helper in `node-version/src/tools/jsonOutput.ts`.
+  Inline returns parsed data under `data` so Claude can chain steps; `file`/`both` write to disk and return `outputFilename`.
+  Default inline so transient flows don't litter the working folder. (Binary outputs like Excel/PDF remain file-only and are orthogonal to `outputTarget`.)
 
 ## Sub-Agents
 
