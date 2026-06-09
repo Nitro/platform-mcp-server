@@ -211,7 +211,7 @@ export function register(server: McpServer, context: AppContext): void {
 
         const structured: Record<string, unknown> = { wordCount, characterCount };
         if (args.outputTarget === 'inline' || args.outputTarget === 'both') {
-          structured.text = extractedText;
+          structured.data = extractedText;
         }
         if (args.outputTarget === 'file' || args.outputTarget === 'both') {
           const outputPath = filesHandler.write(args.inputPath, Buffer.from(extractedText), {

@@ -347,7 +347,7 @@ describe('extraction tools', () => {
       await caller.call(
         'extract_pdf_text',
         { inputPath: path.join(tmpDir, 'doc.pdf') },
-        { expectedResult: { wordCount: 2, characterCount: 11, text: 'hello world' } },
+        { expectedResult: { wordCount: 2, characterCount: 11, data: 'hello world' } },
       );
 
       expect(platformHandlerMock.extractPdfData).toHaveBeenCalledWith(
