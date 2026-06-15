@@ -65,14 +65,6 @@ export const FileFormat = {
 
 export type FileFormat = (typeof FileFormat)[keyof typeof FileFormat];
 
-export const CompressionLevel = {
-  LIGHT: 'light',
-  MEDIUM: 'medium',
-  HEAVY: 'heavy',
-} as const;
-
-export type CompressionLevel = (typeof CompressionLevel)[keyof typeof CompressionLevel];
-
 export const fileFormatValues = new Set<string>(Object.values(FileFormat));
 
 export function isFileFormat(value: string): value is FileFormat {

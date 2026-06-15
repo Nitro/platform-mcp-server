@@ -35,7 +35,7 @@ export async function main(): Promise<void> {
       instructions:
         "PDF processing tools backed by Nitro's Document Intelligence Platform." +
         ' Capabilities: discover local files (list_files); convert between PDF and' +
-        ' Office or image formats (convert_file); merge, split, rotate, compress,' +
+        ' Office or image formats (convert_file); merge, split, rotate,' +
         ' protect, unprotect, flatten, and redact PDFs; delete pages; get and set PDF' +
         ' metadata; and extract text, tables, form fields, or PII (with bounding boxes' +
         ' and confidence scores) from PDFs. Each tool operates on a local file path —' +
