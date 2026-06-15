@@ -279,29 +279,35 @@ export function register(server: McpServer, context: AppContext): void {
         'set outputTarget to "file" or "both" to also write them to a JSON file on disk.',
       inputSchema: {
         ...singleFileInputSchema.shape,
-        texts: z
-          .array(z.string())
+        queries: z
+          .array(
+            z.object({
+              text: z.string().min(1).describe('Literal text or regular expression to search for'),
+              isRegex: z
+                .boolean()
+                .optional()
+                .describe('Treat text as a regular expression instead of literal text'),
+              regexFlags: z
+                .array(z.enum(REGEX_FLAGS))
+                .optional()
+                .describe(
+                  'Regex flags (ignore-case, multiline, dot-all); ' +
+                    'only allowed when isRegex is true',
+                ),
+            }),
+          )
           .min(1)
-          .describe('List of values to search for in the PDF; each value becomes one query'),
-        isRegex: z
-          .boolean()
-          .optional()
-          .describe('Treat each search value as a regular expression instead of literal text'),
-        regexFlags: z
-          .array(z.enum(REGEX_FLAGS))
-          .optional()
-          .describe(
-            'Regex flags applied to every query (ignore-case, multiline, dot-all); ' +
-              'only allowed when isRegex is true',
-          ),
+          .describe('Search queries; each is matched independently and returned in request order'),
         outputTarget: outputTargetSchema,
       },
       annotations: READ_ONLY('Search Text in PDF'),
     },
     async (args) => {
       try {
-        if (args.regexFlags && args.regexFlags.length > 0 && !args.isRegex) {
-          throw new UserFacingError('regexFlags can only be provided when isRegex is true');
+        for (const query of args.queries) {
+          if (query.regexFlags && query.regexFlags.length > 0 && !query.isRegex) {
+            throw new UserFacingError('regexFlags can only be provided when isRegex is true');
+          }
         }
 
         const filesHandler = getDep(context, 'filesHandler');
@@ -310,11 +316,7 @@ export function register(server: McpServer, context: AppContext): void {
         const inputBytes = filesHandler.read(args.inputPath);
         const resultBuffer = await platformHandler.extractTextBoundingBoxes(
           inputBytes,
-          args.texts,
-          {
-            isRegex: args.isRegex,
-            regexFlags: args.regexFlags,
-          },
+          args.queries,
         );
 
         const parsed = JSON.parse(resultBuffer.toString()) as {

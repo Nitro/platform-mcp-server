@@ -486,7 +486,10 @@ describe('extraction tools', () => {
 
       await caller.call(
         'search_text_in_pdf',
-        { inputPath: path.join(tmpDir, 'doc.pdf'), texts: ['hello', 'world'] },
+        {
+          inputPath: path.join(tmpDir, 'doc.pdf'),
+          queries: [{ text: 'hello' }, { text: 'world' }],
+        },
         {
           expectedResult: {
             totalMatches: 3,
@@ -498,13 +501,12 @@ describe('extraction tools', () => {
 
       expect(platformHandlerMock.extractTextBoundingBoxes).toHaveBeenCalledWith(
         Buffer.from('pdf-bytes'),
-        ['hello', 'world'],
-        { isRegex: undefined, regexFlags: undefined },
+        [{ text: 'hello' }, { text: 'world' }],
       );
       expect(filesHandlerMock.write).not.toHaveBeenCalled();
     });
 
-    it('forwards regex options to the platform handler', async () => {
+    it('forwards per-query regex options to the platform handler', async () => {
       const searchResult = {
         textBoxes: [{ query: { text: '[0-9]+' }, matches: [{ matchedText: '42' }] }],
       };
@@ -517,17 +519,17 @@ describe('extraction tools', () => {
         'search_text_in_pdf',
         {
           inputPath: path.join(tmpDir, 'doc.pdf'),
-          texts: ['[0-9]+'],
-          isRegex: true,
-          regexFlags: ['ignore-case'],
+          queries: [
+            { text: 'Email' },
+            { text: '[0-9]+', isRegex: true, regexFlags: ['ignore-case'] },
+          ],
         },
         { expectedResult: { totalMatches: 1, uniqueTextsFound: 1, data: searchResult } },
       );
 
       expect(platformHandlerMock.extractTextBoundingBoxes).toHaveBeenCalledWith(
         Buffer.from('pdf-bytes'),
-        ['[0-9]+'],
-        { isRegex: true, regexFlags: ['ignore-case'] },
+        [{ text: 'Email' }, { text: '[0-9]+', isRegex: true, regexFlags: ['ignore-case'] }],
       );
     });
 
@@ -536,8 +538,7 @@ describe('extraction tools', () => {
         'search_text_in_pdf',
         {
           inputPath: path.join(tmpDir, 'doc.pdf'),
-          texts: ['hello'],
-          regexFlags: ['ignore-case'],
+          queries: [{ text: 'hello', regexFlags: ['ignore-case'] }],
         },
         { expectError: true },
       );
@@ -557,7 +558,11 @@ describe('extraction tools', () => {
 
       await caller.call(
         'search_text_in_pdf',
-        { inputPath: path.join(tmpDir, 'doc.pdf'), texts: ['hello'], outputTarget: 'file' },
+        {
+          inputPath: path.join(tmpDir, 'doc.pdf'),
+          queries: [{ text: 'hello' }],
+          outputTarget: 'file',
+        },
         {
           expectedResult: {
             totalMatches: 1,
@@ -579,7 +584,7 @@ describe('extraction tools', () => {
 
       await caller.call(
         'search_text_in_pdf',
-        { inputPath: path.join(tmpDir, 'doc.pdf'), texts: ['hello'] },
+        { inputPath: path.join(tmpDir, 'doc.pdf'), queries: [{ text: 'hello' }] },
         { expectError: true },
       );
 

@@ -86,7 +86,10 @@ describe('PlatformHandler', () => {
         contentType: 'application/json',
       });
 
-      await handler.extractTextBoundingBoxes(Buffer.from('pdf-bytes'), ['hello', 'world']);
+      await handler.extractTextBoundingBoxes(Buffer.from('pdf-bytes'), [
+        { text: 'hello' },
+        { text: 'world' },
+      ]);
 
       expect(runMock).toHaveBeenCalledWith(
         'extractions',
@@ -106,10 +109,9 @@ describe('PlatformHandler', () => {
         contentType: 'application/json',
       });
 
-      await handler.extractTextBoundingBoxes(Buffer.from('pdf-bytes'), ['[0-9]+'], {
-        isRegex: true,
-        regexFlags: ['ignore-case'],
-      });
+      await handler.extractTextBoundingBoxes(Buffer.from('pdf-bytes'), [
+        { text: '[0-9]+', isRegex: true, regexFlags: ['ignore-case'] },
+      ]);
 
       expect(runMock).toHaveBeenCalledWith(
         'extractions',
