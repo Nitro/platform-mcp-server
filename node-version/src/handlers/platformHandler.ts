@@ -429,10 +429,18 @@ export class PlatformHandler {
     return body;
   }
 
-  async fillForms(fileBytes: Buffer, csvBytes: Buffer, params: FillFormsParams): Promise<Buffer> {
+  async fillForms(
+    fileBytes: Buffer,
+    dataBytes: Buffer,
+    dataFormat: 'csv' | 'json',
+    params: FillFormsParams,
+  ): Promise<Buffer> {
     const pdfFile = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
-    const csvFile = createBytesFile(ContentType.CSV, csvBytes, 'fields.csv');
-    const { body } = await this._client.run('generations', [pdfFile, csvFile], {
+    const dataFile =
+      dataFormat === 'json'
+        ? createBytesFile(ContentType.JSON, dataBytes, 'fields.json')
+        : createBytesFile(ContentType.CSV, dataBytes, 'fields.csv');
+    const { body } = await this._client.run('generations', [pdfFile, dataFile], {
       method: 'fill-forms',
       params: params as Record<string, unknown>,
     });

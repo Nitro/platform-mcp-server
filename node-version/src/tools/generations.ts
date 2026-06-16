@@ -19,18 +19,8 @@ function _successResult(
   };
 }
 
-function _csvField(value: string): string {
-  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
-}
-
-function _fieldsToCsvBytes(fields: Record<string, string>): Buffer {
-  const entries = Object.entries(fields);
-  const header = entries.map(([name]) => _csvField(name)).join(',');
-  const values = entries.map(([, value]) => _csvField(value)).join(',');
-  return Buffer.from(`${header}\n${values}`, 'utf-8');
+function _fieldsToJsonBytes(fields: Record<string, string | number | boolean>): Buffer {
+  return Buffer.from(JSON.stringify(fields), 'utf-8');
 }
 
 export function register(server: McpServer, context: AppContext): void {
@@ -42,11 +32,12 @@ export function register(server: McpServer, context: AppContext): void {
       inputSchema: {
         ...singleFileInputSchema.shape,
         fields: z
-          .record(z.string())
+          .record(z.union([z.string(), z.number(), z.boolean()]))
           .optional()
           .describe(
-            'Map of form field names to their values. ' +
-              'Example: {"FirstName": "Jane", "LastName": "Doe", "Email": "jane@example.com"}',
+            'Map of form field names to their values. Values may be strings, numbers, or ' +
+              'booleans (use a boolean for checkbox fields). ' +
+              'Example: {"FirstName": "Jane", "Age": 30, "AgreeToTerms": true}',
           ),
         csvPath: z
           .string()
@@ -54,7 +45,16 @@ export function register(server: McpServer, context: AppContext): void {
           .describe(
             'Full path to a two-column CSV file (field name, value) containing form field values. ' +
               'Must include the directory — bare filenames are not accepted. ' +
-              'Provide either csvPath or fields, not both.',
+              'Provide exactly one of fields, csvPath, or jsonPath.',
+          ),
+        jsonPath: z
+          .string()
+          .optional()
+          .describe(
+            'Full path to a JSON file mapping form field names to values ' +
+              '(e.g. {"FirstName": "Jane", "LastName": "Doe"}). ' +
+              'Must include the directory — bare filenames are not accepted. ' +
+              'Provide exactly one of fields, csvPath, or jsonPath.',
           ),
         strict: z
           .boolean()
@@ -71,24 +71,34 @@ export function register(server: McpServer, context: AppContext): void {
         const filesHandler = getDep(context, 'filesHandler');
         const platformHandler = getDep(context, 'platformHandler');
 
-        if (args.fields === undefined && args.csvPath === undefined) {
-          throw new UserFacingError('Either fields or csvPath must be provided.');
+        const inputCount = [args.fields, args.csvPath, args.jsonPath].filter(
+          (value) => value !== undefined,
+        ).length;
+        if (inputCount === 0) {
+          throw new UserFacingError('One of fields, csvPath, or jsonPath must be provided.');
         }
-        if (args.fields !== undefined && args.csvPath !== undefined) {
-          throw new UserFacingError('Provide either fields or csvPath, not both.');
+        if (inputCount > 1) {
+          throw new UserFacingError('Provide exactly one of fields, csvPath, or jsonPath.');
         }
 
         const params: FillFormsParams = {
           ...(args.strict !== undefined && { strict: args.strict }),
         };
 
-        const csvBytes =
+        const dataFile: { bytes: Buffer; format: 'csv' | 'json' } =
           args.csvPath !== undefined
-            ? filesHandler.read(args.csvPath)
-            : _fieldsToCsvBytes(args.fields ?? {});
+            ? { bytes: filesHandler.read(args.csvPath), format: 'csv' }
+            : args.jsonPath !== undefined
+              ? { bytes: filesHandler.read(args.jsonPath), format: 'json' }
+              : { bytes: _fieldsToJsonBytes(args.fields ?? {}), format: 'json' };
 
         const inputBytes = filesHandler.read(args.inputPath);
-        const filledBytes = await platformHandler.fillForms(inputBytes, csvBytes, params);
+        const filledBytes = await platformHandler.fillForms(
+          inputBytes,
+          dataFile.bytes,
+          dataFile.format,
+          params,
+        );
 
         const outputPath = filesHandler.write(args.inputPath, filledBytes, {
           stemSuffix: 'filled',

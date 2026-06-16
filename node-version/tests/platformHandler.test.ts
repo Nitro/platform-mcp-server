@@ -380,7 +380,7 @@ describe('PlatformHandler', () => {
   });
 
   describe('fillForms', () => {
-    it('passes pdf and csv as two files to generations', async () => {
+    it('passes pdf and json as two files to generations', async () => {
       runMock.mockResolvedValueOnce({
         body: Buffer.from('filled-pdf'),
         contentType: 'application/pdf',
@@ -388,11 +388,38 @@ describe('PlatformHandler', () => {
 
       const result = await handler.fillForms(
         Buffer.from('pdf-bytes'),
-        Buffer.from('csv-bytes'),
+        Buffer.from('json-bytes'),
+        'json',
         {},
       );
 
       expect(result).toEqual(Buffer.from('filled-pdf'));
+      expect(runMock).toHaveBeenCalledWith(
+        'generations',
+        [
+          expect.objectContaining({
+            kind: 'bytes',
+            contentType: ContentType.PDF,
+            name: 'input.pdf',
+          }),
+          expect.objectContaining({
+            kind: 'bytes',
+            contentType: ContentType.JSON,
+            name: 'fields.json',
+          }),
+        ],
+        { method: 'fill-forms', params: {} },
+      );
+    });
+
+    it('passes pdf and csv as two files to generations when format is csv', async () => {
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from('filled-pdf'),
+        contentType: 'application/pdf',
+      });
+
+      await handler.fillForms(Buffer.from('pdf-bytes'), Buffer.from('csv-bytes'), 'csv', {});
+
       expect(runMock).toHaveBeenCalledWith(
         'generations',
         [
@@ -417,7 +444,9 @@ describe('PlatformHandler', () => {
         contentType: 'application/pdf',
       });
 
-      await handler.fillForms(Buffer.from('pdf-bytes'), Buffer.from('csv-bytes'), { strict: true });
+      await handler.fillForms(Buffer.from('pdf-bytes'), Buffer.from('json-bytes'), 'json', {
+        strict: true,
+      });
 
       expect(runMock).toHaveBeenCalledWith('generations', expect.anything(), {
         method: 'fill-forms',

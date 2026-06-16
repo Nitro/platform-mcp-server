@@ -28,6 +28,7 @@ export const ContentType = {
   HTML: 'text/html',
   ZIP: 'application/zip',
   OCTET_STREAM: 'application/octet-stream',
+  JSON: 'application/json',
 } as const;
 
 export type ContentType = (typeof ContentType)[keyof typeof ContentType];
