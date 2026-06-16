@@ -65,6 +65,11 @@ Split contract.pdf into two files: pages 1-5 and pages 6-10 using Nitro
 Add password protection to confidential.pdf in Desktop using Nitro
 ```
 
+**Render a PDF page as an image to verify content visually:**
+```
+Using Nitro, render page 1 of contract.pdf in Downloads at 150 DPI so I can see it
+```
+
 ## Data Handling
 
 When you invoke a Nitro PDF Services tool, the file you specify is uploaded to Nitro's hosted Platform API at `api.gonitro.com` for processing. Results are written back to your local disk. Your OAuth refresh token is stored only on your local device at `~/.nitro-mcp/session.json`; access tokens are kept in memory and never stored server-side.
