@@ -28,6 +28,8 @@ function _successResult(
   };
 }
 
+const REGEX_FLAGS = ['ignore-case', 'multiline', 'dot-all'] as const;
+
 export function register(server: McpServer, context: AppContext): void {
   server.registerTool(
     'get_pdf_metadata',
@@ -271,30 +273,67 @@ export function register(server: McpServer, context: AppContext): void {
     'search_text_in_pdf',
     {
       description:
-        'Use this tool to search for specific text strings in a PDF and get their locations. ' +
-        'Returns a bounding box for each match as absolute [x, y, width, height] values in PDF ' +
-        'points (origin at the page corner) — the same [x0, y0, width, height] convention that ' +
-        'redact_pdf accepts, so matches can be passed straight into a redaction. By default ' +
-        '(outputTarget "inline") the matches are returned directly in the result; set ' +
-        'outputTarget to "file" or "both" to also write them to a JSON file on disk.',
+        'Use this tool to search for text in a PDF and get its locations, using literal text or ' +
+        'regular expression queries. Returns a bounding box for each match as absolute ' +
+        '[x, y, width, height] values in PDF points (origin at the page corner), the same ' +
+        '[x0, y0, width, height] convention that redact_pdf accepts, so matches can be passed ' +
+        'straight into a redaction. By default (outputTarget "inline") the matches are returned ' +
+        'directly in the result; set outputTarget to "file" or "both" to also write them to a ' +
+        'JSON file on disk.',
       inputSchema: {
         ...singleFileInputSchema.shape,
-        texts: z.array(z.string()).min(1).describe('List of text strings to search for in the PDF'),
+        queries: z
+          .array(
+            z.object({
+              text: z.string().min(1).describe('Literal text or regular expression to search for'),
+              isRegex: z
+                .boolean()
+                .optional()
+                .describe('Treat text as a regular expression instead of literal text'),
+              regexFlags: z
+                .array(z.enum(REGEX_FLAGS))
+                .optional()
+                .describe(
+                  'Regex flags (ignore-case, multiline, dot-all); ' +
+                    'only allowed when isRegex is true',
+                ),
+            }),
+          )
+          .min(1)
+          .describe('Search queries; each is matched independently and returned in request order'),
         outputTarget: outputTargetSchema,
       },
       annotations: READ_ONLY('Search Text in PDF'),
     },
     async (args) => {
       try {
+        for (const query of args.queries) {
+          if (query.regexFlags !== undefined && !query.isRegex) {
+            throw new UserFacingError('regexFlags can only be provided when isRegex is true');
+          }
+        }
+
         const filesHandler = getDep(context, 'filesHandler');
         const platformHandler = getDep(context, 'platformHandler');
 
         const inputBytes = filesHandler.read(args.inputPath);
-        const resultBuffer = await platformHandler.extractTextBoundingBoxes(inputBytes, args.texts);
+        const resultBuffer = await platformHandler.extractTextBoundingBoxes(
+          inputBytes,
+          args.queries,
+        );
 
-        const parsed = JSON.parse(resultBuffer.toString()) as { textBoxes: { text: string }[] };
-        const totalMatches = parsed.textBoxes.length;
-        const uniqueTextsFound = new Set(parsed.textBoxes.map((b) => b.text)).size;
+        const parsed = JSON.parse(resultBuffer.toString()) as {
+          textBoxes: { query: { text: string }; matches: unknown[] }[];
+        };
+        const totalMatches = parsed.textBoxes.reduce(
+          (count, queryResult) => count + queryResult.matches.length,
+          0,
+        );
+        const uniqueTextsFound = new Set(
+          parsed.textBoxes
+            .filter((queryResult) => queryResult.matches.length > 0)
+            .map((queryResult) => queryResult.query.text),
+        ).size;
 
         return jsonResult({
           outputTarget: args.outputTarget,

@@ -79,21 +79,46 @@ describe('PlatformHandler', () => {
   });
 
   describe('extractTextBoundingBoxes', () => {
-    it('calls extract-text-bounding-boxes with texts param', async () => {
+    it('calls extract-text-bounding-boxes with literal queries by default', async () => {
       const rawResponse = JSON.stringify({ result: { textBoxes: [] } });
       runMock.mockResolvedValueOnce({
         body: Buffer.from(rawResponse),
         contentType: 'application/json',
       });
 
-      await handler.extractTextBoundingBoxes(Buffer.from('pdf-bytes'), ['hello', 'world']);
+      await handler.extractTextBoundingBoxes(Buffer.from('pdf-bytes'), [
+        { text: 'hello' },
+        { text: 'world' },
+      ]);
 
       expect(runMock).toHaveBeenCalledWith(
         'extractions',
         expect.objectContaining({ kind: 'bytes', contentType: ContentType.PDF }),
         {
           method: 'extract-text-bounding-boxes',
-          params: { texts: ['hello', 'world'] },
+          params: { queries: [{ text: 'hello' }, { text: 'world' }] },
+          acceptFormat: 'json',
+        },
+      );
+    });
+
+    it('marks queries as regex and attaches flags when requested', async () => {
+      const rawResponse = JSON.stringify({ result: { textBoxes: [] } });
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from(rawResponse),
+        contentType: 'application/json',
+      });
+
+      await handler.extractTextBoundingBoxes(Buffer.from('pdf-bytes'), [
+        { text: '[0-9]+', isRegex: true, regexFlags: ['ignore-case'] },
+      ]);
+
+      expect(runMock).toHaveBeenCalledWith(
+        'extractions',
+        expect.objectContaining({ kind: 'bytes', contentType: ContentType.PDF }),
+        {
+          method: 'extract-text-bounding-boxes',
+          params: { queries: [{ text: '[0-9]+', isRegex: true, regexFlags: ['ignore-case'] }] },
           acceptFormat: 'json',
         },
       );

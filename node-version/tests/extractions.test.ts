@@ -470,7 +470,13 @@ describe('extraction tools', () => {
   describe('search_text_in_pdf', () => {
     it('returns matches inline by default with summary counts', async () => {
       const searchResult = {
-        textBoxes: [{ text: 'hello' }, { text: 'hello' }, { text: 'world' }],
+        textBoxes: [
+          {
+            query: { text: 'hello' },
+            matches: [{ matchedText: 'hello' }, { matchedText: 'hello' }],
+          },
+          { query: { text: 'world' }, matches: [{ matchedText: 'world' }] },
+        ],
       };
       filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
       platformHandlerMock.extractTextBoundingBoxes.mockResolvedValue(
@@ -479,7 +485,10 @@ describe('extraction tools', () => {
 
       await caller.call(
         'search_text_in_pdf',
-        { inputPath: path.join(tmpDir, 'doc.pdf'), texts: ['hello', 'world'] },
+        {
+          inputPath: path.join(tmpDir, 'doc.pdf'),
+          queries: [{ text: 'hello' }, { text: 'world' }],
+        },
         {
           expectedResult: {
             totalMatches: 3,
@@ -491,13 +500,70 @@ describe('extraction tools', () => {
 
       expect(platformHandlerMock.extractTextBoundingBoxes).toHaveBeenCalledWith(
         Buffer.from('pdf-bytes'),
-        ['hello', 'world'],
+        [{ text: 'hello' }, { text: 'world' }],
       );
       expect(filesHandlerMock.write).not.toHaveBeenCalled();
     });
 
+    it('forwards per-query regex options to the platform handler', async () => {
+      const searchResult = {
+        textBoxes: [{ query: { text: '[0-9]+' }, matches: [{ matchedText: '42' }] }],
+      };
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.extractTextBoundingBoxes.mockResolvedValue(
+        Buffer.from(JSON.stringify(searchResult)),
+      );
+
+      await caller.call(
+        'search_text_in_pdf',
+        {
+          inputPath: path.join(tmpDir, 'doc.pdf'),
+          queries: [
+            { text: 'Email' },
+            { text: '[0-9]+', isRegex: true, regexFlags: ['ignore-case'] },
+          ],
+        },
+        { expectedResult: { totalMatches: 1, uniqueTextsFound: 1, data: searchResult } },
+      );
+
+      expect(platformHandlerMock.extractTextBoundingBoxes).toHaveBeenCalledWith(
+        Buffer.from('pdf-bytes'),
+        [{ text: 'Email' }, { text: '[0-9]+', isRegex: true, regexFlags: ['ignore-case'] }],
+      );
+    });
+
+    it('rejects regex flags when isRegex is not set', async () => {
+      await caller.call(
+        'search_text_in_pdf',
+        {
+          inputPath: path.join(tmpDir, 'doc.pdf'),
+          queries: [{ text: 'hello', regexFlags: ['ignore-case'] }],
+        },
+        { expectError: true },
+      );
+
+      expect(platformHandlerMock.extractTextBoundingBoxes).not.toHaveBeenCalled();
+      expect(filesHandlerMock.write).not.toHaveBeenCalled();
+    });
+
+    it('rejects an empty regex flags array when isRegex is not set', async () => {
+      await caller.call(
+        'search_text_in_pdf',
+        {
+          inputPath: path.join(tmpDir, 'doc.pdf'),
+          queries: [{ text: 'hello', regexFlags: [] }],
+        },
+        { expectError: true },
+      );
+
+      expect(platformHandlerMock.extractTextBoundingBoxes).not.toHaveBeenCalled();
+      expect(filesHandlerMock.write).not.toHaveBeenCalled();
+    });
+
     it('writes search results to file when outputTarget is file', async () => {
-      const searchResult = { textBoxes: [{ text: 'hello' }] };
+      const searchResult = {
+        textBoxes: [{ query: { text: 'hello' }, matches: [{ matchedText: 'hello' }] }],
+      };
       const buffer = Buffer.from(JSON.stringify(searchResult));
       filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
       platformHandlerMock.extractTextBoundingBoxes.mockResolvedValue(buffer);
@@ -505,7 +571,11 @@ describe('extraction tools', () => {
 
       await caller.call(
         'search_text_in_pdf',
-        { inputPath: path.join(tmpDir, 'doc.pdf'), texts: ['hello'], outputTarget: 'file' },
+        {
+          inputPath: path.join(tmpDir, 'doc.pdf'),
+          queries: [{ text: 'hello' }],
+          outputTarget: 'file',
+        },
         {
           expectedResult: {
             totalMatches: 1,
@@ -527,7 +597,7 @@ describe('extraction tools', () => {
 
       await caller.call(
         'search_text_in_pdf',
-        { inputPath: path.join(tmpDir, 'doc.pdf'), texts: ['hello'] },
+        { inputPath: path.join(tmpDir, 'doc.pdf'), queries: [{ text: 'hello' }] },
         { expectError: true },
       );
 
