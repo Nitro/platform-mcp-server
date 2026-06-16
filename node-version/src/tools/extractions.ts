@@ -305,7 +305,7 @@ export function register(server: McpServer, context: AppContext): void {
     async (args) => {
       try {
         for (const query of args.queries) {
-          if (query.regexFlags && query.regexFlags.length > 0 && !query.isRegex) {
+          if (query.regexFlags !== undefined && !query.isRegex) {
             throw new UserFacingError('regexFlags can only be provided when isRegex is true');
           }
         }

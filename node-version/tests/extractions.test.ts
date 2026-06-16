@@ -547,6 +547,20 @@ describe('extraction tools', () => {
       expect(filesHandlerMock.write).not.toHaveBeenCalled();
     });
 
+    it('rejects an empty regex flags array when isRegex is not set', async () => {
+      await caller.call(
+        'search_text_in_pdf',
+        {
+          inputPath: path.join(tmpDir, 'doc.pdf'),
+          queries: [{ text: 'hello', regexFlags: [] }],
+        },
+        { expectError: true },
+      );
+
+      expect(platformHandlerMock.extractTextBoundingBoxes).not.toHaveBeenCalled();
+      expect(filesHandlerMock.write).not.toHaveBeenCalled();
+    });
+
     it('writes search results to file when outputTarget is file', async () => {
       const searchResult = {
         textBoxes: [{ query: { text: 'hello' }, matches: [{ matchedText: 'hello' }] }],
