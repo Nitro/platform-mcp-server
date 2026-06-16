@@ -6,12 +6,12 @@ MCP server connecting Claude Desktop to Nitro's Document Intelligence Platform, 
 
 ## Description
 
-Nitro PDF Services brings the power of Nitro's Document Intelligence Platform directly into Claude Desktop. Perform advanced PDF operations — merging, splitting, converting, compressing, extracting data, and more — simply by describing what you want in natural language. No manual file uploads or external tools required.
+Nitro PDF Services brings the power of Nitro's Document Intelligence Platform directly into Claude Desktop. Perform advanced PDF operations — merging, splitting, converting, optimizing, extracting data, and more — simply by describing what you want in natural language. No manual file uploads or external tools required.
 
 ## Features
 
 - **File Management**: List and manage files in your local folders using natural language folder references
-- **PDF Transformations**: Merge, split, compress, rotate, protect, flatten, and manipulate PDFs
+- **PDF Transformations**: Merge, split, rotate, protect, flatten, and manipulate PDFs
 - **File Conversions**: Convert between PDF and Word, Excel, PowerPoint, and image formats
 - **Data Extraction**: Extract text, tables, form fields, metadata, and PII from PDFs
 - **Dynamic Workspace**: Reference folders naturally ("files in Downloads") — no upfront configuration needed
@@ -43,11 +43,6 @@ Merge invoice-jan.pdf, invoice-feb.pdf, and invoice-mar.pdf from my Documents fo
 **Convert a PDF to Word:**
 ```
 Convert report.pdf in my Desktop folder to a Word document using Nitro
-```
-
-**Compress a large PDF:**
-```
-Compress presentation.pdf from Downloads with heavy compression using Nitro
 ```
 
 **Extract tables from a PDF:**

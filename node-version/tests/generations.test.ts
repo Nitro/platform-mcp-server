@@ -54,7 +54,6 @@ describe('generation tools', () => {
       extractTextBoundingBoxes: vi.fn(),
       extractPiiBoundingBoxes: vi.fn(),
       mergePdfs: vi.fn(),
-      compressPdf: vi.fn(),
       splitPdf: vi.fn(),
       rotatePdf: vi.fn(),
       protectPdf: vi.fn(),
@@ -82,7 +81,7 @@ describe('generation tools', () => {
   });
 
   describe('fill_forms', () => {
-    it('serializes fields to CSV bytes and returns output filename', async () => {
+    it('serializes fields to JSON bytes and returns output filename', async () => {
       filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
       platformHandlerMock.fillForms.mockResolvedValue(Buffer.from('filled-bytes'));
       filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'form-filled.pdf'));
@@ -98,7 +97,10 @@ describe('generation tools', () => {
 
       expect(platformHandlerMock.fillForms).toHaveBeenCalledWith(
         Buffer.from('pdf-bytes'),
-        Buffer.from('first-name,last-name\nfirst-name-value,last-name-value'),
+        Buffer.from(
+          JSON.stringify({ 'first-name': 'first-name-value', 'last-name': 'last-name-value' }),
+        ),
+        'json',
         {},
       );
       expect(filesHandlerMock.write).toHaveBeenCalledWith(
@@ -108,7 +110,7 @@ describe('generation tools', () => {
       );
     });
 
-    it('quotes CSV field values containing commas', async () => {
+    it('serializes field values containing commas via JSON', async () => {
       filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
       platformHandlerMock.fillForms.mockResolvedValue(Buffer.from('filled-bytes'));
       filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'form-filled.pdf'));
@@ -120,7 +122,26 @@ describe('generation tools', () => {
 
       expect(platformHandlerMock.fillForms).toHaveBeenCalledWith(
         Buffer.from('pdf-bytes'),
-        Buffer.from('Name\n"value,with,commas"'),
+        Buffer.from(JSON.stringify({ Name: 'value,with,commas' })),
+        'json',
+        {},
+      );
+    });
+
+    it('serializes non-string field values (numbers and booleans) via JSON', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.fillForms.mockResolvedValue(Buffer.from('filled-bytes'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'form-filled.pdf'));
+
+      await caller.call('fill_forms', {
+        inputPath: path.join(tmpDir, 'form.pdf'),
+        fields: { Age: 30, AgreeToTerms: true },
+      });
+
+      expect(platformHandlerMock.fillForms).toHaveBeenCalledWith(
+        Buffer.from('pdf-bytes'),
+        Buffer.from(JSON.stringify({ Age: 30, AgreeToTerms: true })),
+        'json',
         {},
       );
     });
@@ -138,7 +159,8 @@ describe('generation tools', () => {
 
       expect(platformHandlerMock.fillForms).toHaveBeenCalledWith(
         Buffer.from('pdf-bytes'),
-        Buffer.from('field-name\nfield-value'),
+        Buffer.from(JSON.stringify({ 'field-name': 'field-value' })),
+        'json',
         { strict: true },
       );
     });
@@ -164,6 +186,33 @@ describe('generation tools', () => {
       expect(platformHandlerMock.fillForms).toHaveBeenCalledWith(
         Buffer.from('pdf-bytes'),
         Buffer.from(csvContent),
+        'csv',
+        {},
+      );
+    });
+
+    it('passes raw JSON bytes through when jsonPath is provided', async () => {
+      const jsonContent = JSON.stringify({ 'first-name': 'first-name-value' });
+      filesHandlerMock.read.mockImplementation((filePath: string) => {
+        if (filePath === path.join(tmpDir, 'fields.json')) return Buffer.from(jsonContent);
+        return Buffer.from('pdf-bytes');
+      });
+      platformHandlerMock.fillForms.mockResolvedValue(Buffer.from('filled-bytes'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'form-filled.pdf'));
+
+      await caller.call(
+        'fill_forms',
+        {
+          inputPath: path.join(tmpDir, 'form.pdf'),
+          jsonPath: path.join(tmpDir, 'fields.json'),
+        },
+        { expectedResult: { outputFilename: 'form-filled.pdf' } },
+      );
+
+      expect(platformHandlerMock.fillForms).toHaveBeenCalledWith(
+        Buffer.from('pdf-bytes'),
+        Buffer.from(jsonContent),
+        'json',
         {},
       );
     });

@@ -34,7 +34,6 @@ const _READ_ONLY_TOOLS = [
 const _NON_DESTRUCTIVE_TOOLS = [
   { name: 'convert_file', title: 'Convert File' },
   { name: 'merge_files', title: 'Merge PDFs' },
-  { name: 'compress_file', title: 'Compress PDF' },
   { name: 'split_pdf', title: 'Split PDF' },
   { name: 'rotate_pdf', title: 'Rotate PDF' },
   { name: 'flatten_pdf', title: 'Flatten PDF' },

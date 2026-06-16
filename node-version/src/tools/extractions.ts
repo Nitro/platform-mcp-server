@@ -274,9 +274,12 @@ export function register(server: McpServer, context: AppContext): void {
     {
       description:
         'Use this tool to search for text in a PDF and get its locations, using literal text or ' +
-        'regular expression queries. Returns bounding box coordinates for each match. ' +
-        'By default (outputTarget "inline") the matches are returned directly in the result; ' +
-        'set outputTarget to "file" or "both" to also write them to a JSON file on disk.',
+        'regular expression queries. Returns a bounding box for each match as absolute ' +
+        '[x, y, width, height] values in PDF points (origin at the page corner), the same ' +
+        '[x0, y0, width, height] convention that redact_pdf accepts, so matches can be passed ' +
+        'straight into a redaction. By default (outputTarget "inline") the matches are returned ' +
+        'directly in the result; set outputTarget to "file" or "both" to also write them to a ' +
+        'JSON file on disk.',
       inputSchema: {
         ...singleFileInputSchema.shape,
         queries: z

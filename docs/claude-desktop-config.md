@@ -91,7 +91,7 @@ Nitro MCP uses **dynamic workspace management** - no folder configuration needed
 
 **Examples:**
 - "List files from Downloads"
-- "Compress files in Desktop/project"
+- "Optimize files in Desktop/project"
 - "Merge PDFs from Documents/invoices"
 
 **How it works:**

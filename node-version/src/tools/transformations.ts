@@ -112,7 +112,12 @@ export function register(server: McpServer, context: AppContext): void {
   server.registerTool(
     'merge_files',
     {
-      description: 'Use this tool to merge multiple PDF files into a single PDF.',
+      description:
+        'Use this tool to merge multiple PDF files into a single PDF. ' +
+        'By default, PDF bookmarks (an outline entry per source document, with each ' +
+        "source's existing bookmarks nested beneath) are added to the merged file; " +
+        'set tableOfContents to false to skip them. No extra table-of-contents page is ' +
+        'added and the page count is unchanged.',
       inputSchema: {
         inputPaths: z
           .array(z.string())
@@ -121,6 +126,15 @@ export function register(server: McpServer, context: AppContext): void {
             'Full paths to PDF files to merge. Must be at least 2 files. ' +
               'All files must be in the same directory. ' +
               "Example: ['~/Downloads/a.pdf', '~/Downloads/b.pdf']",
+          ),
+        tableOfContents: z
+          .boolean()
+          .default(true)
+          .describe(
+            'When true (default), add PDF bookmarks to the merged file: one outline entry ' +
+              "per source document, with each source's existing bookmarks nested one level " +
+              'beneath. Set to false to merge without adding bookmarks. Does not add a ' +
+              'table-of-contents page or change the page count.',
           ),
       },
       annotations: NON_DESTRUCTIVE('Merge PDFs'),
@@ -138,7 +152,7 @@ export function register(server: McpServer, context: AppContext): void {
           totalInputSizeBytes += fileBytes.length;
         }
 
-        const mergedBytes = await platformHandler.mergePdfs(fileBuffers);
+        const mergedBytes = await platformHandler.mergePdfs(fileBuffers, args.tableOfContents);
 
         const [firstInputPath] = args.inputPaths;
         if (firstInputPath === undefined)
@@ -155,48 +169,6 @@ export function register(server: McpServer, context: AppContext): void {
         });
       } catch (err) {
         return handleToolError('merge_files', err);
-      }
-    },
-  );
-
-  server.registerTool(
-    'compress_file',
-    {
-      description: 'Use this tool to compress a PDF file to reduce its size.',
-      inputSchema: {
-        ...singleFileInputSchema.shape,
-        level: z
-          .enum(['light', 'medium', 'heavy'])
-          .default('medium')
-          .describe('Compression level: "light", "medium", or "heavy"'),
-      },
-      annotations: NON_DESTRUCTIVE('Compress PDF'),
-    },
-    async (args) => {
-      try {
-        const filesHandler = getDep(context, 'filesHandler');
-        const platformHandler = getDep(context, 'platformHandler');
-
-        const originalBytes = filesHandler.read(args.inputPath);
-        const originalSizeBytes = originalBytes.length;
-
-        const compressedBytes = await platformHandler.compressPdf(originalBytes, args.level);
-        const compressedSizeBytes = compressedBytes.length;
-        const reductionPercent =
-          Math.round(((originalSizeBytes - compressedSizeBytes) / originalSizeBytes) * 1000) / 10;
-
-        const outputPath = filesHandler.write(args.inputPath, compressedBytes, {
-          stemSuffix: `compressed-${args.level}`,
-          ext: 'pdf',
-        });
-
-        return _successResult(path.basename(outputPath), {
-          originalSizeBytes,
-          compressedSizeBytes,
-          reductionPercent,
-        });
-      } catch (err) {
-        return handleToolError('compress_file', err);
       }
     },
   );

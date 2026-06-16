@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ContentType, CompressionLevel, FileFormat } from '../client/enums.js';
+import { ContentType, FileFormat } from '../client/enums.js';
 import { PlatformApiClient, createBytesFile } from '../client/platformClient.js';
 import type { PkceManager } from '../auth/pkceManager.js';
 import { checkHttpResponse } from '../errors.js';
@@ -131,12 +131,6 @@ export class ConversionNotSupportedError extends Error {
     this.name = 'ConversionNotSupportedError';
   }
 }
-
-const _COMPRESSION_LEVEL_INT: Record<CompressionLevel, number> = {
-  [CompressionLevel.LIGHT]: 0,
-  [CompressionLevel.MEDIUM]: 1,
-  [CompressionLevel.HEAVY]: 2,
-};
 
 const FORMAT_TO_CONTENT_TYPE: Record<FileFormat, ContentType> = {
   [FileFormat.PDF]: ContentType.PDF,
@@ -313,22 +307,13 @@ export class PlatformHandler {
     return this._extractResult(body);
   }
 
-  async mergePdfs(fileBuffers: Buffer[]): Promise<Buffer> {
+  async mergePdfs(fileBuffers: Buffer[], tableOfContents = true): Promise<Buffer> {
     const files = fileBuffers.map((content, i) =>
       createBytesFile(ContentType.PDF, content, `document_${String(i)}.pdf`),
     );
     const { body } = await this._client.run('transformations', files, {
       method: 'merge',
-      params: {},
-    });
-    return body;
-  }
-
-  async compressPdf(fileBytes: Buffer, level: CompressionLevel): Promise<Buffer> {
-    const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
-    const { body } = await this._client.run('transformations', file, {
-      method: 'compress',
-      params: { level: _COMPRESSION_LEVEL_INT[level] },
+      params: { tableOfContents: { enabled: tableOfContents } },
     });
     return body;
   }
@@ -457,10 +442,18 @@ export class PlatformHandler {
     return body;
   }
 
-  async fillForms(fileBytes: Buffer, csvBytes: Buffer, params: FillFormsParams): Promise<Buffer> {
+  async fillForms(
+    fileBytes: Buffer,
+    dataBytes: Buffer,
+    dataFormat: 'csv' | 'json',
+    params: FillFormsParams,
+  ): Promise<Buffer> {
     const pdfFile = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
-    const csvFile = createBytesFile(ContentType.CSV, csvBytes, 'fields.csv');
-    const { body } = await this._client.run('generations', [pdfFile, csvFile], {
+    const dataFile =
+      dataFormat === 'json'
+        ? createBytesFile(ContentType.JSON, dataBytes, 'fields.json')
+        : createBytesFile(ContentType.CSV, dataBytes, 'fields.csv');
+    const { body } = await this._client.run('generations', [pdfFile, dataFile], {
       method: 'fill-forms',
       params: params as Record<string, unknown>,
     });

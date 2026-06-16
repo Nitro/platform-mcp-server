@@ -54,7 +54,6 @@ describe('transformation tools', () => {
       extractPdfData: vi.fn(),
       extractTextBoundingBoxes: vi.fn(),
       mergePdfs: vi.fn(),
-      compressPdf: vi.fn(),
       splitPdf: vi.fn(),
       rotatePdf: vi.fn(),
       protectPdf: vi.fn(),
@@ -103,14 +102,32 @@ describe('transformation tools', () => {
         },
       );
 
-      expect(platformHandlerMock.mergePdfs).toHaveBeenCalledWith([
-        Buffer.from('pdf-one'),
-        Buffer.from('pdf-two'),
-      ]);
+      expect(platformHandlerMock.mergePdfs).toHaveBeenCalledWith(
+        [Buffer.from('pdf-one'), Buffer.from('pdf-two')],
+        true,
+      );
       expect(filesHandlerMock.write).toHaveBeenCalledWith(
         path.join(tmpDir, 'a.pdf'),
         Buffer.from('merged-output'),
         { stemSuffix: 'merged', ext: 'pdf' },
+      );
+    });
+
+    it('passes tableOfContents=false through to opt out of bookmarks', async () => {
+      filesHandlerMock.read
+        .mockReturnValueOnce(Buffer.from('pdf-one'))
+        .mockReturnValueOnce(Buffer.from('pdf-two'));
+      platformHandlerMock.mergePdfs.mockResolvedValue(Buffer.from('merged-output'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'a-merged.pdf'));
+
+      await caller.call('merge_files', {
+        inputPaths: [path.join(tmpDir, 'a.pdf'), path.join(tmpDir, 'b.pdf')],
+        tableOfContents: false,
+      });
+
+      expect(platformHandlerMock.mergePdfs).toHaveBeenCalledWith(
+        [Buffer.from('pdf-one'), Buffer.from('pdf-two')],
+        false,
       );
     });
 
@@ -121,65 +138,6 @@ describe('transformation tools', () => {
       await caller.call(
         'merge_files',
         { inputPaths: [path.join(tmpDir, 'a.pdf'), path.join(tmpDir, 'b.pdf')] },
-        { expectError: true },
-      );
-
-      expect(filesHandlerMock.write).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('compress_file', () => {
-    it('compresses with default medium level and returns size info', async () => {
-      filesHandlerMock.read.mockReturnValue(Buffer.alloc(1000));
-      platformHandlerMock.compressPdf.mockResolvedValue(Buffer.alloc(800));
-      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-compressed-medium.pdf'));
-
-      await caller.call(
-        'compress_file',
-        { inputPath: path.join(tmpDir, 'doc.pdf') },
-        {
-          expectedResult: {
-            outputFilename: 'doc-compressed-medium.pdf',
-            originalSizeBytes: 1000,
-            compressedSizeBytes: 800,
-            reductionPercent: 20,
-          },
-        },
-      );
-
-      expect(platformHandlerMock.compressPdf).toHaveBeenCalledWith(Buffer.alloc(1000), 'medium');
-      expect(filesHandlerMock.write).toHaveBeenCalledWith(
-        path.join(tmpDir, 'doc.pdf'),
-        Buffer.alloc(800),
-        { stemSuffix: 'compressed-medium', ext: 'pdf' },
-      );
-    });
-
-    it('passes custom compression level', async () => {
-      filesHandlerMock.read.mockReturnValue(Buffer.alloc(1000));
-      platformHandlerMock.compressPdf.mockResolvedValue(Buffer.alloc(500));
-      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-compressed-heavy.pdf'));
-
-      await caller.call('compress_file', {
-        inputPath: path.join(tmpDir, 'doc.pdf'),
-        level: 'heavy',
-      });
-
-      expect(platformHandlerMock.compressPdf).toHaveBeenCalledWith(Buffer.alloc(1000), 'heavy');
-      expect(filesHandlerMock.write).toHaveBeenCalledWith(
-        path.join(tmpDir, 'doc.pdf'),
-        expect.anything(),
-        { stemSuffix: 'compressed-heavy', ext: 'pdf' },
-      );
-    });
-
-    it('returns error when platform handler throws', async () => {
-      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
-      platformHandlerMock.compressPdf.mockRejectedValue(new GenericFailedError());
-
-      await caller.call(
-        'compress_file',
-        { inputPath: path.join(tmpDir, 'doc.pdf') },
         { expectError: true },
       );
 

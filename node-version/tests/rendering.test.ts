@@ -65,7 +65,6 @@ describe('render_pdf_page tool', () => {
       extractPdfData: vi.fn(),
       extractTextBoundingBoxes: vi.fn(),
       mergePdfs: vi.fn(),
-      compressPdf: vi.fn(),
       splitPdf: vi.fn(),
       rotatePdf: vi.fn(),
       protectPdf: vi.fn(),

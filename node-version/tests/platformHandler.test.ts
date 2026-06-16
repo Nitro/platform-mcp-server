@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PlatformHandler, ConversionNotSupportedError } from '../src/handlers/platformHandler.js';
 import { PlatformApiClient } from '../src/client/platformClient.js';
-import { CompressionLevel, ContentType, FileFormat } from '../src/client/enums.js';
+import { ContentType, FileFormat } from '../src/client/enums.js';
 
 describe('PlatformHandler', () => {
   let clientMock: PlatformApiClient;
@@ -163,7 +163,7 @@ describe('PlatformHandler', () => {
   });
 
   describe('mergePdfs', () => {
-    it('calls transformations with merge and returns body', async () => {
+    it('calls transformations with merge and bookmarks enabled by default', async () => {
       runMock.mockResolvedValueOnce({
         body: Buffer.from('merged-pdf'),
         contentType: 'application/pdf',
@@ -186,29 +186,22 @@ describe('PlatformHandler', () => {
             name: 'document_1.pdf',
           }),
         ],
-        { method: 'merge', params: {} },
+        { method: 'merge', params: { tableOfContents: { enabled: true } } },
       );
     });
-  });
 
-  describe('compressPdf', () => {
-    it.each([
-      [CompressionLevel.LIGHT, 0],
-      [CompressionLevel.MEDIUM, 1],
-      [CompressionLevel.HEAVY, 2],
-    ] as const)('maps %s level to integer %i', async (level, expectedInt) => {
+    it('disables bookmarks when tableOfContents is false', async () => {
       runMock.mockResolvedValueOnce({
-        body: Buffer.from('compressed'),
+        body: Buffer.from('merged-pdf'),
         contentType: 'application/pdf',
       });
 
-      await handler.compressPdf(Buffer.from('pdf-bytes'), level);
+      await handler.mergePdfs([Buffer.from('pdf-1'), Buffer.from('pdf-2')], false);
 
-      expect(runMock).toHaveBeenCalledWith(
-        'transformations',
-        expect.objectContaining({ kind: 'bytes', contentType: ContentType.PDF, name: 'input.pdf' }),
-        { method: 'compress', params: { level: expectedInt } },
-      );
+      expect(runMock).toHaveBeenCalledWith('transformations', expect.anything(), {
+        method: 'merge',
+        params: { tableOfContents: { enabled: false } },
+      });
     });
   });
 
@@ -412,7 +405,7 @@ describe('PlatformHandler', () => {
   });
 
   describe('fillForms', () => {
-    it('passes pdf and csv as two files to generations', async () => {
+    it('passes pdf and json as two files to generations', async () => {
       runMock.mockResolvedValueOnce({
         body: Buffer.from('filled-pdf'),
         contentType: 'application/pdf',
@@ -420,11 +413,38 @@ describe('PlatformHandler', () => {
 
       const result = await handler.fillForms(
         Buffer.from('pdf-bytes'),
-        Buffer.from('csv-bytes'),
+        Buffer.from('json-bytes'),
+        'json',
         {},
       );
 
       expect(result).toEqual(Buffer.from('filled-pdf'));
+      expect(runMock).toHaveBeenCalledWith(
+        'generations',
+        [
+          expect.objectContaining({
+            kind: 'bytes',
+            contentType: ContentType.PDF,
+            name: 'input.pdf',
+          }),
+          expect.objectContaining({
+            kind: 'bytes',
+            contentType: ContentType.JSON,
+            name: 'fields.json',
+          }),
+        ],
+        { method: 'fill-forms', params: {} },
+      );
+    });
+
+    it('passes pdf and csv as two files to generations when format is csv', async () => {
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from('filled-pdf'),
+        contentType: 'application/pdf',
+      });
+
+      await handler.fillForms(Buffer.from('pdf-bytes'), Buffer.from('csv-bytes'), 'csv', {});
+
       expect(runMock).toHaveBeenCalledWith(
         'generations',
         [
@@ -449,7 +469,9 @@ describe('PlatformHandler', () => {
         contentType: 'application/pdf',
       });
 
-      await handler.fillForms(Buffer.from('pdf-bytes'), Buffer.from('csv-bytes'), { strict: true });
+      await handler.fillForms(Buffer.from('pdf-bytes'), Buffer.from('json-bytes'), 'json', {
+        strict: true,
+      });
 
       expect(runMock).toHaveBeenCalledWith('generations', expect.anything(), {
         method: 'fill-forms',

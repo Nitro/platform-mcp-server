@@ -28,6 +28,7 @@ export const ContentType = {
   HTML: 'text/html',
   ZIP: 'application/zip',
   OCTET_STREAM: 'application/octet-stream',
+  JSON: 'application/json',
 } as const;
 
 export type ContentType = (typeof ContentType)[keyof typeof ContentType];
@@ -64,14 +65,6 @@ export const FileFormat = {
 } as const;
 
 export type FileFormat = (typeof FileFormat)[keyof typeof FileFormat];
-
-export const CompressionLevel = {
-  LIGHT: 'light',
-  MEDIUM: 'medium',
-  HEAVY: 'heavy',
-} as const;
-
-export type CompressionLevel = (typeof CompressionLevel)[keyof typeof CompressionLevel];
 
 export const fileFormatValues = new Set<string>(Object.values(FileFormat));
 
