@@ -98,3 +98,7 @@ tmp*.py
 node-version/dist/
 node-version/node_modules/
 node-version/coverage/
+
+
+# Local test documents
+samples/
