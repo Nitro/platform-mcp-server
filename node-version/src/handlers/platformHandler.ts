@@ -280,11 +280,24 @@ export class PlatformHandler {
     return this._extractResult(body);
   }
 
-  async extractTextBoundingBoxes(fileBytes: Buffer, texts: string[]): Promise<Buffer> {
+  async extractTextBoundingBoxes(
+    fileBytes: Buffer,
+    queries: { text: string; isRegex?: boolean | undefined; regexFlags?: string[] | undefined }[],
+  ): Promise<Buffer> {
+    const wireQueries = queries.map((q) => {
+      const query: { text: string; isRegex?: boolean; regexFlags?: string[] } = { text: q.text };
+      if (q.isRegex) {
+        query.isRegex = true;
+        if (q.regexFlags && q.regexFlags.length > 0) {
+          query.regexFlags = q.regexFlags;
+        }
+      }
+      return query;
+    });
     const file = createBytesFile(ContentType.PDF, fileBytes, 'document.pdf');
     const { body } = await this._client.run('extractions', file, {
       method: 'extract-text-bounding-boxes',
-      params: { texts },
+      params: { queries: wireQueries },
       acceptFormat: 'json',
     });
     return this._extractResult(body);
