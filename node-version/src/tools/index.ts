@@ -5,6 +5,7 @@ import { register as registerExtractions } from './extractions.js';
 import { register as registerFileManagement } from './fileManagement.js';
 import { register as registerGenerations } from './generations.js';
 import { register as registerPii } from './pii.js';
+import { register as registerRendering } from './rendering.js';
 import { register as registerTransformations } from './transformations.js';
 
 export function registerAll(server: McpServer, context: AppContext): void {
@@ -13,5 +14,6 @@ export function registerAll(server: McpServer, context: AppContext): void {
   registerExtractions(server, context);
   registerGenerations(server, context);
   registerPii(server, context);
+  registerRendering(server, context);
   registerTransformations(server, context);
 }

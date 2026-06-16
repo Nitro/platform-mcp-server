@@ -57,6 +57,7 @@ The codebase is **fully typed**. Treat any type error as a build failure.
 - **JSON-returning tools must use `outputTarget`** — any tool that produces JSON takes the shared `outputTargetSchema` param (`inline` | `file` | `both`, default `inline`) and returns via the `jsonResult` helper in `node-version/src/tools/jsonOutput.ts`.
   Inline returns parsed data under `data` so Claude can chain steps; `file`/`both` write to disk and return `outputFilename`.
   Default inline so transient flows don't litter the working folder. (Binary outputs like Excel/PDF remain file-only and are orthogonal to `outputTarget`.)
+- **Inline image tools** (e.g. `render_pdf_page`) return an MCP `image` content block (`type: 'image'`, base64 `data`, `mimeType`) and never write to disk — `outputTarget` does not apply.
 
 ## Sub-Agents
 
