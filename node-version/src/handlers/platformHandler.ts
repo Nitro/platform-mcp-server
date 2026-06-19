@@ -463,7 +463,7 @@ export class PlatformHandler {
   async extractExpenseData(fileBytes: Buffer): Promise<Buffer> {
     const file = createBytesFile(ContentType.PDF, fileBytes, 'document.pdf');
     const { body } = await this._client.run('extractions', file, {
-      method: 'extract-expense-data',
+      method: 'extract-invoices',
       params: {},
       acceptFormat: 'json',
     });
