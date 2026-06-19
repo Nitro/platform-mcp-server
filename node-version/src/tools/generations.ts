@@ -28,7 +28,8 @@ export function register(server: McpServer, context: AppContext): void {
     'fill_forms',
     {
       description:
-        'Use this tool to fill in form fields in a PDF document with the provided field values.',
+        'Use this tool to fill in form fields in a PDF document with the provided field values. ' +
+        'Field values may be supplied inline or via a CSV, JSON, XFDF, or FDF data file.',
       inputSchema: {
         ...singleFileInputSchema.shape,
         fields: z
@@ -45,7 +46,7 @@ export function register(server: McpServer, context: AppContext): void {
           .describe(
             'Full path to a two-column CSV file (field name, value) containing form field values. ' +
               'Must include the directory — bare filenames are not accepted. ' +
-              'Provide exactly one of fields, csvPath, or jsonPath.',
+              'Provide exactly one of fields, csvPath, jsonPath, xfdfPath, or fdfPath.',
           ),
         jsonPath: z
           .string()
@@ -54,7 +55,23 @@ export function register(server: McpServer, context: AppContext): void {
             'Full path to a JSON file mapping form field names to values ' +
               '(e.g. {"FirstName": "Jane", "LastName": "Doe"}). ' +
               'Must include the directory — bare filenames are not accepted. ' +
-              'Provide exactly one of fields, csvPath, or jsonPath.',
+              'Provide exactly one of fields, csvPath, jsonPath, xfdfPath, or fdfPath.',
+          ),
+        xfdfPath: z
+          .string()
+          .optional()
+          .describe(
+            'Full path to an XFDF (Adobe XML Forms Data Format) file containing form field values. ' +
+              'Must include the directory — bare filenames are not accepted. ' +
+              'Provide exactly one of fields, csvPath, jsonPath, xfdfPath, or fdfPath.',
+          ),
+        fdfPath: z
+          .string()
+          .optional()
+          .describe(
+            'Full path to an FDF (Adobe Forms Data Format) file containing form field values. ' +
+              'Must include the directory — bare filenames are not accepted. ' +
+              'Provide exactly one of fields, csvPath, jsonPath, xfdfPath, or fdfPath.',
           ),
         strict: z
           .boolean()
@@ -71,26 +88,38 @@ export function register(server: McpServer, context: AppContext): void {
         const filesHandler = getDep(context, 'filesHandler');
         const platformHandler = getDep(context, 'platformHandler');
 
-        const inputCount = [args.fields, args.csvPath, args.jsonPath].filter(
-          (value) => value !== undefined,
-        ).length;
+        const inputCount = [
+          args.fields,
+          args.csvPath,
+          args.jsonPath,
+          args.xfdfPath,
+          args.fdfPath,
+        ].filter((value) => value !== undefined).length;
         if (inputCount === 0) {
-          throw new UserFacingError('One of fields, csvPath, or jsonPath must be provided.');
+          throw new UserFacingError(
+            'One of fields, csvPath, jsonPath, xfdfPath, or fdfPath must be provided.',
+          );
         }
         if (inputCount > 1) {
-          throw new UserFacingError('Provide exactly one of fields, csvPath, or jsonPath.');
+          throw new UserFacingError(
+            'Provide exactly one of fields, csvPath, jsonPath, xfdfPath, or fdfPath.',
+          );
         }
 
         const params: FillFormsParams = {
           ...(args.strict !== undefined && { strict: args.strict }),
         };
 
-        const dataFile: { bytes: Buffer; format: 'csv' | 'json' } =
+        const dataFile: { bytes: Buffer; format: 'csv' | 'json' | 'xfdf' | 'fdf' } =
           args.csvPath !== undefined
             ? { bytes: filesHandler.read(args.csvPath), format: 'csv' }
             : args.jsonPath !== undefined
               ? { bytes: filesHandler.read(args.jsonPath), format: 'json' }
-              : { bytes: _fieldsToJsonBytes(args.fields ?? {}), format: 'json' };
+              : args.xfdfPath !== undefined
+                ? { bytes: filesHandler.read(args.xfdfPath), format: 'xfdf' }
+                : args.fdfPath !== undefined
+                  ? { bytes: filesHandler.read(args.fdfPath), format: 'fdf' }
+                  : { bytes: _fieldsToJsonBytes(args.fields ?? {}), format: 'json' };
 
         const inputBytes = filesHandler.read(args.inputPath);
         const filledBytes = await platformHandler.fillForms(

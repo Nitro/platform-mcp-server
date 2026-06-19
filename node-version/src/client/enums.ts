@@ -29,6 +29,8 @@ export const ContentType = {
   ZIP: 'application/zip',
   OCTET_STREAM: 'application/octet-stream',
   JSON: 'application/json',
+  XFDF: 'application/vnd.adobe.xfdf',
+  FDF: 'application/vnd.fdf',
 } as const;
 
 export type ContentType = (typeof ContentType)[keyof typeof ContentType];

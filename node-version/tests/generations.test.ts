@@ -217,6 +217,58 @@ describe('generation tools', () => {
       );
     });
 
+    it('passes raw XFDF bytes through when xfdfPath is provided', async () => {
+      const xfdfContent = '<?xml version="1.0"?><xfdf xmlns="http://ns.adobe.com/xfdf/"></xfdf>';
+      filesHandlerMock.read.mockImplementation((filePath: string) => {
+        if (filePath === path.join(tmpDir, 'fields.xfdf')) return Buffer.from(xfdfContent);
+        return Buffer.from('pdf-bytes');
+      });
+      platformHandlerMock.fillForms.mockResolvedValue(Buffer.from('filled-bytes'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'form-filled.pdf'));
+
+      await caller.call(
+        'fill_forms',
+        {
+          inputPath: path.join(tmpDir, 'form.pdf'),
+          xfdfPath: path.join(tmpDir, 'fields.xfdf'),
+        },
+        { expectedResult: { outputFilename: 'form-filled.pdf' } },
+      );
+
+      expect(platformHandlerMock.fillForms).toHaveBeenCalledWith(
+        Buffer.from('pdf-bytes'),
+        Buffer.from(xfdfContent),
+        'xfdf',
+        {},
+      );
+    });
+
+    it('passes raw FDF bytes through when fdfPath is provided', async () => {
+      const fdfContent = '%FDF-1.2\n1 0 obj\n<< /FDF << /Fields [] >> >>\nendobj\n%%EOF\n';
+      filesHandlerMock.read.mockImplementation((filePath: string) => {
+        if (filePath === path.join(tmpDir, 'fields.fdf')) return Buffer.from(fdfContent);
+        return Buffer.from('pdf-bytes');
+      });
+      platformHandlerMock.fillForms.mockResolvedValue(Buffer.from('filled-bytes'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'form-filled.pdf'));
+
+      await caller.call(
+        'fill_forms',
+        {
+          inputPath: path.join(tmpDir, 'form.pdf'),
+          fdfPath: path.join(tmpDir, 'fields.fdf'),
+        },
+        { expectedResult: { outputFilename: 'form-filled.pdf' } },
+      );
+
+      expect(platformHandlerMock.fillForms).toHaveBeenCalledWith(
+        Buffer.from('pdf-bytes'),
+        Buffer.from(fdfContent),
+        'fdf',
+        {},
+      );
+    });
+
     it('returns error when platform handler throws', async () => {
       filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
       platformHandlerMock.fillForms.mockRejectedValue(new GenericFailedError());

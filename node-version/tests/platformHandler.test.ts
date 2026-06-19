@@ -463,6 +463,58 @@ describe('PlatformHandler', () => {
       );
     });
 
+    it('passes pdf and xfdf as two files to generations when format is xfdf', async () => {
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from('filled-pdf'),
+        contentType: 'application/pdf',
+      });
+
+      await handler.fillForms(Buffer.from('pdf-bytes'), Buffer.from('xfdf-bytes'), 'xfdf', {});
+
+      expect(runMock).toHaveBeenCalledWith(
+        'generations',
+        [
+          expect.objectContaining({
+            kind: 'bytes',
+            contentType: ContentType.PDF,
+            name: 'input.pdf',
+          }),
+          expect.objectContaining({
+            kind: 'bytes',
+            contentType: ContentType.XFDF,
+            name: 'fields.xfdf',
+          }),
+        ],
+        { method: 'fill-forms', params: {} },
+      );
+    });
+
+    it('passes pdf and fdf as two files to generations when format is fdf', async () => {
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from('filled-pdf'),
+        contentType: 'application/pdf',
+      });
+
+      await handler.fillForms(Buffer.from('pdf-bytes'), Buffer.from('fdf-bytes'), 'fdf', {});
+
+      expect(runMock).toHaveBeenCalledWith(
+        'generations',
+        [
+          expect.objectContaining({
+            kind: 'bytes',
+            contentType: ContentType.PDF,
+            name: 'input.pdf',
+          }),
+          expect.objectContaining({
+            kind: 'bytes',
+            contentType: ContentType.FDF,
+            name: 'fields.fdf',
+          }),
+        ],
+        { method: 'fill-forms', params: {} },
+      );
+    });
+
     it('passes strict param', async () => {
       runMock.mockResolvedValueOnce({
         body: Buffer.from('filled-pdf'),
