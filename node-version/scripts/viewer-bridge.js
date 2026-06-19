@@ -179,18 +179,34 @@ HTMLAnchorElement.prototype.click = function () {
 // the button state. Placed bottom-right above the reader footer, clear of the
 // zoom controls.
 let _displayMode = 'inline';
+let _widescreenBtn = null;
 
-function _setWidescreenIcon(btn) {
-  btn.textContent = _displayMode === 'fullscreen' ? '🗗' : '⛶';
-  btn.title = _displayMode === 'fullscreen' ? 'Exit widescreen' : 'Widescreen';
+// Single source of truth for the button icon. Driven both by our own toggle and
+// by host-initiated changes (e.g. the user clicks the host's X to exit
+// fullscreen) — without the host sync the button would keep showing the
+// "minimize" glyph after the host already returned to inline, then misbehave on
+// the next click.
+function _applyDisplayMode(mode) {
+  if (!mode || mode === _displayMode) {
+    if (_widescreenBtn) _renderWidescreenIcon();
+    return;
+  }
+  _displayMode = mode;
+  _renderWidescreenIcon();
 }
 
-async function _toggleWidescreen(btn) {
+function _renderWidescreenIcon() {
+  if (!_widescreenBtn) return;
+  const full = _displayMode === 'fullscreen';
+  _widescreenBtn.textContent = full ? '🗗' : '⛶';
+  _widescreenBtn.title = full ? 'Exit widescreen' : 'Widescreen';
+}
+
+async function _toggleWidescreen() {
   const want = _displayMode === 'fullscreen' ? 'inline' : 'fullscreen';
   try {
     const res = await app.requestDisplayMode({ mode: want });
-    _displayMode = res?.mode ?? _displayMode;
-    _setWidescreenIcon(btn);
+    _applyDisplayMode(res?.mode ?? _displayMode);
     if (_displayMode !== want) _status(`host kept display mode "${_displayMode}"`);
   } catch (err) {
     _status(`widescreen toggle failed: ${String(err)}`, true);
@@ -207,12 +223,64 @@ function _addWidescreenButton() {
     'border-radius:50%;border:none;cursor:pointer;background:#090b21;color:#fff;' +
     'font-size:18px;line-height:40px;text-align:center;opacity:.85;' +
     'box-shadow:0 2px 8px rgba(0,0,0,.35)';
-  _setWidescreenIcon(btn);
+  _widescreenBtn = btn;
+  _renderWidescreenIcon();
   btn.addEventListener('mouseenter', () => (btn.style.opacity = '1'));
   btn.addEventListener('mouseleave', () => (btn.style.opacity = '.85'));
-  btn.addEventListener('click', () => void _toggleWidescreen(btn));
+  btn.addEventListener('click', () => void _toggleWidescreen());
   document.body.appendChild(btn);
 }
+
+// ── Keyboard shortcuts ──────────────────────────────────────────────────────
+// Esc exits widescreen; ⌘/Ctrl+Z = undo, ⌘/Ctrl+Shift+Z (or Ctrl+Y) = redo.
+// Undo/redo are driven by clicking the reader's own toolbar buttons, so they
+// dispatch the proper events and respect the disabled (canUndo/canRedo) state.
+// The reader binds no undo/redo shortcuts itself, so we own them here.
+function _isEditable(el) {
+  if (!el) return false;
+  const tag = el.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable === true;
+}
+
+function _clickReaderButton(testid) {
+  const btn = document.querySelector(`[data-testid="${testid}"]`);
+  if (btn && !btn.disabled) btn.click();
+}
+
+function _installKeyboardShortcuts() {
+  window.addEventListener(
+    'keydown',
+    (e) => {
+      // Esc leaves widescreen (only when actually in fullscreen).
+      if (e.key === 'Escape' && _displayMode === 'fullscreen') {
+        e.preventDefault();
+        void _toggleWidescreen();
+        return;
+      }
+      const mod = e.metaKey || e.ctrlKey;
+      // Never hijack undo inside a text field — let native editing handle it.
+      if (!mod || _isEditable(e.target)) return;
+      const key = e.key.toLowerCase();
+      if (key === 'z') {
+        e.preventDefault();
+        _clickReaderButton(e.shiftKey ? 'reader-redo' : 'reader-undo');
+      } else if (key === 'y') {
+        e.preventDefault();
+        _clickReaderButton('reader-redo');
+      }
+    },
+    true,
+  );
+}
+
+// Keep the widescreen button in sync when the HOST changes the display mode
+// (e.g. the user clicks the host's X / minimize to leave fullscreen). The host
+// sends ui/notifications/host-context-changed with the new displayMode; without
+// this the button's state goes stale and the next click misbehaves.
+// Registered before connect() like ontoolresult.
+app.onhostcontextchanged = (ctx) => {
+  if (ctx?.displayMode) _applyDisplayMode(ctx.displayMode);
+};
 
 // Must be registered before connect() — the launching tool result arrives as a
 // notification right after the initialize handshake.
@@ -236,5 +304,6 @@ app
   .then(() => {
     _status('connected; awaiting tool result…');
     _addWidescreenButton();
+    _installKeyboardShortcuts();
   })
   .catch((err) => _status(`connect failed: ${String(err)}`, true));
