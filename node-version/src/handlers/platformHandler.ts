@@ -297,6 +297,16 @@ export class PlatformHandler {
     return this._extractResult(body);
   }
 
+  async smartDetectFormFields(fileBytes: Buffer): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'document.pdf');
+    const { body } = await this._client.run('extractions', file, {
+      method: 'smart-detect-form-fields',
+      params: {},
+      acceptFormat: 'json',
+    });
+    return this._extractResult(body);
+  }
+
   async extractPiiBoundingBoxes(fileBytes: Buffer, language: 'en' | 'es'): Promise<Buffer> {
     const file = createBytesFile(ContentType.PDF, fileBytes, 'document.pdf');
     const { body } = await this._client.run('extractions', file, {
@@ -463,6 +473,15 @@ export class PlatformHandler {
     const { body } = await this._client.run('generations', [pdfFile, dataFile], {
       method: 'fill-forms',
       params: params as Record<string, unknown>,
+    });
+    return body;
+  }
+
+  async createFillableForms(fileBytes: Buffer): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
+    const { body } = await this._client.run('generations', file, {
+      method: 'create-fillable-forms',
+      params: {},
     });
     return body;
   }

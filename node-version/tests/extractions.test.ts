@@ -61,11 +61,13 @@ describe('extraction tools', () => {
       setPdfMetadata: vi.fn(),
       flattenPdf: vi.fn(),
       extractPiiBoundingBoxes: vi.fn(),
+      smartDetectFormFields: vi.fn(),
       redactPdf: vi.fn(),
       watermarkPdf: vi.fn(),
       ocrPdf: vi.fn(),
       optimizePdf: vi.fn(),
       fillForms: vi.fn(),
+      createFillableForms: vi.fn(),
       extractExpenseData: vi.fn(),
     };
     const context = createAppContext({
@@ -238,6 +240,56 @@ describe('extraction tools', () => {
         'forms',
         { language: 'es' },
       );
+    });
+  });
+
+  describe('smart_detect_form_fields', () => {
+    it('returns detected form fields inline by default', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.smartDetectFormFields.mockResolvedValue(Buffer.from('{"fields":[]}'));
+
+      await caller.call(
+        'smart_detect_form_fields',
+        { inputPath: path.join(tmpDir, 'doc.pdf') },
+        { expectedResult: { data: { fields: [] } } },
+      );
+
+      expect(filesHandlerMock.read).toHaveBeenCalledWith(path.join(tmpDir, 'doc.pdf'));
+      expect(platformHandlerMock.smartDetectFormFields).toHaveBeenCalledWith(
+        Buffer.from('pdf-bytes'),
+      );
+      expect(filesHandlerMock.write).not.toHaveBeenCalled();
+    });
+
+    it('writes detected form fields to file when outputTarget is file', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.smartDetectFormFields.mockResolvedValue(Buffer.from('{"fields":[]}'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-form-fields.json'));
+
+      await caller.call(
+        'smart_detect_form_fields',
+        { inputPath: path.join(tmpDir, 'doc.pdf'), outputTarget: 'file' },
+        { expectedResult: { outputFilename: 'doc-form-fields.json' } },
+      );
+
+      expect(filesHandlerMock.write).toHaveBeenCalledWith(
+        path.join(tmpDir, 'doc.pdf'),
+        Buffer.from('{"fields":[]}'),
+        { stemSuffix: 'form-fields', ext: 'json' },
+      );
+    });
+
+    it('returns error when platform handler throws', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.smartDetectFormFields.mockRejectedValue(new GenericFailedError());
+
+      await caller.call(
+        'smart_detect_form_fields',
+        { inputPath: path.join(tmpDir, 'doc.pdf') },
+        { expectError: true },
+      );
+
+      expect(filesHandlerMock.write).not.toHaveBeenCalled();
     });
   });
 

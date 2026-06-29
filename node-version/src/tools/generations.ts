@@ -140,4 +140,35 @@ export function register(server: McpServer, context: AppContext): void {
       }
     },
   );
+
+  server.registerTool(
+    'create_fillable_forms',
+    {
+      description:
+        'Use this tool to detect form fields in a PDF and generate a new PDF containing them as ' +
+        'real, fillable AcroForm fields.',
+      inputSchema: {
+        ...singleFileInputSchema.shape,
+      },
+      annotations: NON_DESTRUCTIVE('Create Fillable Forms'),
+    },
+    async (args) => {
+      try {
+        const filesHandler = getDep(context, 'filesHandler');
+        const platformHandler = getDep(context, 'platformHandler');
+
+        const inputBytes = filesHandler.read(args.inputPath);
+        const fillableBytes = await platformHandler.createFillableForms(inputBytes);
+
+        const outputPath = filesHandler.write(args.inputPath, fillableBytes, {
+          stemSuffix: 'fillable',
+          ext: 'pdf',
+        });
+
+        return _successResult(path.basename(outputPath));
+      } catch (err) {
+        return handleToolError('create_fillable_forms', err);
+      }
+    },
+  );
 }

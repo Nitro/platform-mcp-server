@@ -62,11 +62,13 @@ describe('convert_file tool', () => {
       setPdfMetadata: vi.fn(),
       flattenPdf: vi.fn(),
       extractPiiBoundingBoxes: vi.fn(),
+      smartDetectFormFields: vi.fn(),
       redactPdf: vi.fn(),
       watermarkPdf: vi.fn(),
       ocrPdf: vi.fn(),
       optimizePdf: vi.fn(),
       fillForms: vi.fn(),
+      createFillableForms: vi.fn(),
       extractExpenseData: vi.fn(),
     };
     const context = createAppContext({

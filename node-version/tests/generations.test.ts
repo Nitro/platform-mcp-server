@@ -53,6 +53,7 @@ describe('generation tools', () => {
       extractPdfData: vi.fn(),
       extractTextBoundingBoxes: vi.fn(),
       extractPiiBoundingBoxes: vi.fn(),
+      smartDetectFormFields: vi.fn(),
       mergePdfs: vi.fn(),
       splitPdf: vi.fn(),
       rotatePdf: vi.fn(),
@@ -66,6 +67,7 @@ describe('generation tools', () => {
       ocrPdf: vi.fn(),
       optimizePdf: vi.fn(),
       fillForms: vi.fn(),
+      createFillableForms: vi.fn(),
       extractExpenseData: vi.fn(),
     };
     const context = createAppContext({
@@ -304,6 +306,42 @@ describe('generation tools', () => {
       );
 
       expect(platformHandlerMock.fillForms).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('create_fillable_forms', () => {
+    it('generates a fillable PDF and returns the output filename', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.createFillableForms.mockResolvedValue(Buffer.from('fillable-bytes'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'form-fillable.pdf'));
+
+      await caller.call(
+        'create_fillable_forms',
+        { inputPath: path.join(tmpDir, 'form.pdf') },
+        { expectedResult: { outputFilename: 'form-fillable.pdf' } },
+      );
+
+      expect(platformHandlerMock.createFillableForms).toHaveBeenCalledWith(
+        Buffer.from('pdf-bytes'),
+      );
+      expect(filesHandlerMock.write).toHaveBeenCalledWith(
+        path.join(tmpDir, 'form.pdf'),
+        Buffer.from('fillable-bytes'),
+        { stemSuffix: 'fillable', ext: 'pdf' },
+      );
+    });
+
+    it('returns error when platform handler throws', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.createFillableForms.mockRejectedValue(new GenericFailedError());
+
+      await caller.call(
+        'create_fillable_forms',
+        { inputPath: path.join(tmpDir, 'form.pdf') },
+        { expectError: true },
+      );
+
+      expect(filesHandlerMock.write).not.toHaveBeenCalled();
     });
   });
 });
