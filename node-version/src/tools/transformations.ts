@@ -8,7 +8,6 @@ import { handleToolError, UserFacingError } from '../errors.js';
 import { singleFileInputSchema } from '../models.js';
 import { ContentType } from '../client/enums.js';
 import type {
-  CompressionParams,
   OcrParams,
   OptimizationParams,
   PageRotation,
@@ -740,23 +739,12 @@ export function register(server: McpServer, context: AppContext): void {
     'compress_pdf',
     {
       description:
-        'Use this tool when you just want to make a PDF smaller. It compresses a PDF to reduce its file size. ' +
-        'Compress is a special case of optimization that always minimises file size — reach for it when the goal ' +
-        'is simply a smaller file rather than a specific optimization profile.',
+        'Use this tool when you just want to make a PDF smaller. It compresses a PDF to always produce the ' +
+        'smallest possible file. Compress is a special case of optimization that always minimises file size — ' +
+        'reach for it when the goal is simply a smaller file. ' +
+        'For control over the size/quality trade-off, use the optimize_pdf tool and its profile option instead.',
       inputSchema: {
         ...singleFileInputSchema.shape,
-        level: z
-          .number()
-          .int()
-          .min(0)
-          .max(2)
-          .default(1)
-          .describe(
-            'Compression level controlling the trade-off between file size and quality:\n' +
-              '- 0: least compression / best quality (largest file).\n' +
-              '- 1: balanced compression.\n' +
-              '- 2: most compression / smallest file (lowest quality).',
-          ),
       },
       annotations: NON_DESTRUCTIVE('Compress PDF'),
     },
@@ -765,9 +753,8 @@ export function register(server: McpServer, context: AppContext): void {
         const filesHandler = getDep(context, 'filesHandler');
         const platformHandler = getDep(context, 'platformHandler');
 
-        const params: CompressionParams = { level: args.level as 0 | 1 | 2 };
         const inputBytes = filesHandler.read(args.inputPath);
-        const compressedBytes = await platformHandler.compressPdf(inputBytes, params);
+        const compressedBytes = await platformHandler.compressPdf(inputBytes);
 
         const outputPath = filesHandler.write(args.inputPath, compressedBytes, {
           stemSuffix: 'compressed',

@@ -121,10 +121,6 @@ export interface OptimizationParams {
   readonly profile: 'web' | 'print' | 'archive' | 'minimal-file-size' | 'mixed-raster-content';
 }
 
-export interface CompressionParams {
-  readonly level: 0 | 1 | 2;
-}
-
 export interface FillFormsParams {
   readonly strict?: boolean;
 }
@@ -446,11 +442,11 @@ export class PlatformHandler {
     return body;
   }
 
-  async compressPdf(fileBytes: Buffer, params: CompressionParams): Promise<Buffer> {
+  async compressPdf(fileBytes: Buffer): Promise<Buffer> {
     const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
     const { body } = await this._client.run('transformations', file, {
       method: 'compress',
-      params: params as unknown as Record<string, unknown>,
+      params: {},
     });
     return body;
   }

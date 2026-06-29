@@ -655,37 +655,23 @@ describe('transformation tools', () => {
   });
 
   describe('compress_pdf', () => {
-    it('compresses with given level and returns output filename', async () => {
+    it('compresses and returns output filename', async () => {
       filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
       platformHandlerMock.compressPdf.mockResolvedValue(Buffer.from('compressed'));
       filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-compressed.pdf'));
 
       await caller.call(
         'compress_pdf',
-        { inputPath: path.join(tmpDir, 'doc.pdf'), level: 2 },
+        { inputPath: path.join(tmpDir, 'doc.pdf') },
         { expectedResult: { outputFilename: 'doc-compressed.pdf' } },
       );
 
-      expect(platformHandlerMock.compressPdf).toHaveBeenCalledWith(Buffer.from('pdf-bytes'), {
-        level: 2,
-      });
+      expect(platformHandlerMock.compressPdf).toHaveBeenCalledWith(Buffer.from('pdf-bytes'));
       expect(filesHandlerMock.write).toHaveBeenCalledWith(
         path.join(tmpDir, 'doc.pdf'),
         Buffer.from('compressed'),
         { stemSuffix: 'compressed', ext: 'pdf' },
       );
-    });
-
-    it('defaults the level when not provided', async () => {
-      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
-      platformHandlerMock.compressPdf.mockResolvedValue(Buffer.from('compressed'));
-      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-compressed.pdf'));
-
-      await caller.call('compress_pdf', { inputPath: path.join(tmpDir, 'doc.pdf') });
-
-      expect(platformHandlerMock.compressPdf).toHaveBeenCalledWith(Buffer.from('pdf-bytes'), {
-        level: 1,
-      });
     });
 
     it('returns error when platform handler throws', async () => {
@@ -694,7 +680,7 @@ describe('transformation tools', () => {
 
       await caller.call(
         'compress_pdf',
-        { inputPath: path.join(tmpDir, 'doc.pdf'), level: 0 },
+        { inputPath: path.join(tmpDir, 'doc.pdf') },
         { expectError: true },
       );
 
