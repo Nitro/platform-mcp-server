@@ -66,6 +66,7 @@ describe('transformation tools', () => {
       watermarkPdf: vi.fn(),
       ocrPdf: vi.fn(),
       optimizePdf: vi.fn(),
+      compressPdf: vi.fn(),
       fillForms: vi.fn(),
       extractExpenseData: vi.fn(),
     };
@@ -646,6 +647,54 @@ describe('transformation tools', () => {
       await caller.call(
         'optimize_pdf',
         { inputPath: path.join(tmpDir, 'doc.pdf'), profile: 'print' },
+        { expectError: true },
+      );
+
+      expect(filesHandlerMock.write).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('compress_pdf', () => {
+    it('compresses with given level and returns output filename', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.compressPdf.mockResolvedValue(Buffer.from('compressed'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-compressed.pdf'));
+
+      await caller.call(
+        'compress_pdf',
+        { inputPath: path.join(tmpDir, 'doc.pdf'), level: 2 },
+        { expectedResult: { outputFilename: 'doc-compressed.pdf' } },
+      );
+
+      expect(platformHandlerMock.compressPdf).toHaveBeenCalledWith(Buffer.from('pdf-bytes'), {
+        level: 2,
+      });
+      expect(filesHandlerMock.write).toHaveBeenCalledWith(
+        path.join(tmpDir, 'doc.pdf'),
+        Buffer.from('compressed'),
+        { stemSuffix: 'compressed', ext: 'pdf' },
+      );
+    });
+
+    it('defaults the level when not provided', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.compressPdf.mockResolvedValue(Buffer.from('compressed'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-compressed.pdf'));
+
+      await caller.call('compress_pdf', { inputPath: path.join(tmpDir, 'doc.pdf') });
+
+      expect(platformHandlerMock.compressPdf).toHaveBeenCalledWith(Buffer.from('pdf-bytes'), {
+        level: 1,
+      });
+    });
+
+    it('returns error when platform handler throws', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.compressPdf.mockRejectedValue(new GenericFailedError());
+
+      await caller.call(
+        'compress_pdf',
+        { inputPath: path.join(tmpDir, 'doc.pdf'), level: 0 },
         { expectError: true },
       );
 

@@ -65,6 +65,7 @@ describe('extraction tools', () => {
       watermarkPdf: vi.fn(),
       ocrPdf: vi.fn(),
       optimizePdf: vi.fn(),
+      compressPdf: vi.fn(),
       fillForms: vi.fn(),
       extractExpenseData: vi.fn(),
     };
