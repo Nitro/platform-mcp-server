@@ -9,7 +9,7 @@ import { singleFileInputSchema } from '../models.js';
 import type { FillFormsParams, FormFields } from '../handlers/platformHandler.js';
 
 const _formFieldSchema = z.object({
-  pageNumber: z.number().describe('The 1-based page number the field belongs to.'),
+  pageIndex: z.number().describe('The 0-based page index the field belongs to.'),
   fieldType: z
     .enum(['TextBox', 'CheckBox'])
     .describe('The kind of form field to create: a text input ("TextBox") or a "CheckBox".'),

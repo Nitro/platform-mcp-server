@@ -312,13 +312,13 @@ describe('generation tools', () => {
   describe('create_fillable_forms', () => {
     const formFields = [
       {
-        pageNumber: 1,
+        pageIndex: 1,
         fieldType: 'TextBox' as const,
         name: 'first-name',
         boundingBox: [1, 2, 3, 4] as [number, number, number, number],
       },
       {
-        pageNumber: 1,
+        pageIndex: 1,
         fieldType: 'CheckBox' as const,
         name: 'agree-to-terms',
         boundingBox: [5, 6, 7, 8] as [number, number, number, number],

@@ -128,7 +128,7 @@ export interface FillFormsParams {
 export type FormFieldType = 'TextBox' | 'CheckBox';
 
 export interface DetectedFormField {
-  readonly pageNumber: number;
+  readonly pageIndex: number;
   readonly fieldType: FormFieldType;
   readonly name: string;
   readonly boundingBox: [number, number, number, number];
