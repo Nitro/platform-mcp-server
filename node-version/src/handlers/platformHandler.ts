@@ -125,6 +125,28 @@ export interface FillFormsParams {
   readonly strict?: boolean;
 }
 
+export type FormFieldType = 'TextBox' | 'CheckBox';
+
+export interface DetectedFormField {
+  readonly fieldType: FormFieldType;
+  readonly name: string;
+  readonly boundingBox: [number, number, number, number];
+  readonly value?: string | undefined;
+}
+
+export interface FormFieldsPageResult {
+  readonly pageNumber: number;
+  readonly formFields: DetectedFormField[];
+}
+
+/**
+ * Form fields to materialize as real AcroForm fields. Mirrors the shape returned by
+ * `smartDetectFormFields`, so the detection output can be fed straight back in.
+ */
+export interface FormFields {
+  readonly pageResults: FormFieldsPageResult[];
+}
+
 export class ConversionNotSupportedError extends Error {
   constructor(fromFormat: FileFormat, toFormat: FileFormat) {
     super(`Conversion from ${fromFormat} to ${toFormat} is not supported`);
@@ -477,11 +499,11 @@ export class PlatformHandler {
     return body;
   }
 
-  async createFillableForms(fileBytes: Buffer): Promise<Buffer> {
+  async createFillableForms(fileBytes: Buffer, fields: FormFields): Promise<Buffer> {
     const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
     const { body } = await this._client.run('generations', file, {
       method: 'create-fillable-forms',
-      params: {},
+      params: fields as unknown as Record<string, unknown>,
     });
     return body;
   }
