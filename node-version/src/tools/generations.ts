@@ -9,6 +9,7 @@ import { singleFileInputSchema } from '../models.js';
 import type { FillFormsParams, FormFields } from '../handlers/platformHandler.js';
 
 const _formFieldSchema = z.object({
+  pageNumber: z.number().describe('The 1-based page number the field belongs to.'),
   fieldType: z
     .enum(['TextBox', 'CheckBox'])
     .describe('The kind of form field to create: a text input ("TextBox") or a "CheckBox".'),
@@ -19,15 +20,10 @@ const _formFieldSchema = z.object({
   value: z.string().optional().describe('Optional initial value for the field.'),
 });
 
-const _pageResultSchema = z.object({
-  pageNumber: z.number().describe('The 1-based page number the fields belong to.'),
-  formFields: z.array(_formFieldSchema).describe('The form fields to create on this page.'),
-});
-
 const _formFieldsSchema = z.object({
-  pageResults: z
-    .array(_pageResultSchema)
-    .describe('Per-page form fields to materialize as real AcroForm fields.'),
+  formFields: z
+    .array(_formFieldSchema)
+    .describe('Flat list of form fields to materialize as real AcroForm fields.'),
 });
 
 function _successResult(
@@ -172,7 +168,7 @@ export function register(server: McpServer, context: AppContext): void {
         'smart_detect_form_fields tool, passed through unchanged.',
       inputSchema: {
         ...singleFileInputSchema.shape,
-        pageResults: _formFieldsSchema.shape.pageResults,
+        formFields: _formFieldsSchema.shape.formFields,
       },
       annotations: NON_DESTRUCTIVE('Create Fillable Forms'),
     },
@@ -181,7 +177,7 @@ export function register(server: McpServer, context: AppContext): void {
         const filesHandler = getDep(context, 'filesHandler');
         const platformHandler = getDep(context, 'platformHandler');
 
-        const fields: FormFields = { pageResults: args.pageResults };
+        const fields: FormFields = { formFields: args.formFields };
         const inputBytes = filesHandler.read(args.inputPath);
         const fillableBytes = await platformHandler.createFillableForms(inputBytes, fields);
 

@@ -128,23 +128,19 @@ export interface FillFormsParams {
 export type FormFieldType = 'TextBox' | 'CheckBox';
 
 export interface DetectedFormField {
+  readonly pageNumber: number;
   readonly fieldType: FormFieldType;
   readonly name: string;
   readonly boundingBox: [number, number, number, number];
   readonly value?: string | undefined;
 }
 
-export interface FormFieldsPageResult {
-  readonly pageNumber: number;
-  readonly formFields: DetectedFormField[];
-}
-
 /**
- * Form fields to materialize as real AcroForm fields. Mirrors the shape returned by
+ * Form fields to materialize as real AcroForm fields. Mirrors the flat shape returned by
  * `smartDetectFormFields`, so the detection output can be fed straight back in.
  */
 export interface FormFields {
-  readonly pageResults: FormFieldsPageResult[];
+  readonly formFields: DetectedFormField[];
 }
 
 export class ConversionNotSupportedError extends Error {

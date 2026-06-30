@@ -310,22 +310,19 @@ describe('generation tools', () => {
   });
 
   describe('create_fillable_forms', () => {
-    const pageResults = [
+    const formFields = [
       {
         pageNumber: 1,
-        formFields: [
-          {
-            fieldType: 'TextBox' as const,
-            name: 'first-name',
-            boundingBox: [1, 2, 3, 4] as [number, number, number, number],
-          },
-          {
-            fieldType: 'CheckBox' as const,
-            name: 'agree-to-terms',
-            boundingBox: [5, 6, 7, 8] as [number, number, number, number],
-            value: 'agree-to-terms-value',
-          },
-        ],
+        fieldType: 'TextBox' as const,
+        name: 'first-name',
+        boundingBox: [1, 2, 3, 4] as [number, number, number, number],
+      },
+      {
+        pageNumber: 1,
+        fieldType: 'CheckBox' as const,
+        name: 'agree-to-terms',
+        boundingBox: [5, 6, 7, 8] as [number, number, number, number],
+        value: 'agree-to-terms-value',
       },
     ];
 
@@ -336,13 +333,13 @@ describe('generation tools', () => {
 
       await caller.call(
         'create_fillable_forms',
-        { inputPath: path.join(tmpDir, 'form.pdf'), pageResults },
+        { inputPath: path.join(tmpDir, 'form.pdf'), formFields },
         { expectedResult: { outputFilename: 'form-fillable.pdf' } },
       );
 
       expect(platformHandlerMock.createFillableForms).toHaveBeenCalledWith(
         Buffer.from('pdf-bytes'),
-        { pageResults },
+        { formFields },
       );
       expect(filesHandlerMock.write).toHaveBeenCalledWith(
         path.join(tmpDir, 'form.pdf'),
@@ -357,7 +354,7 @@ describe('generation tools', () => {
 
       await caller.call(
         'create_fillable_forms',
-        { inputPath: path.join(tmpDir, 'form.pdf'), pageResults },
+        { inputPath: path.join(tmpDir, 'form.pdf'), formFields },
         { expectError: true },
       );
 
