@@ -442,6 +442,15 @@ export class PlatformHandler {
     return body;
   }
 
+  async compressPdf(fileBytes: Buffer): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
+    const { body } = await this._client.run('transformations', file, {
+      method: 'compress',
+      params: {},
+    });
+    return body;
+  }
+
   async fillForms(
     fileBytes: Buffer,
     dataBytes: Buffer,
