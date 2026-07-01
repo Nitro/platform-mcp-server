@@ -66,6 +66,7 @@ describe('generation tools', () => {
       watermarkPdf: vi.fn(),
       ocrPdf: vi.fn(),
       optimizePdf: vi.fn(),
+      compressPdf: vi.fn(),
       fillForms: vi.fn(),
       createFillableForms: vi.fn(),
       extractExpenseData: vi.fn(),

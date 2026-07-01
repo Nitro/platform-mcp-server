@@ -734,4 +734,37 @@ export function register(server: McpServer, context: AppContext): void {
       }
     },
   );
+
+  server.registerTool(
+    'compress_pdf',
+    {
+      description:
+        'Use this tool when you just want to make a PDF smaller. It compresses a PDF to always produce the ' +
+        'smallest possible file. Compress is a special case of optimization that always minimises file size — ' +
+        'reach for it when the goal is simply a smaller file. ' +
+        'For control over the size/quality trade-off, use the optimize_pdf tool and its profile option instead.',
+      inputSchema: {
+        ...singleFileInputSchema.shape,
+      },
+      annotations: NON_DESTRUCTIVE('Compress PDF'),
+    },
+    async (args) => {
+      try {
+        const filesHandler = getDep(context, 'filesHandler');
+        const platformHandler = getDep(context, 'platformHandler');
+
+        const inputBytes = filesHandler.read(args.inputPath);
+        const compressedBytes = await platformHandler.compressPdf(inputBytes);
+
+        const outputPath = filesHandler.write(args.inputPath, compressedBytes, {
+          stemSuffix: 'compressed',
+          ext: 'pdf',
+        });
+
+        return _successResult(path.basename(outputPath));
+      } catch (err) {
+        return handleToolError('compress_pdf', err);
+      }
+    },
+  );
 }

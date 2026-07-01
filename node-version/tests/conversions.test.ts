@@ -67,6 +67,7 @@ describe('convert_file tool', () => {
       watermarkPdf: vi.fn(),
       ocrPdf: vi.fn(),
       optimizePdf: vi.fn(),
+      compressPdf: vi.fn(),
       fillForms: vi.fn(),
       createFillableForms: vi.fn(),
       extractExpenseData: vi.fn(),

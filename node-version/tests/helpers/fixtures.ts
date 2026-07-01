@@ -22,6 +22,7 @@ export interface MockPlatformHandler {
   watermarkPdf: ReturnType<typeof vi.fn>;
   ocrPdf: ReturnType<typeof vi.fn>;
   optimizePdf: ReturnType<typeof vi.fn>;
+  compressPdf: ReturnType<typeof vi.fn>;
   fillForms: ReturnType<typeof vi.fn>;
   createFillableForms: ReturnType<typeof vi.fn>;
   extractExpenseData: ReturnType<typeof vi.fn>;
@@ -53,6 +54,7 @@ export function createPlatformHandlerMock(): MockPlatformHandler {
     watermarkPdf: vi.fn(),
     ocrPdf: vi.fn(),
     optimizePdf: vi.fn(),
+    compressPdf: vi.fn(),
     fillForms: vi.fn(),
     createFillableForms: vi.fn(),
     extractExpenseData: vi.fn(),
