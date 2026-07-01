@@ -6,7 +6,25 @@ import type { AppContext } from '../context.js';
 import { getDep } from '../context.js';
 import { handleToolError, UserFacingError } from '../errors.js';
 import { singleFileInputSchema } from '../models.js';
-import type { FillFormsParams } from '../handlers/platformHandler.js';
+import type { FillFormsParams, FormFields } from '../handlers/platformHandler.js';
+
+const _formFieldSchema = z.object({
+  pageIndex: z.number().int().min(0).describe('The 0-based page index the field belongs to.'),
+  fieldType: z
+    .enum(['TextBox', 'CheckBox'])
+    .describe('The kind of form field to create: a text input ("TextBox") or a "CheckBox".'),
+  name: z.string().min(1).describe('The unique name of the form field.'),
+  boundingBox: z
+    .tuple([z.number(), z.number(), z.number(), z.number()])
+    .describe('The field position as [x, y, width, height] in PDF points.'),
+  value: z.string().optional().describe('Optional initial value for the field.'),
+});
+
+const _formFieldsSchema = z.object({
+  formFields: z
+    .array(_formFieldSchema)
+    .describe('Flat list of form fields to materialize as real AcroForm fields.'),
+});
 
 function _successResult(
   outputFilename: string,
@@ -137,6 +155,40 @@ export function register(server: McpServer, context: AppContext): void {
         return _successResult(path.basename(outputPath));
       } catch (err) {
         return handleToolError('fill_forms', err);
+      }
+    },
+  );
+
+  server.registerTool(
+    'create_fillable_forms',
+    {
+      description:
+        'Use this tool to generate a new PDF containing the provided form fields as real, ' +
+        'fillable AcroForm fields. The fields are typically the `formFields` returned by the ' +
+        'smart_detect_form_fields tool.',
+      inputSchema: {
+        ...singleFileInputSchema.shape,
+        formFields: _formFieldsSchema.shape.formFields,
+      },
+      annotations: NON_DESTRUCTIVE('Create Fillable Forms'),
+    },
+    async (args) => {
+      try {
+        const filesHandler = getDep(context, 'filesHandler');
+        const platformHandler = getDep(context, 'platformHandler');
+
+        const fields: FormFields = { formFields: args.formFields };
+        const inputBytes = filesHandler.read(args.inputPath);
+        const fillableBytes = await platformHandler.createFillableForms(inputBytes, fields);
+
+        const outputPath = filesHandler.write(args.inputPath, fillableBytes, {
+          stemSuffix: 'fillable',
+          ext: 'pdf',
+        });
+
+        return _successResult(path.basename(outputPath));
+      } catch (err) {
+        return handleToolError('create_fillable_forms', err);
       }
     },
   );

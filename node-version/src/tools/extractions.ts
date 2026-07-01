@@ -119,6 +119,40 @@ export function register(server: McpServer, context: AppContext): void {
   );
 
   server.registerTool(
+    'smart_detect_form_fields',
+    {
+      description:
+        'Use this tool to automatically detect form fields in a PDF file. Returns the detected ' +
+        'form-field bounding boxes as JSON.',
+      inputSchema: {
+        ...singleFileInputSchema.shape,
+        outputTarget: outputTargetSchema,
+      },
+      annotations: READ_ONLY('Smart Detect Form Fields'),
+    },
+    async (args) => {
+      try {
+        const filesHandler = getDep(context, 'filesHandler');
+        const platformHandler = getDep(context, 'platformHandler');
+
+        const inputBytes = filesHandler.read(args.inputPath);
+        const result = await platformHandler.smartDetectFormFields(inputBytes);
+
+        return jsonResult({
+          outputTarget: args.outputTarget,
+          data: JSON.parse(result.toString()),
+          bytes: result,
+          filesHandler,
+          inputPath: args.inputPath,
+          stemSuffix: 'form-fields',
+        });
+      } catch (err) {
+        return handleToolError('smart_detect_form_fields', err);
+      }
+    },
+  );
+
+  server.registerTool(
     'extract_pdf_tables',
     {
       description: 'Use this tool to extract tables from a PDF file.',

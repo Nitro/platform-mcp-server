@@ -125,6 +125,24 @@ export interface FillFormsParams {
   readonly strict?: boolean;
 }
 
+export type FormFieldType = 'TextBox' | 'CheckBox';
+
+export interface DetectedFormField {
+  readonly pageIndex: number;
+  readonly fieldType: FormFieldType;
+  readonly name: string;
+  readonly boundingBox: [number, number, number, number];
+  readonly value?: string | undefined;
+}
+
+/**
+ * Form fields to materialize as real AcroForm fields. Mirrors the flat shape returned by
+ * `smartDetectFormFields`, so the detection output can be fed straight back in.
+ */
+export interface FormFields {
+  readonly formFields: DetectedFormField[];
+}
+
 export class ConversionNotSupportedError extends Error {
   constructor(fromFormat: FileFormat, toFormat: FileFormat) {
     super(`Conversion from ${fromFormat} to ${toFormat} is not supported`);
@@ -292,6 +310,16 @@ export class PlatformHandler {
     const { body } = await this._client.run('extractions', file, {
       method: 'extract-text-bounding-boxes',
       params: { queries: wireQueries },
+      acceptFormat: 'json',
+    });
+    return this._extractResult(body);
+  }
+
+  async smartDetectFormFields(fileBytes: Buffer): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'document.pdf');
+    const { body } = await this._client.run('extractions', file, {
+      method: 'smart-detect-form-fields',
+      params: {},
       acceptFormat: 'json',
     });
     return this._extractResult(body);
@@ -472,6 +500,15 @@ export class PlatformHandler {
     const { body } = await this._client.run('generations', [pdfFile, dataFile], {
       method: 'fill-forms',
       params: params as Record<string, unknown>,
+    });
+    return body;
+  }
+
+  async createFillableForms(fileBytes: Buffer, fields: FormFields): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
+    const { body } = await this._client.run('generations', file, {
+      method: 'create-fillable-forms',
+      params: fields as unknown as Record<string, unknown>,
     });
     return body;
   }

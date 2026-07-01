@@ -9,6 +9,7 @@ export interface MockPlatformHandler {
   extractPdfData: ReturnType<typeof vi.fn>;
   extractTextBoundingBoxes: ReturnType<typeof vi.fn>;
   extractPiiBoundingBoxes: ReturnType<typeof vi.fn>;
+  smartDetectFormFields: ReturnType<typeof vi.fn>;
   mergePdfs: ReturnType<typeof vi.fn>;
   splitPdf: ReturnType<typeof vi.fn>;
   rotatePdf: ReturnType<typeof vi.fn>;
@@ -23,6 +24,7 @@ export interface MockPlatformHandler {
   optimizePdf: ReturnType<typeof vi.fn>;
   compressPdf: ReturnType<typeof vi.fn>;
   fillForms: ReturnType<typeof vi.fn>;
+  createFillableForms: ReturnType<typeof vi.fn>;
   extractExpenseData: ReturnType<typeof vi.fn>;
 }
 
@@ -39,6 +41,7 @@ export function createPlatformHandlerMock(): MockPlatformHandler {
     extractPdfData: vi.fn(),
     extractTextBoundingBoxes: vi.fn(),
     extractPiiBoundingBoxes: vi.fn(),
+    smartDetectFormFields: vi.fn(),
     mergePdfs: vi.fn(),
     splitPdf: vi.fn(),
     rotatePdf: vi.fn(),
@@ -53,6 +56,7 @@ export function createPlatformHandlerMock(): MockPlatformHandler {
     optimizePdf: vi.fn(),
     compressPdf: vi.fn(),
     fillForms: vi.fn(),
+    createFillableForms: vi.fn(),
     extractExpenseData: vi.fn(),
   };
 }
