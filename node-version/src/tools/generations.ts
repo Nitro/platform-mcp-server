@@ -9,7 +9,7 @@ import { singleFileInputSchema } from '../models.js';
 import type { FillFormsParams, FormFields } from '../handlers/platformHandler.js';
 
 const _formFieldSchema = z.object({
-  pageIndex: z.number().describe('The 0-based page index the field belongs to.'),
+  pageIndex: z.number().int().min(0).describe('The 0-based page index the field belongs to.'),
   fieldType: z
     .enum(['TextBox', 'CheckBox'])
     .describe('The kind of form field to create: a text input ("TextBox") or a "CheckBox".'),
@@ -164,8 +164,8 @@ export function register(server: McpServer, context: AppContext): void {
     {
       description:
         'Use this tool to generate a new PDF containing the provided form fields as real, ' +
-        'fillable AcroForm fields. The fields are typically the output of the ' +
-        'smart_detect_form_fields tool, passed through unchanged.',
+        'fillable AcroForm fields. The fields are typically the `formFields` returned by the ' +
+        'smart_detect_form_fields tool.',
       inputSchema: {
         ...singleFileInputSchema.shape,
         formFields: _formFieldsSchema.shape.formFields,
