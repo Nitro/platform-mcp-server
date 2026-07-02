@@ -75,6 +75,11 @@ jobs:
           git checkout -b "$BRANCH"
           git add node-version/manifest.json
           git commit -m "Release v${VERSION}"
+          # Plain --force, not --force-with-lease: this is a fresh shallow
+          # checkout with no remote-tracking ref for the release branch, so
+          # --force-with-lease would reject the rerun-updates-branch case.
+          # Release branches are workflow-owned and short-lived; nothing
+          # manual should ever be pushed to them.
           git push --force origin "$BRANCH"
           if [ -z "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
             gh pr create \
