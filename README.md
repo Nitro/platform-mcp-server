@@ -93,11 +93,15 @@ For full details on data retention, AI/ML training policy, subprocessors, and pr
 
 ## Releasing (maintainers)
 
-Releases are PR-based because `main` is protected from direct pushes:
+Releases are PR-based because `main` is protected from direct pushes.
 
-1. Run the **Open Release PR** workflow from the Actions tab, or run `task release` locally (`task release -- 1.2.3` for an explicit version; omit to auto-increment the minor version). This opens a pull request that bumps the version in `node-version/manifest.json`.
-2. Have a teammate approve the release PR, then merge it. CI does not run on this PR — it is created by the workflow and only changes the version field.
-3. On merge, the **Publish Release** workflow runs automatically: it builds the `.mcpb` from the merged commit, tags it `vX.Y.Z`, and publishes the [GitHub release](https://github.com/Nitro/platform-mcp-server/releases). If it needs to be re-run, dispatch it manually from the Actions tab; it skips versions that are already tagged.
+1. Open a release PR by running `task release` locally, or the **Open Release PR** workflow from the Actions tab. This opens a pull request that bumps the version in `node-version/manifest.json`.
+   - `task release` — auto-increments the minor version. For example, if the current version is `0.23.0`, this releases `0.24.0`.
+   - `task release -- 1.0.0` — releases an explicit version; use this to bump the major version or to publish a patch. Future auto-increments continue from it: after releasing `1.0.0`, the next plain `task release` gives `1.1.0`.
+2. Have a teammate approve the release PR, then merge it.
+   - CI does not run on this PR — it is created by a workflow and only changes the version field.
+3. That's it — on merge, the **Publish Release** workflow runs automatically. It builds the `.mcpb` from the merged commit, tags it `vX.Y.Z`, and publishes the [GitHub release](https://github.com/Nitro/platform-mcp-server/releases).
+   - If publishing needs a re-run, dispatch **Publish Release** manually from the Actions tab. It is safe to re-run: versions that are already tagged are skipped.
 
 ## Privacy Policy
 
