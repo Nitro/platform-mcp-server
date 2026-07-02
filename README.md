@@ -91,6 +91,14 @@ For full details on data retention, AI/ML training policy, subprocessors, and pr
 
 **Filing a bug** — open an issue at [https://github.com/Nitro/platform-mcp-server/issues](https://github.com/Nitro/platform-mcp-server/issues) and include the reference code from the error message.
 
+## Releasing (maintainers)
+
+Releases are PR-based because `main` is protected from direct pushes:
+
+1. Run the **Open Release PR** workflow from the Actions tab, or run `task release` locally (`task release -- 1.2.3` for an explicit version; omit to auto-increment the minor version). This opens a pull request that bumps the version in `node-version/manifest.json`.
+2. Have a teammate approve the release PR, then merge it. CI does not run on this PR — it is created by the workflow and only changes the version field.
+3. On merge, the **Publish Release** workflow runs automatically: it builds the `.mcpb` from the merged commit, tags it `vX.Y.Z`, and publishes the [GitHub release](https://github.com/Nitro/platform-mcp-server/releases). If it needs to be re-run, dispatch it manually from the Actions tab; it skips versions that are already tagged.
+
 ## Privacy Policy
 
 Your data is processed in accordance with the Nitro Privacy Policy:
