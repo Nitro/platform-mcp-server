@@ -1,0 +1,92 @@
+name: Open Release PR
+
+# Opens a version-bump PR against main. Merging that PR triggers the
+# "Publish Release" workflow (publish.yml), which tags the merge commit and
+# publishes the GitHub release. Two-step flow because main is protected from
+# direct pushes (PIGS-835).
+#
+# Note: CI does not run on the release PR because it is created with the
+# built-in GITHUB_TOKEN (GitHub suppresses workflow triggers for GITHUB_TOKEN
+# events). The PR only changes the version field in manifest.json; the release
+# build happens after merge in publish.yml.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (x.y.z). If omitted, increments minor and resets patch."
+        required: false
+        type: string
+
+jobs:
+  release-pr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Resolve version
+        id: version
+        env:
+          INPUT: ${{ inputs.version }}
+        run: |
+          if [ -n "$INPUT" ]; then
+            if ! echo "$INPUT" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+              echo "Invalid version format: '$INPUT'. Must be x.y.z"
+              exit 1
+            fi
+            echo "value=$INPUT" >> "$GITHUB_OUTPUT"
+          else
+            CURRENT=$(jq -r '.version' node-version/manifest.json)
+            MAJOR=$(echo "$CURRENT" | cut -d. -f1)
+            MINOR=$(echo "$CURRENT" | cut -d. -f2)
+            NEW_MINOR=$((MINOR + 1))
+            echo "value=${MAJOR}.${NEW_MINOR}.0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Ensure version is not already released
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.value }}"
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/v${VERSION}" --silent 2>/dev/null; then
+            echo "Tag v${VERSION} already exists"
+            exit 1
+          fi
+
+      - name: Update manifest.json
+        run: |
+          VERSION="${{ steps.version.outputs.value }}"
+          jq --arg v "$VERSION" '.version = $v' node-version/manifest.json > node-version/manifest.json.tmp
+          mv node-version/manifest.json.tmp node-version/manifest.json
+
+      - name: Create release PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.value }}"
+          BRANCH="release/v${VERSION}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add node-version/manifest.json
+          git commit -m "Release v${VERSION}"
+          # Plain --force, not --force-with-lease: this is a fresh shallow
+          # checkout with no remote-tracking ref for the release branch, so
+          # --force-with-lease would reject the rerun-updates-branch case.
+          # Release branches are workflow-owned and short-lived; nothing
+          # manual should ever be pushed to them.
+          git push --force origin "$BRANCH"
+          if [ -z "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
+            gh pr create \
+              --head "$BRANCH" \
+              --base main \
+              --title "Release v${VERSION}" \
+              --body "Automated release PR. Merging it triggers the Publish Release workflow, which builds the .mcpb, tags the merge commit as v${VERSION}, and publishes the GitHub release. CI does not run on this PR (created with GITHUB_TOKEN); it only bumps the version in manifest.json."
+          else
+            echo "Release PR for $BRANCH already open; branch updated."
+          fi

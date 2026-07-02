@@ -7,10 +7,10 @@ includes:
     aliases: [n]
 
 tasks:
-  publish:
-    desc: "Trigger the publish release workflow (optional version: task publish -- 1.2.3)"
+  release:
+    desc: "Open a release PR (optional version: task release -- 1.2.3); merging it publishes the release"
     cmds:
-      - 'gh workflow run publish.yml --repo Nitro/platform-mcp-server {{if .CLI_ARGS}}-f version={{.CLI_ARGS}}{{end}}'
+      - 'gh workflow run release-pr.yml --repo Nitro/platform-mcp-server {{if .CLI_ARGS}}-f version={{.CLI_ARGS}}{{end}}'
 
   clean-corpus:
     cmds:

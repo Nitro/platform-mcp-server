@@ -1,47 +1,63 @@
 name: Publish Release
 
+# Publishes a release whenever a version bump lands on main (normally via a
+# release PR opened by the "Open Release PR" workflow, release-pr.yml).
+# Builds the .mcpb from the merged commit, tags it, and creates the GitHub
+# release. workflow_dispatch is a manual fallback that publishes the version
+# currently in manifest.json (no-op if that version is already tagged).
+
 on:
+  push:
+    branches: [main]
+    paths: [node-version/manifest.json]
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Version to release (x.y.z). If omitted, increments minor and resets patch."
-        required: false
-        type: string
+
+concurrency:
+  group: publish-release
+  cancel-in-progress: false
 
 jobs:
-  publish:
+  check:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.value }}
+      proceed: ${{ steps.guard.outputs.proceed }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
 
       - name: Resolve version
         id: version
-        env:
-          INPUT: ${{ inputs.version }}
         run: |
-          if [ -n "$INPUT" ]; then
-            if ! echo "$INPUT" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-              echo "Invalid version format: '$INPUT'. Must be x.y.z"
-              exit 1
-            fi
-            echo "value=$INPUT" >> "$GITHUB_OUTPUT"
+          echo "value=$(jq -r '.version' node-version/manifest.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Skip if version is already released
+        id: guard
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check for the release, not the tag: if a previous run created the
+          # tag but failed before publishing the release, a rerun must still
+          # proceed (gh release create accepts a pre-existing tag).
+          VERSION="${{ steps.version.outputs.value }}"
+          if gh release view "v${VERSION}" >/dev/null 2>&1; then
+            echo "Release v${VERSION} already exists; nothing to publish."
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
           else
-            CURRENT=$(jq -r '.version' node-version/manifest.json)
-            MAJOR=$(echo "$CURRENT" | cut -d. -f1)
-            MINOR=$(echo "$CURRENT" | cut -d. -f2)
-            NEW_MINOR=$((MINOR + 1))
-            echo "value=${MAJOR}.${NEW_MINOR}.0" >> "$GITHUB_OUTPUT"
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Update manifest.json
-        run: |
-          VERSION="${{ steps.version.outputs.value }}"
-          jq --arg v "$VERSION" '.version = $v' node-version/manifest.json > node-version/manifest.json.tmp
-          mv node-version/manifest.json.tmp node-version/manifest.json
+  publish:
+    needs: check
+    if: needs.check.outputs.proceed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -67,22 +83,12 @@ jobs:
         run: task build
         working-directory: node-version
 
-      - name: Commit version bump
-        run: |
-          VERSION="${{ steps.version.outputs.value }}"
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add node-version/manifest.json
-          git commit -m "Release v${VERSION}"
-          git tag "v${VERSION}"
-          git push origin main
-          git push origin "v${VERSION}"
-
-      - name: Create GitHub release
+      - name: Create tag and GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION="${{ steps.version.outputs.value }}"
+          VERSION="${{ needs.check.outputs.version }}"
           gh release create "v${VERSION}" build/*.mcpb \
+            --target "${GITHUB_SHA}" \
             --title "v${VERSION}" \
             --generate-notes
