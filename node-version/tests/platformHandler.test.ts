@@ -125,6 +125,32 @@ describe('PlatformHandler', () => {
     });
   });
 
+  describe('extractFillableFormData', () => {
+    it('calls extract-fillable-form-data and returns extracted result', async () => {
+      const formData = {
+        formFields: [{ pageIndex: 0, fieldType: 'TextBox', name: 'field-name', value: 'value' }],
+      };
+      const rawResponse = JSON.stringify({ result: formData });
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from(rawResponse),
+        contentType: 'application/json',
+      });
+
+      const result = await handler.extractFillableFormData(Buffer.from('pdf-bytes'));
+
+      expect(result).toEqual(Buffer.from(JSON.stringify(formData, null, 2)));
+      expect(runMock).toHaveBeenCalledWith(
+        'extractions',
+        expect.objectContaining({
+          kind: 'bytes',
+          contentType: ContentType.PDF,
+          name: 'document.pdf',
+        }),
+        { method: 'extract-fillable-form-data', params: {}, acceptFormat: 'json' },
+      );
+    });
+  });
+
   describe('extractPiiBoundingBoxes', () => {
     it('calls extract-pii-bounding-boxes with language param', async () => {
       const rawResponse = JSON.stringify({ result: { PIIBoxes: [] } });

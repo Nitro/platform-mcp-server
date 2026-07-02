@@ -325,6 +325,16 @@ export class PlatformHandler {
     return this._extractResult(body);
   }
 
+  async extractFillableFormData(fileBytes: Buffer): Promise<Buffer> {
+    const file = createBytesFile(ContentType.PDF, fileBytes, 'document.pdf');
+    const { body } = await this._client.run('extractions', file, {
+      method: 'extract-fillable-form-data',
+      params: {},
+      acceptFormat: 'json',
+    });
+    return this._extractResult(body);
+  }
+
   async extractPiiBoundingBoxes(fileBytes: Buffer, language: 'en' | 'es'): Promise<Buffer> {
     const file = createBytesFile(ContentType.PDF, fileBytes, 'document.pdf');
     const { body } = await this._client.run('extractions', file, {

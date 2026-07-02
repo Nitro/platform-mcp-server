@@ -74,6 +74,7 @@ describe('render_pdf_page tool', () => {
       flattenPdf: vi.fn(),
       extractPiiBoundingBoxes: vi.fn(),
       smartDetectFormFields: vi.fn(),
+      extractFillableFormData: vi.fn(),
       redactPdf: vi.fn(),
       watermarkPdf: vi.fn(),
       ocrPdf: vi.fn(),
