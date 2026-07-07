@@ -62,6 +62,7 @@ describe('extraction tools', () => {
       flattenPdf: vi.fn(),
       extractPiiBoundingBoxes: vi.fn(),
       smartDetectFormFields: vi.fn(),
+      extractFillableFormData: vi.fn(),
       redactPdf: vi.fn(),
       watermarkPdf: vi.fn(),
       ocrPdf: vi.fn(),
@@ -286,6 +287,60 @@ describe('extraction tools', () => {
 
       await caller.call(
         'smart_detect_form_fields',
+        { inputPath: path.join(tmpDir, 'doc.pdf') },
+        { expectError: true },
+      );
+
+      expect(filesHandlerMock.write).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('extract_fillable_form_data', () => {
+    it('returns form data inline by default', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.extractFillableFormData.mockResolvedValue(
+        Buffer.from('{"formFields":[]}'),
+      );
+
+      await caller.call(
+        'extract_fillable_form_data',
+        { inputPath: path.join(tmpDir, 'doc.pdf') },
+        { expectedResult: { data: { formFields: [] } } },
+      );
+
+      expect(filesHandlerMock.read).toHaveBeenCalledWith(path.join(tmpDir, 'doc.pdf'));
+      expect(platformHandlerMock.extractFillableFormData).toHaveBeenCalledWith(
+        Buffer.from('pdf-bytes'),
+      );
+      expect(filesHandlerMock.write).not.toHaveBeenCalled();
+    });
+
+    it('writes form data to file when outputTarget is file', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.extractFillableFormData.mockResolvedValue(
+        Buffer.from('{"formFields":[]}'),
+      );
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-form-data.json'));
+
+      await caller.call(
+        'extract_fillable_form_data',
+        { inputPath: path.join(tmpDir, 'doc.pdf'), outputTarget: 'file' },
+        { expectedResult: { outputFilename: 'doc-form-data.json' } },
+      );
+
+      expect(filesHandlerMock.write).toHaveBeenCalledWith(
+        path.join(tmpDir, 'doc.pdf'),
+        Buffer.from('{"formFields":[]}'),
+        { stemSuffix: 'form-data', ext: 'json' },
+      );
+    });
+
+    it('returns error when platform handler throws', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.extractFillableFormData.mockRejectedValue(new GenericFailedError());
+
+      await caller.call(
+        'extract_fillable_form_data',
         { inputPath: path.join(tmpDir, 'doc.pdf') },
         { expectError: true },
       );

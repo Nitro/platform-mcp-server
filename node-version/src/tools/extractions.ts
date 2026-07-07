@@ -153,6 +153,42 @@ export function register(server: McpServer, context: AppContext): void {
   );
 
   server.registerTool(
+    'extract_fillable_form_data',
+    {
+      description:
+        'Use this tool to extract the existing AcroForm field data — field names, values, types ' +
+        'and positions — from a fillable PDF, e.g. to inspect or check a form or pull out the ' +
+        'data someone entered (AcroForm only, not XFA). Returns a flat formFields list as JSON; ' +
+        'the name/value pairs can be used directly as input to fill_forms.',
+      inputSchema: {
+        ...singleFileInputSchema.shape,
+        outputTarget: outputTargetSchema,
+      },
+      annotations: READ_ONLY('Extract Fillable Form Data'),
+    },
+    async (args) => {
+      try {
+        const filesHandler = getDep(context, 'filesHandler');
+        const platformHandler = getDep(context, 'platformHandler');
+
+        const inputBytes = filesHandler.read(args.inputPath);
+        const result = await platformHandler.extractFillableFormData(inputBytes);
+
+        return jsonResult({
+          outputTarget: args.outputTarget,
+          data: JSON.parse(result.toString()),
+          bytes: result,
+          filesHandler,
+          inputPath: args.inputPath,
+          stemSuffix: 'form-data',
+        });
+      } catch (err) {
+        return handleToolError('extract_fillable_form_data', err);
+      }
+    },
+  );
+
+  server.registerTool(
     'extract_pdf_tables',
     {
       description: 'Use this tool to extract tables from a PDF file.',

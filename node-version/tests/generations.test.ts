@@ -54,6 +54,7 @@ describe('generation tools', () => {
       extractTextBoundingBoxes: vi.fn(),
       extractPiiBoundingBoxes: vi.fn(),
       smartDetectFormFields: vi.fn(),
+      extractFillableFormData: vi.fn(),
       mergePdfs: vi.fn(),
       splitPdf: vi.fn(),
       rotatePdf: vi.fn(),
