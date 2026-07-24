@@ -61,8 +61,8 @@ export function register(server: McpServer, context: AppContext): void {
       description:
         'Use this tool to extract PII (Personally Identifiable Information) from a PDF file. ' +
         'Returns detected PII entities, bounding boxes, and confidence scores. By default ' +
-        '(outputTarget "inline") the detections are returned directly in the result; set ' +
-        'outputTarget to "file" or "both" to also write them to a JSON file on disk.',
+        "(outputTarget 'inline') the detections are returned directly in the result; set " +
+        "outputTarget to 'file' or 'both' to also write them to a JSON file on disk.",
       inputSchema: {
         ...singleFileInputSchema.shape,
         language: z

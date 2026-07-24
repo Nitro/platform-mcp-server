@@ -55,7 +55,12 @@ tasks:
         sh: node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('manifest.json','utf8')).version)"
     cmds:
       - task: bundle
-      - npx @anthropic-ai/mcpb pack . ../build/nitro-pdf-services-node-{{.VERSION}}.mcpb
+      # Stages dist/, package.json, icon.png, the repo LICENSE, and a manifest.json
+      # with a tools array freshly generated from the live server (see prepareBundle.ts)
+      # into ../build/stage, so the packed bundle never depends on manual upkeep of
+      # either the tools list or a LICENSE file living under node-version/.
+      - npm run prepare-bundle
+      - npx @anthropic-ai/mcpb pack ../build/stage ../build/nitro-pdf-services-node-{{.VERSION}}.mcpb
 
   clean:
     desc: Clean build artifacts

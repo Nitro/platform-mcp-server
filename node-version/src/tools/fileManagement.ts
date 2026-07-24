@@ -75,11 +75,10 @@ export function register(server: McpServer, context: AppContext): void {
     'list_files',
     {
       description:
-        "List files on the user's local filesystem available for PDF processing." +
-        ' Use this tool whenever the user asks about files they have locally,' +
-        ' wants to find PDFs, or before any other Nitro MCP operation that requires a file.',
+        'Lists files on the local filesystem available for PDF processing, ' +
+        'optionally filtered by file type.',
       inputSchema: listFilesRequestSchema,
-      annotations: READ_ONLY('List Files'),
+      annotations: READ_ONLY('List Files', { idempotent: true }),
     },
     (args) => {
       try {

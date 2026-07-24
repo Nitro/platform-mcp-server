@@ -83,12 +83,10 @@ export function register(server: McpServer, context: AppContext): void {
     'render_pdf_page',
     {
       description:
-        'Render a single PDF page (or a clipped region of it) as an inline PNG image, ' +
+        'Renders a single PDF page (or a clipped region of it) as an inline PNG image, ' +
         'returned directly in the tool result with no file written to disk. ' +
         'Useful for visually verifying redactions, inspecting layout near a detected PII box, ' +
-        'or any case where the model needs to see what a page actually looks like. ' +
-        'Use selectively (one page or region per call) — typically on pages flagged by ' +
-        'extract_pii or search_text_in_pdf.',
+        'or any case where the model needs to see what a page actually looks like.',
       inputSchema: {
         ...singleFileInputSchema.shape,
         pageIndex: z.number().int().min(0).describe('Zero-based index of the page to render.'),

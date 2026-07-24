@@ -13,6 +13,9 @@ MCP server connecting Claude Desktop to Nitro's Document Intelligence Platform A
 - `src/handlers/` — `PlatformHandler` (operations) and `FilesHandler` (local I/O)
 - `src/tools/` — MCP tool implementations
 - `src/auth/` — PKCE auth flow and token management
+- `src/scripts/` — build-time scripts (e.g. `prepareBundle.ts`, which stages the `.mcpb`
+  contents: bundled server, `LICENSE`, and a `manifest.json` with its `tools` array
+  freshly generated from the live server via an in-memory MCP client/server handshake)
 - `tests/` — Vitest test suite
 
 ## Commands

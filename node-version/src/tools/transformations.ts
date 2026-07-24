@@ -115,7 +115,7 @@ export function register(server: McpServer, context: AppContext): void {
       description:
         'Use this tool to merge multiple PDF files into a single PDF. ' +
         'By default, PDF bookmarks (an outline entry per source document, with each ' +
-        "source's existing bookmarks nested beneath) are added to the merged file; " +
+        'existing bookmark from that document nested beneath) are added to the merged file; ' +
         'set tableOfContents to false to skip them. No extra table-of-contents page is ' +
         'added and the page count is unchanged.',
       inputSchema: {
