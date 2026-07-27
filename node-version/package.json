@@ -31,7 +31,8 @@
   "overrides": {
     "uuid": "^14",
     "archiver": "^8.0.0",
-    "rimraf": "^6.0.0"
+    "rimraf": "^6.0.0",
+    "@hono/node-server": "^2.0.12"
   },
   "devDependencies": {
     "@types/node": "^22.19.21",
