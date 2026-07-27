@@ -56,8 +56,7 @@ export function register(server: McpServer, context: AppContext): void {
     'Use this tool when the user asks to convert a file.\n' +
     'The following conversions are supported:\n' +
     `Convert from a pdf to ${fromPdfTo}.\n` +
-    `Convert from a ${toPdfFrom} to pdf.\n` +
-    'Use list_files first if you need to discover available files.';
+    `Convert from a ${toPdfFrom} to pdf.`;
 
   server.registerTool(
     'convert_file',
