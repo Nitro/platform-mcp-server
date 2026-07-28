@@ -34,7 +34,7 @@ export function register(server: McpServer, context: AppContext): void {
   server.registerTool(
     'get_pdf_metadata',
     {
-      description: 'Use this tool when the user asks for the metadata of a PDF file.',
+      description: 'Retrieves the metadata of a PDF file.',
       inputSchema: {
         ...singleFileInputSchema.shape,
         outputTarget: outputTargetSchema,
@@ -66,7 +66,7 @@ export function register(server: McpServer, context: AppContext): void {
   server.registerTool(
     'extract_pdf_forms',
     {
-      description: 'Use this tool to extract form fields from a PDF file.',
+      description: 'Extracts form fields from a PDF file.',
       inputSchema: {
         ...singleFileInputSchema.shape,
         language: z.string().default('en').describe('Language code for form extraction'),
@@ -122,7 +122,7 @@ export function register(server: McpServer, context: AppContext): void {
     'smart_detect_form_fields',
     {
       description:
-        'Use this tool to automatically detect form fields in a PDF file. Returns the detected ' +
+        'Automatically detects form fields in a PDF file. Returns the detected ' +
         'form-field bounding boxes as JSON.',
       inputSchema: {
         ...singleFileInputSchema.shape,
@@ -156,9 +156,9 @@ export function register(server: McpServer, context: AppContext): void {
     'extract_fillable_form_data',
     {
       description:
-        'Use this tool to extract the existing AcroForm field data — field names, values, types ' +
-        'and positions — from a fillable PDF, e.g. to inspect or check a form or pull out the ' +
-        'data someone entered (AcroForm only, not XFA). Returns a flat formFields list as JSON; ' +
+        'Extracts the existing AcroForm field data — field names, values, types ' +
+        'and positions — from a fillable PDF (AcroForm only, not XFA), useful for inspecting a ' +
+        'form or reading back data someone entered. Returns a flat formFields list as JSON; ' +
         'the name/value pairs can be used directly as input to fill_forms.',
       inputSchema: {
         ...singleFileInputSchema.shape,
@@ -191,7 +191,7 @@ export function register(server: McpServer, context: AppContext): void {
   server.registerTool(
     'extract_pdf_tables',
     {
-      description: 'Use this tool to extract tables from a PDF file.',
+      description: 'Extracts tables from a PDF file.',
       inputSchema: {
         ...singleFileInputSchema.shape,
         pageIndices: z
@@ -248,7 +248,7 @@ export function register(server: McpServer, context: AppContext): void {
   server.registerTool(
     'extract_pdf_text',
     {
-      description: 'Use this tool to extract text from a PDF file.',
+      description: 'Extracts text from a PDF file.',
       inputSchema: {
         ...singleFileInputSchema.shape,
         pageIndices: z
@@ -307,7 +307,7 @@ export function register(server: McpServer, context: AppContext): void {
     'extract_invoice_data',
     {
       description:
-        'Use this tool to extract structured invoice or expense data from a PDF, ' +
+        'Extracts structured invoice or expense data from a PDF, ' +
         'such as vendor details, line items, totals, and dates.',
       inputSchema: {
         ...singleFileInputSchema.shape,
@@ -343,13 +343,13 @@ export function register(server: McpServer, context: AppContext): void {
     'search_text_in_pdf',
     {
       description:
-        'Use this tool to search for text in a PDF and get its locations, using literal text or ' +
+        'Searches a PDF for text and returns the location of each match, using literal text or ' +
         'regular expression queries. Returns a bounding box for each match as absolute ' +
         '[x, y, width, height] values in PDF points (origin at the page corner), the same ' +
         '[x0, y0, width, height] convention that redact_pdf accepts, so matches can be passed ' +
-        "straight into a redaction. By default (outputTarget 'inline') the matches are returned " +
-        "directly in the result; set outputTarget to 'file' or 'both' to also write them to a " +
-        'JSON file on disk.',
+        'straight into a redaction. By default (outputTarget set to inline) the matches are ' +
+        'returned directly in the result; set outputTarget to file or both to also write them ' +
+        'to a JSON file on disk.',
       inputSchema: {
         ...singleFileInputSchema.shape,
         queries: z

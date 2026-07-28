@@ -8,7 +8,6 @@
     "dev": "tsx src/index.ts",
     "bundle": "node build.mjs",
     "build": "npm run bundle",
-    "prepare-bundle": "tsx src/scripts/prepareBundle.ts",
     "check": "npm run check:format && npm run check:types && npm run check:lint",
     "check:format": "prettier --check src/ tests/",
     "check:types": "tsc --noEmit",

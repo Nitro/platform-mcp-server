@@ -113,7 +113,7 @@ export function register(server: McpServer, context: AppContext): void {
     'merge_files',
     {
       description:
-        'Use this tool to merge multiple PDF files into a single PDF. ' +
+        'Merges multiple PDF files into a single PDF. ' +
         'By default, PDF bookmarks (an outline entry per source document, with each ' +
         'existing bookmark from that document nested beneath) are added to the merged file; ' +
         'set tableOfContents to false to skip them. No extra table-of-contents page is ' +
@@ -176,7 +176,7 @@ export function register(server: McpServer, context: AppContext): void {
   server.registerTool(
     'split_pdf',
     {
-      description: 'Use this tool to split a PDF into separate files by page ranges.',
+      description: 'Splits a PDF into separate files by page ranges.',
       inputSchema: {
         ...singleFileInputSchema.shape,
         pageRanges: z
@@ -210,7 +210,7 @@ export function register(server: McpServer, context: AppContext): void {
   server.registerTool(
     'rotate_pdf',
     {
-      description: 'Use this tool to rotate specific pages in a PDF file.',
+      description: 'Rotates specific pages in a PDF file.',
       inputSchema: {
         ...singleFileInputSchema.shape,
         rotations: z
@@ -264,7 +264,7 @@ export function register(server: McpServer, context: AppContext): void {
   server.registerTool(
     'protect_pdf',
     {
-      description: 'Use this tool to password-protect a PDF file with optional permissions.',
+      description: 'Password-protects a PDF file with optional permissions.',
       inputSchema: {
         ...singleFileInputSchema.shape,
         ownerPassword: z.string().optional().describe('Owner password for full access (optional)'),
@@ -316,7 +316,7 @@ export function register(server: McpServer, context: AppContext): void {
   server.registerTool(
     'unprotect_pdf',
     {
-      description: 'Use this tool to remove password protection from a PDF file.',
+      description: 'Removes password protection from a PDF file.',
       inputSchema: {
         ...singleFileInputSchema.shape,
         ownerPassword: z
@@ -363,7 +363,7 @@ export function register(server: McpServer, context: AppContext): void {
   server.registerTool(
     'delete_pdf_pages',
     {
-      description: 'Use this tool to delete specific pages from a PDF file.',
+      description: 'Deletes specific pages from a PDF file.',
       inputSchema: {
         ...singleFileInputSchema.shape,
         pageNumbers: z
@@ -400,7 +400,7 @@ export function register(server: McpServer, context: AppContext): void {
   server.registerTool(
     'set_pdf_metadata',
     {
-      description: 'Use this tool to set or update metadata properties of a PDF file.',
+      description: 'Sets or updates metadata properties of a PDF file.',
       inputSchema: {
         ...singleFileInputSchema.shape,
         title: z.string().optional().describe('Document title'),
@@ -463,7 +463,7 @@ export function register(server: McpServer, context: AppContext): void {
     'flatten_pdf',
     {
       description:
-        'Use this tool to flatten a PDF, converting all interactive form fields and ' +
+        'Flattens a PDF, converting all interactive form fields and ' +
         'annotations into static, non-editable content.',
       inputSchema: singleFileInputSchema.shape,
       annotations: NON_DESTRUCTIVE('Flatten PDF'),
@@ -491,7 +491,7 @@ export function register(server: McpServer, context: AppContext): void {
   server.registerTool(
     'watermark_pdf',
     {
-      description: 'Use this tool to add an image watermark to a PDF file.',
+      description: 'Adds an image watermark to a PDF file.',
       inputSchema: {
         ...singleFileInputSchema.shape,
         imagePath: z
@@ -603,8 +603,7 @@ export function register(server: McpServer, context: AppContext): void {
   server.registerTool(
     'ocr_pdf',
     {
-      description:
-        'Use this tool to apply OCR to a PDF file, producing a searchable or editable PDF.',
+      description: 'Applies OCR to a PDF file, producing a searchable or editable PDF.',
       inputSchema: {
         ...singleFileInputSchema.shape,
         language: z
@@ -698,7 +697,7 @@ export function register(server: McpServer, context: AppContext): void {
   server.registerTool(
     'optimize_pdf',
     {
-      description: 'Use this tool to optimize a PDF file for a specific use case.',
+      description: 'Optimizes a PDF file for a specific use case.',
       inputSchema: {
         ...singleFileInputSchema.shape,
         profile: z
@@ -739,10 +738,9 @@ export function register(server: McpServer, context: AppContext): void {
     'compress_pdf',
     {
       description:
-        'Use this tool when you just want to make a PDF smaller. It compresses a PDF to always produce the ' +
-        'smallest possible file. Compress is a special case of optimization that always minimises file size — ' +
-        'reach for it when the goal is simply a smaller file. ' +
-        'For control over the size/quality trade-off, use the optimize_pdf tool and its profile option instead.',
+        'Compresses a PDF to always produce the smallest possible file — a special case of ' +
+        'optimization that always minimizes file size, with no control over the size/quality ' +
+        'trade-off (see optimize_pdf and its profile option for that).',
       inputSchema: {
         ...singleFileInputSchema.shape,
       },

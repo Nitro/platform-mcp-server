@@ -53,7 +53,7 @@ export function register(server: McpServer, context: AppContext): void {
   const fromPdfTo = [...SupportedConversions.fromPdfTo].sort().join(', ');
   const toPdfFrom = [...SupportedConversions.toPdfFrom].sort().join(', ');
   const description =
-    'Use this tool when the user asks to convert a file.\n' +
+    'Converts a file between supported formats.\n' +
     'The following conversions are supported:\n' +
     `Convert from a pdf to ${fromPdfTo}.\n` +
     `Convert from a ${toPdfFrom} to pdf.`;

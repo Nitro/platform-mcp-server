@@ -13,9 +13,6 @@ MCP server connecting Claude Desktop to Nitro's Document Intelligence Platform A
 - `src/handlers/` — `PlatformHandler` (operations) and `FilesHandler` (local I/O)
 - `src/tools/` — MCP tool implementations
 - `src/auth/` — PKCE auth flow and token management
-- `src/scripts/` — build-time scripts (e.g. `prepareBundle.ts`, which stages the `.mcpb`
-  contents: bundled server, `LICENSE`, and a `manifest.json` with its `tools` array
-  freshly generated from the live server via an in-memory MCP client/server handshake)
 - `tests/` — Vitest test suite
 
 ## Commands
@@ -35,6 +32,7 @@ Run from the repo root using the `n:` namespace (aliased from `node-version/Task
 - **Never push directly to `main`** — if the user asks to commit and no branch is checked out, ask whether to create one first
 - **Always run `task n:check` after making code changes** and fix any errors before considering the task done
 - **Never commit untracked files speculatively** — the working directory may contain scratch files, local tools, and other artefacts that must not be committed; only stage files that are directly part of the change
+- **Keep `manifest.json`'s `tools` array in sync with `src/tools/`** — update it whenever a tool is added, removed, renamed, or its description changes.
 
 ## TypeScript
 
