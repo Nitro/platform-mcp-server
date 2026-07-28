@@ -5,16 +5,7 @@
   "version": "0.24.0",
   "description": "Nitro PDF Services MCP server",
   "icon": "icon.png",
-  "keywords": [
-    "pdf",
-    "convert",
-    "merge",
-    "split",
-    "redact",
-    "pii",
-    "extract",
-    "ocr"
-  ],
+  "keywords": ["pdf", "convert", "merge", "split", "redact", "pii", "extract", "ocr"],
   "author": {
     "name": "Nitro Software Inc.",
     "email": "support@gonitro.com",
@@ -37,14 +28,122 @@
     "entry_point": "dist/bundle.cjs",
     "mcp_config": {
       "command": "node",
-      "args": [
-        "${__dirname}/dist/bundle.cjs"
-      ],
+      "args": ["${__dirname}/dist/bundle.cjs"],
       "env": {
         "NITRO_TARGET_ENV": "prod",
         "NITRO_AUTH_MODE": "pkce"
       }
     }
   },
-  "tools_generated": true
+  "tools_generated": false,
+  "tools": [
+    {
+      "name": "list_files",
+      "description": "Lists files on the local filesystem available for PDF processing, optionally filtered by file type."
+    },
+    {
+      "name": "convert_file",
+      "description": "Converts a file between supported formats.\nThe following conversions are supported:\nConvert from a pdf to docx, jpeg, pdfa, png, pptx, xlsx.\nConvert from a csv, doc, docm, docx, dotm, dotx, eps, gif, html, jpeg, png, ppt, pptx, psd, rtf, svg, tiff, txt, xls, xlsm, xlsx, xltm, xltx, xml to pdf."
+    },
+    {
+      "name": "get_pdf_metadata",
+      "description": "Retrieves the metadata of a PDF file."
+    },
+    {
+      "name": "extract_pdf_forms",
+      "description": "Extracts form fields from a PDF file."
+    },
+    {
+      "name": "smart_detect_form_fields",
+      "description": "Automatically detects form fields in a PDF file. Returns the detected form-field bounding boxes as JSON."
+    },
+    {
+      "name": "extract_fillable_form_data",
+      "description": "Extracts the existing AcroForm field data — field names, values, types and positions — from a fillable PDF (AcroForm only, not XFA), useful for inspecting a form or reading back data someone entered. Returns a flat formFields list as JSON; the name/value pairs can be used directly as input to fill_forms."
+    },
+    {
+      "name": "extract_pdf_tables",
+      "description": "Extracts tables from a PDF file."
+    },
+    {
+      "name": "extract_pdf_text",
+      "description": "Extracts text from a PDF file."
+    },
+    {
+      "name": "extract_invoice_data",
+      "description": "Extracts structured invoice or expense data from a PDF, such as vendor details, line items, totals, and dates."
+    },
+    {
+      "name": "search_text_in_pdf",
+      "description": "Searches a PDF for text and returns the location of each match, using literal text or regular expression queries. Returns a bounding box for each match as absolute [x, y, width, height] values in PDF points (origin at the page corner), the same [x0, y0, width, height] convention that redact_pdf accepts, so matches can be passed straight into a redaction. By default (outputTarget set to inline) the matches are returned directly in the result; set outputTarget to file or both to also write them to a JSON file on disk."
+    },
+    {
+      "name": "fill_forms",
+      "description": "Fills in form fields in a PDF document with the provided field values. Field values may be supplied inline or via a CSV, JSON, XFDF, or FDF data file."
+    },
+    {
+      "name": "create_fillable_forms",
+      "description": "Generates a new PDF containing the provided form fields as real, fillable AcroForm fields. The fields are typically the formFields returned by the smart_detect_form_fields tool."
+    },
+    {
+      "name": "extract_pii",
+      "description": "Extracts PII (Personally Identifiable Information) from a PDF file. Returns detected PII entities, bounding boxes, and confidence scores. By default (outputTarget set to inline) the detections are returned directly in the result; set outputTarget to file or both to also write them to a JSON file on disk."
+    },
+    {
+      "name": "redact_pdf",
+      "description": "Redacts a PDF file. Accepts either (1) a piiJsonFile path (output from extract_pii) to automatically redact all detected PII, or (2) manual redactions with page indices and bounding box coordinates. Applies the redactions and saves a redacted PDF."
+    },
+    {
+      "name": "render_pdf_page",
+      "description": "Renders a single PDF page (or a clipped region of it) as an inline PNG image, returned directly in the tool result with no file written to disk. Useful for visually verifying redactions, inspecting layout near a detected PII box, or any case where the model needs to see what a page actually looks like."
+    },
+    {
+      "name": "merge_files",
+      "description": "Merges multiple PDF files into a single PDF. By default, PDF bookmarks (an outline entry per source document, with each existing bookmark from that document nested beneath) are added to the merged file; set tableOfContents to false to skip them. No extra table-of-contents page is added and the page count is unchanged."
+    },
+    {
+      "name": "split_pdf",
+      "description": "Splits a PDF into separate files by page ranges."
+    },
+    {
+      "name": "rotate_pdf",
+      "description": "Rotates specific pages in a PDF file."
+    },
+    {
+      "name": "protect_pdf",
+      "description": "Password-protects a PDF file with optional permissions."
+    },
+    {
+      "name": "unprotect_pdf",
+      "description": "Removes password protection from a PDF file."
+    },
+    {
+      "name": "delete_pdf_pages",
+      "description": "Deletes specific pages from a PDF file."
+    },
+    {
+      "name": "set_pdf_metadata",
+      "description": "Sets or updates metadata properties of a PDF file."
+    },
+    {
+      "name": "flatten_pdf",
+      "description": "Flattens a PDF, converting all interactive form fields and annotations into static, non-editable content."
+    },
+    {
+      "name": "watermark_pdf",
+      "description": "Adds an image watermark to a PDF file."
+    },
+    {
+      "name": "ocr_pdf",
+      "description": "Applies OCR to a PDF file, producing a searchable or editable PDF."
+    },
+    {
+      "name": "optimize_pdf",
+      "description": "Optimizes a PDF file for a specific use case."
+    },
+    {
+      "name": "compress_pdf",
+      "description": "Compresses a PDF to always produce the smallest possible file — a special case of optimization that always minimizes file size, with no control over the size/quality trade-off (see optimize_pdf and its profile option for that)."
+    }
+  ]
 }
