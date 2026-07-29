@@ -245,6 +245,56 @@ describe('PII tools', () => {
       ]);
     });
 
+    it('passes redaction labels through to the platform', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.redactPdf.mockResolvedValue(Buffer.from('redacted-pdf'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-redacted.pdf'));
+
+      const redactions = [
+        { pageIndex: 0, boundingBox: [10, 20, 30, 40], label: 'label' },
+        { pageIndex: 1, boundingBox: [5, 5, 15, 15] },
+      ];
+
+      await caller.call(
+        'redact_pdf',
+        { inputPath: path.join(tmpDir, 'doc.pdf'), redactions },
+        { expectedResult: { outputFilename: 'doc-redacted.pdf', redactionCount: 2 } },
+      );
+
+      // Labels are optional per redaction: the first carries one, the second is sent without.
+      expect(platformHandlerMock.redactPdf).toHaveBeenCalledWith(
+        Buffer.from('pdf-bytes'),
+        redactions,
+      );
+    });
+
+    it('does not label redactions derived from piiJsonFile', async () => {
+      const piiResult = {
+        PIIBoxes: [
+          { PIIType: 'EMAIL', confidence: 0.9, pageIndex: 0, boundingBox: [10, 20, 30, 40] },
+        ],
+      };
+      filesHandlerMock.read
+        .mockReturnValueOnce(Buffer.from('pdf-bytes'))
+        .mockReturnValueOnce(Buffer.from(JSON.stringify(piiResult)));
+      platformHandlerMock.redactPdf.mockResolvedValue(Buffer.from('redacted-pdf'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-redacted.pdf'));
+
+      await caller.call(
+        'redact_pdf',
+        {
+          inputPath: path.join(tmpDir, 'doc.pdf'),
+          piiJsonFile: path.join(tmpDir, 'doc-pii.json'),
+        },
+        { expectedResult: { outputFilename: 'doc-redacted.pdf', redactionCount: 1 } },
+      );
+
+      // Auto-redaction output is unchanged: no label is derived from the detected PII type.
+      expect(platformHandlerMock.redactPdf).toHaveBeenCalledWith(Buffer.from('pdf-bytes'), [
+        { pageIndex: 0, boundingBox: [10, 20, 30, 40] },
+      ]);
+    });
+
     it('returns error when neither redactions nor piiJsonFile provided', async () => {
       filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
 

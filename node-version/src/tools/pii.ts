@@ -5,6 +5,7 @@ import { z } from 'zod';
 import type { AppContext } from '../context.js';
 import { getDep } from '../context.js';
 import { handleToolError, UserFacingError } from '../errors.js';
+import type { Redaction } from '../handlers/platformHandler.js';
 import { outputTargetSchema, singleFileInputSchema } from '../models.js';
 import { jsonResult } from './jsonOutput.js';
 
@@ -38,6 +39,13 @@ const _boundingBoxAreaSchema = z.object({
     .array(z.number())
     .length(4)
     .describe('Bounding box coordinates [x0, y0, width, height]'),
+  label: z
+    .string()
+    .optional()
+    .describe(
+      'Optional text rendered onto the redaction box in the output, left-aligned and ' +
+        'trimmed to fit the width of the box',
+    ),
 });
 
 function _successResult(
@@ -144,7 +152,7 @@ export function register(server: McpServer, context: AppContext): void {
 
         const inputBytes = filesHandler.read(args.inputPath);
 
-        let redactions: { pageIndex: number; boundingBox: number[] }[];
+        let redactions: Redaction[];
 
         if (args.piiJsonFile !== undefined) {
           const jsonBytes = filesHandler.read(args.piiJsonFile);

@@ -65,6 +65,12 @@ export interface PageRotation {
   readonly amount: number;
 }
 
+export interface Redaction {
+  readonly pageIndex: number;
+  readonly boundingBox: number[];
+  readonly label?: string | undefined;
+}
+
 export interface PdfMetadata {
   readonly title?: string;
   readonly author?: string;
@@ -435,10 +441,7 @@ export class PlatformHandler {
     return body;
   }
 
-  async redactPdf(
-    fileBytes: Buffer,
-    redactions: { pageIndex: number; boundingBox: number[] }[],
-  ): Promise<Buffer> {
+  async redactPdf(fileBytes: Buffer, redactions: Redaction[]): Promise<Buffer> {
     const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
     const { body } = await this._client.run('transformations', file, {
       method: 'redact',
