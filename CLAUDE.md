@@ -32,7 +32,7 @@ Run from the repo root using the `n:` namespace (aliased from `node-version/Task
 - **Never push directly to `main`** — if the user asks to commit and no branch is checked out, ask whether to create one first
 - **Always run `task n:check` after making code changes** and fix any errors before considering the task done
 - **Never commit untracked files speculatively** — the working directory may contain scratch files, local tools, and other artefacts that must not be committed; only stage files that are directly part of the change
-- **Keep `manifest.json`'s `tools` array in sync with `src/tools/`** — update it whenever a tool is added, removed, renamed, or its description changes.
+- **Keep `manifest.json`'s `tools` array in sync with `src/tools/`** — update it whenever a tool is added, removed, renamed, or its description changes. Enforced by `tests/manifestParity.test.ts`, which prints the expected array when it fails.
 
 ## TypeScript
 
