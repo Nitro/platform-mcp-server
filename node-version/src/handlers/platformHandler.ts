@@ -437,7 +437,7 @@ export class PlatformHandler {
 
   async redactPdf(
     fileBytes: Buffer,
-    redactions: { pageIndex: number; boundingBox: number[] }[],
+    redactions: { pageIndex: number; boundingBox: number[]; label?: string | undefined }[],
   ): Promise<Buffer> {
     const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
     const { body } = await this._client.run('transformations', file, {

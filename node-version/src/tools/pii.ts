@@ -38,6 +38,10 @@ const _boundingBoxAreaSchema = z.object({
     .array(z.number())
     .length(4)
     .describe('Bounding box coordinates [x0, y0, width, height]'),
+  label: z
+    .string()
+    .optional()
+    .describe('Optional label rendered onto the redaction box in the output PDF'),
 });
 
 function _successResult(
@@ -118,13 +122,18 @@ export function register(server: McpServer, context: AppContext): void {
         '(1) a piiJsonFile path (output from extract_pii) to automatically ' +
         'redact all detected PII, or ' +
         '(2) manual redactions with page indices and bounding box coordinates. ' +
+        'Each manual redaction may include an optional label, rendered onto the black box ' +
+        'in the output (e.g. "Redacted" or the PII type). ' +
         'Applies the redactions and saves a redacted PDF.',
       inputSchema: {
         ...singleFileInputSchema.shape,
         redactions: z
           .array(_boundingBoxAreaSchema)
           .optional()
-          .describe('List of areas to redact. Each area specifies a page and bounding box.'),
+          .describe(
+            'List of areas to redact. Each area specifies a page, bounding box, and ' +
+              'optional label to render on the redaction box.',
+          ),
         piiJsonFile: z
           .string()
           .optional()
@@ -144,7 +153,11 @@ export function register(server: McpServer, context: AppContext): void {
 
         const inputBytes = filesHandler.read(args.inputPath);
 
-        let redactions: { pageIndex: number; boundingBox: number[] }[];
+        let redactions: {
+          pageIndex: number;
+          boundingBox: number[];
+          label?: string | undefined;
+        }[];
 
         if (args.piiJsonFile !== undefined) {
           const jsonBytes = filesHandler.read(args.piiJsonFile);

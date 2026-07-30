@@ -102,7 +102,7 @@
     },
     {
       "name": "redact_pdf",
-      "description": "Redacts a PDF file. Accepts either (1) a piiJsonFile path (output from extract_pii) to automatically redact all detected PII, or (2) manual redactions with page indices and bounding box coordinates. Applies the redactions and saves a redacted PDF."
+      "description": "Redacts a PDF file. Accepts either (1) a piiJsonFile path (output from extract_pii) to automatically redact all detected PII, or (2) manual redactions with page indices and bounding box coordinates. Each manual redaction may include an optional label, rendered onto the black box in the output (e.g. \"Redacted\" or the PII type). Applies the redactions and saves a redacted PDF."
     },
     {
       "name": "render_pdf_page",
