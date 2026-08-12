@@ -2,9 +2,9 @@
 
 MCP server connecting Claude Desktop to Nitro's Document Intelligence Platform API, enabling PDF processing tools (file management, transformations, conversions, PII redaction) through natural language.
 
-> **The codebase was originally Python (FastMCP) but has been fully migrated to Node.js/TypeScript. All active development happens in `node-version/`. The Python code at the root is legacy and should not be modified.**
+> The codebase was originally Python (FastMCP) and was fully migrated to Node.js/TypeScript. The legacy Python source has since been removed; `node-version/` is the codebase.
 
-## Active Codebase — `node-version/`
+## Codebase — `node-version/`
 
 - `src/server.ts` — MCP server entry point and tool registration
 - `src/context.ts` — `AppContext` dependency injection container
