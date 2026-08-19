@@ -4,10 +4,12 @@ import { PkceManager } from './auth/pkceManager.js';
 import { settings } from './config.js';
 import type { AppContext } from './context.js';
 import { FilesHandler } from './handlers/filesHandler.js';
+import { logger } from './logger.js';
 import { PlatformHandler } from './handlers/platformHandler.js';
 import { registerAll } from './tools/index.js';
 
 async function _buildContext(): Promise<AppContext> {
+  logger.info(`[config] File operations restricted to '${settings.baseDir}'`);
   const pkceManager = new PkceManager(settings.pkceConfig);
   await pkceManager.initialize();
   const platformHandler = PlatformHandler.fromPkce(settings.apiUrl, pkceManager);

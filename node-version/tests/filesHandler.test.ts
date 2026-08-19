@@ -74,12 +74,12 @@ describe('FilesHandler', () => {
 
   describe('base directory restriction', () => {
     it('read rejects an absolute path under a system directory', () => {
-      expect(() => handler.read('/etc/passwd')).toThrow(/within the allowed base directory/);
+      expect(() => handler.read('/etc/passwd')).toThrow(/outside the allowed folder/);
     });
 
     it('read rejects a path that traverses out of the base directory', () => {
       const traversal = path.join(baseDir, '..', 'other-folder', 'secret.pdf');
-      expect(() => handler.read(traversal)).toThrow(/within the allowed base directory/);
+      expect(() => handler.read(traversal)).toThrow(/outside the allowed folder/);
     });
 
     it('read rejects a symlink inside the base directory that points outside it', () => {
@@ -87,7 +87,7 @@ describe('FilesHandler', () => {
       fs.writeFileSync(target, Buffer.from('secret'));
       const link = path.join(baseDir, 'link.pdf');
       fs.symlinkSync(target, link);
-      expect(() => handler.read(link)).toThrow(/within the allowed base directory/);
+      expect(() => handler.read(link)).toThrow(/outside the allowed folder/);
     });
 
     it('read accepts a path inside the base directory', () => {
@@ -98,14 +98,14 @@ describe('FilesHandler', () => {
 
     it('write rejects an absolute path under a system directory', () => {
       expect(() => handler.write('/etc/output.pdf', Buffer.from('x'))).toThrow(
-        /within the allowed base directory/,
+        /outside the allowed folder/,
       );
     });
 
     it('write rejects a path that traverses out of the base directory', () => {
       const traversal = path.join(baseDir, '..', 'other-folder', 'output.pdf');
       expect(() => handler.write(traversal, Buffer.from('x'))).toThrow(
-        /within the allowed base directory/,
+        /outside the allowed folder/,
       );
     });
 
@@ -114,9 +114,7 @@ describe('FilesHandler', () => {
       fs.writeFileSync(target, Buffer.from('existing'));
       const link = path.join(baseDir, 'link.pdf');
       fs.symlinkSync(target, link);
-      expect(() => handler.write(link, Buffer.from('x'))).toThrow(
-        /within the allowed base directory/,
-      );
+      expect(() => handler.write(link, Buffer.from('x'))).toThrow(/outside the allowed folder/);
     });
 
     it('write rejects a dangling symlink whose target is outside the base directory', () => {
@@ -124,7 +122,7 @@ describe('FilesHandler', () => {
       const link = path.join(baseDir, 'dangling.pdf');
       fs.symlinkSync(target, link);
       expect(() => handler.write(link, Buffer.from('escaped'))).toThrow(
-        /within the allowed base directory/,
+        /outside the allowed folder/,
       );
       expect(fs.existsSync(target)).toBe(false);
     });
@@ -144,9 +142,9 @@ describe('FilesHandler', () => {
       const sibling = `${baseDir}-evil`;
       fs.mkdirSync(sibling);
       try {
-        expect(() => handler.listFiles(sibling)).toThrow(/within the allowed base directory/);
+        expect(() => handler.listFiles(sibling)).toThrow(/outside the allowed folder/);
         expect(() => handler.read(path.join(sibling, 'a.pdf'))).toThrow(
-          /within the allowed base directory/,
+          /outside the allowed folder/,
         );
       } finally {
         fs.rmSync(sibling, { recursive: true, force: true });
@@ -161,28 +159,26 @@ describe('FilesHandler', () => {
     });
 
     it('listFiles rejects an absolute path outside the base directory', () => {
-      expect(() => handler.listFiles('/etc')).toThrow(/within the allowed base directory/);
+      expect(() => handler.listFiles('/etc')).toThrow(/outside the allowed folder/);
     });
 
     it('listFiles rejects a ~-prefixed path outside the base directory', () => {
-      expect(() => handler.listFiles('~/../../../etc')).toThrow(
-        /within the allowed base directory/,
-      );
+      expect(() => handler.listFiles('~/../../../etc')).toThrow(/outside the allowed folder/);
     });
 
     it('listFiles rejects a path that traverses out of the base directory', () => {
       const traversal = path.join(baseDir, '..');
-      expect(() => handler.listFiles(traversal)).toThrow(/within the allowed base directory/);
+      expect(() => handler.listFiles(traversal)).toThrow(/outside the allowed folder/);
     });
 
     it('listFiles rejects a symlinked folder inside the base directory that points outside it', () => {
       const link = path.join(baseDir, 'linked-folder');
       fs.symlinkSync(outsideDir, link);
-      expect(() => handler.listFiles(link)).toThrow(/within the allowed base directory/);
+      expect(() => handler.listFiles(link)).toThrow(/outside the allowed folder/);
     });
 
     it('listFiles rejects a bare folder name that resolves outside the base directory', () => {
-      expect(() => handler.listFiles('../sibling')).toThrow(/within the allowed base directory/);
+      expect(() => handler.listFiles('../sibling')).toThrow(/outside the allowed folder/);
     });
 
     it('listFiles omits symlinked files pointing outside the base directory', () => {

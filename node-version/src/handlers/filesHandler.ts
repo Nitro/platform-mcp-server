@@ -51,7 +51,10 @@ function _contains(realBase: string, real: string): boolean {
 function _resolveWithinBase(rawPath: string, baseDir: string, kind: 'File' | 'Folder'): string {
   const resolved = path.resolve(expandUser(rawPath));
   if (!_contains(_realpathIfExists(baseDir), _realTarget(resolved))) {
-    throw new UserFacingError(`${kind} path must be within the allowed base directory: ${rawPath}`);
+    throw new UserFacingError(
+      `${kind} path is outside the allowed folder '${baseDir}': ${rawPath}. ` +
+        `Use a path inside that folder, or change the allowed folder in the extension settings.`,
+    );
   }
   return resolved;
 }

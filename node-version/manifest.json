@@ -50,8 +50,7 @@
     "base_directory": {
       "type": "directory",
       "title": "Allowed folder",
-      "description": "The folder Nitro PDF Services is allowed to read files from and write files to (subfolders included). All file operations are restricted to this folder.",
-      "default": "${HOME}",
+      "description": "The folder Nitro PDF Services is allowed to read files from and write files to, including its subfolders. All file operations are restricted to this folder. Leave empty to allow your home folder.",
       "required": false
     }
   },

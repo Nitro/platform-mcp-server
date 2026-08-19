@@ -51,8 +51,14 @@ class Settings {
   }
 
   get baseDir(): string {
-    const raw = process.env.NITRO_BASE_DIR;
-    return raw === undefined || raw.trim() === '' ? os.homedir() : raw;
+    const raw = process.env.NITRO_BASE_DIR?.trim();
+    // The host substitutes ${user_config.*} placeholders, but hands them
+    // through verbatim when the user leaves the field untouched. An
+    // unexpanded placeholder is not a usable path, so treat it as unset.
+    if (raw === undefined || raw === '' || /\$\{[^}]*\}/.test(raw)) {
+      return os.homedir();
+    }
+    return raw;
   }
 
   get apiUrl(): string {
