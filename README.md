@@ -21,6 +21,7 @@ Nitro PDF Services brings the power of Nitro's Document Intelligence Platform di
 1. Download the latest `nitro-pdf-services-x.y.z.mcpb` from the [Releases page](https://github.com/Nitro/platform-mcp-server/releases).
 2. In Claude Desktop, open **Settings → Extensions**.
 3. Drag the `.mcpb` file into the Extensions panel and click **Install**.
+4. Optionally set **Allowed folder** in the extension settings — every file operation (listing, reading, writing) is restricted to this folder and its subfolders. It defaults to your home directory.
 
 ## Authentication
 

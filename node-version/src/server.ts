@@ -8,21 +8,9 @@ import { PlatformHandler } from './handlers/platformHandler.js';
 import { registerAll } from './tools/index.js';
 
 async function _buildContext(): Promise<AppContext> {
-  let platformHandler: PlatformHandler;
-  if (settings.authMode === 'token-auth') {
-    platformHandler = PlatformHandler.fromAuthToken(settings.apiUrl, settings.authToken);
-  } else if (settings.authMode === 'pkce') {
-    const pkceManager = new PkceManager(settings.pkceConfig);
-    await pkceManager.initialize();
-    platformHandler = PlatformHandler.fromPkce(settings.apiUrl, pkceManager);
-  } else {
-    const { clientId, clientSecret } = settings.clientCredentials;
-    platformHandler = await PlatformHandler.fromClientCredentials(
-      settings.apiUrl,
-      clientId,
-      clientSecret,
-    );
-  }
+  const pkceManager = new PkceManager(settings.pkceConfig);
+  await pkceManager.initialize();
+  const platformHandler = PlatformHandler.fromPkce(settings.apiUrl, pkceManager);
   return { platformHandler, filesHandler: new FilesHandler(settings.baseDir) };
 }
 
