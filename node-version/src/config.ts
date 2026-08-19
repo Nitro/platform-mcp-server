@@ -22,6 +22,7 @@ const _INTERNAL_CONFIG = {
     prod: 'RH4MAFXhbJfEtEIATXKzoOHqSsI833gp',
   } satisfies Record<TargetEnv, string>,
   pkceCallbackPorts: [27834, 41209, 53671, 19438, 62105],
+  pkceRefreshBufferMinutes: 5,
 } as const;
 
 function _readTargetEnv(): TargetEnv {
@@ -40,12 +41,11 @@ class Settings {
   }
 
   get pkceConfig(): PkceConfig {
-    const refreshBufferMinutes = Number(process.env.NITRO_PKCE_REFRESH_BUFFER_MINUTES ?? '5');
     return {
       authUrl: _INTERNAL_CONFIG.pkceAuthUrls[this._targetEnv],
       clientId: _INTERNAL_CONFIG.pkceClientIds[this._targetEnv],
       callbackPorts: [..._INTERNAL_CONFIG.pkceCallbackPorts],
-      refreshBufferMs: refreshBufferMinutes * 60 * 1000,
+      refreshBufferMs: _INTERNAL_CONFIG.pkceRefreshBufferMinutes * 60 * 1000,
       sessionFilePath: defaultSessionFilePath(),
     };
   }
