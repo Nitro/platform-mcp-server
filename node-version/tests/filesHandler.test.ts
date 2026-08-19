@@ -109,6 +109,57 @@ describe('FilesHandler', () => {
       );
     });
 
+    it('write rejects a symlink inside the base directory that points outside it', () => {
+      const target = path.join(outsideDir, 'existing.pdf');
+      fs.writeFileSync(target, Buffer.from('existing'));
+      const link = path.join(baseDir, 'link.pdf');
+      fs.symlinkSync(target, link);
+      expect(() => handler.write(link, Buffer.from('x'))).toThrow(
+        /within the allowed base directory/,
+      );
+    });
+
+    it('write rejects a dangling symlink whose target is outside the base directory', () => {
+      const target = path.join(outsideDir, 'escaped.pdf');
+      const link = path.join(baseDir, 'dangling.pdf');
+      fs.symlinkSync(target, link);
+      expect(() => handler.write(link, Buffer.from('escaped'))).toThrow(
+        /within the allowed base directory/,
+      );
+      expect(fs.existsSync(target)).toBe(false);
+    });
+
+    it('write does not follow a dangling symlink at a collision candidate', () => {
+      const target = path.join(outsideDir, 'collision.docx');
+      fs.symlinkSync(target, path.join(baseDir, 'input-converted.docx'));
+      const outputPath = handler.write(path.join(baseDir, 'input.pdf'), Buffer.from('bytes'), {
+        stemSuffix: 'converted',
+        ext: 'docx',
+      });
+      expect(path.basename(outputPath)).toBe('input-converted(1).docx');
+      expect(fs.existsSync(target)).toBe(false);
+    });
+
+    it('rejects a sibling directory sharing the base directory name prefix', () => {
+      const sibling = `${baseDir}-evil`;
+      fs.mkdirSync(sibling);
+      try {
+        expect(() => handler.listFiles(sibling)).toThrow(/within the allowed base directory/);
+        expect(() => handler.read(path.join(sibling, 'a.pdf'))).toThrow(
+          /within the allowed base directory/,
+        );
+      } finally {
+        fs.rmSync(sibling, { recursive: true, force: true });
+      }
+    });
+
+    it('accepts paths under a base directory that is the filesystem root', () => {
+      const rootHandler = new FilesHandler(path.parse(baseDir).root);
+      const filePath = path.join(baseDir, 'allowed.pdf');
+      fs.writeFileSync(filePath, Buffer.from('pdf-content'));
+      expect(rootHandler.read(filePath)).toEqual(Buffer.from('pdf-content'));
+    });
+
     it('listFiles rejects an absolute path outside the base directory', () => {
       expect(() => handler.listFiles('/etc')).toThrow(/within the allowed base directory/);
     });

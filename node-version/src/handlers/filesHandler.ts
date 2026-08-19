@@ -17,16 +17,38 @@ function _realpathIfExists(target: string): string {
   }
 }
 
+function _pathTaken(target: string): boolean {
+  try {
+    fs.lstatSync(target);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function _realTarget(resolved: string): string {
+  try {
+    return fs.realpathSync(resolved);
+  } catch {
+    // The path does not exist, or is a dangling symlink.
+  }
+  let leaf = resolved;
+  try {
+    // A dangling symlink must be judged by where it points, not where it
+    // sits — writing through it would create the file at its target.
+    leaf = path.resolve(path.dirname(resolved), fs.readlinkSync(resolved));
+  } catch {
+    // Not a symlink — a genuinely nonexistent path; validate via its parent.
+  }
+  return path.join(_realpathIfExists(path.dirname(leaf)), path.basename(leaf));
+}
+
 function _resolveWithinBase(rawPath: string, baseDir: string, kind: 'File' | 'Folder'): string {
   const resolved = path.resolve(expandUser(rawPath));
   const realBase = _realpathIfExists(baseDir);
-  // Resolve symlinks before the containment check — a symlink inside the base
-  // directory may point outside it. For a path that does not exist yet (write
-  // outputs), validate against the real location of its parent directory.
-  const real = fs.existsSync(resolved)
-    ? _realpathIfExists(resolved)
-    : path.join(_realpathIfExists(path.dirname(resolved)), path.basename(resolved));
-  if (real !== realBase && !real.startsWith(realBase + path.sep)) {
+  const real = _realTarget(resolved);
+  const basePrefix = realBase.endsWith(path.sep) ? realBase : realBase + path.sep;
+  if (real !== realBase && !real.startsWith(basePrefix)) {
     throw new UserFacingError(`${kind} path must be within the allowed base directory: ${rawPath}`);
   }
   return resolved;
@@ -34,14 +56,14 @@ function _resolveWithinBase(rawPath: string, baseDir: string, kind: 'File' | 'Fo
 
 function _findAvailablePath(stem: string, extension: string, directory: string): string {
   const candidate = path.resolve(directory, `${stem}.${extension}`);
-  if (!fs.existsSync(candidate)) {
+  if (!_pathTaken(candidate)) {
     return candidate;
   }
 
   const maxAttempts = 1000;
   for (let counter = 1; counter <= maxAttempts; counter++) {
     const c = path.resolve(directory, `${stem}(${String(counter)}).${extension}`);
-    if (!fs.existsSync(c)) {
+    if (!_pathTaken(c)) {
       return c;
     }
   }
@@ -113,7 +135,7 @@ export class FilesHandler {
     }
     if (filePath === '~') {
       throw new UserFacingError(
-        `inputPath must point to a file, not the home directory. Provide a full file path such as '~/Downloads/file.pdf'.`,
+        `inputPath must point to a file, not a directory. Provide a full file path such as '~/Downloads/file.pdf'.`,
       );
     }
     const resolved = _resolveWithinBase(filePath, this._baseDir, 'File');
@@ -137,7 +159,9 @@ export class FilesHandler {
     }
     const extension = options?.ext ?? parsed.ext.replace(/^\./, '');
     const outputPath = _findAvailablePath(stem, extension, directory);
-    fs.writeFileSync(outputPath, data);
+    // 'wx' (O_CREAT|O_EXCL) refuses to follow a symlink at the output path,
+    // closing the race between the boundary check and the write.
+    fs.writeFileSync(outputPath, data, { flag: 'wx' });
     return outputPath;
   }
 

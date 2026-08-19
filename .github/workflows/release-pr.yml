@@ -65,7 +65,7 @@ jobs:
           jq --arg v "$VERSION" '.version = $v' node-version/manifest.json > node-version/manifest.json.tmp
           mv node-version/manifest.json.tmp node-version/manifest.json
           cd node-version
-          npm version "$VERSION" --no-git-tag-version
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
 
       - name: Create release PR
         env:
