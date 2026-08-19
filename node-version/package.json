@@ -1,6 +1,6 @@
 {
   "name": "nitro-mcp",
-  "version": "0.8.0",
+  "version": "0.25.0",
   "type": "module",
   "description": "Nitro MCP server for PDF processing",
   "license": "MIT",
