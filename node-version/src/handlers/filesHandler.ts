@@ -43,12 +43,14 @@ function _realTarget(resolved: string): string {
   return path.join(_realpathIfExists(path.dirname(leaf)), path.basename(leaf));
 }
 
+function _contains(realBase: string, real: string): boolean {
+  const basePrefix = realBase.endsWith(path.sep) ? realBase : realBase + path.sep;
+  return real === realBase || real.startsWith(basePrefix);
+}
+
 function _resolveWithinBase(rawPath: string, baseDir: string, kind: 'File' | 'Folder'): string {
   const resolved = path.resolve(expandUser(rawPath));
-  const realBase = _realpathIfExists(baseDir);
-  const real = _realTarget(resolved);
-  const basePrefix = realBase.endsWith(path.sep) ? realBase : realBase + path.sep;
-  if (real !== realBase && !real.startsWith(basePrefix)) {
+  if (!_contains(_realpathIfExists(baseDir), _realTarget(resolved))) {
     throw new UserFacingError(`${kind} path must be within the allowed base directory: ${rawPath}`);
   }
   return resolved;
@@ -181,10 +183,16 @@ export class FilesHandler {
       throw new UserFacingError(`Folder does not exist or is unreadable: ${resolved}`);
     }
     const normalizedExtension = extension?.toLowerCase();
+    const realBase = _realpathIfExists(this._baseDir);
 
     return entries.flatMap((name) => {
       const fullPath = path.join(resolved, name);
       try {
+        // A symlink pointing outside the base directory would otherwise report
+        // the target's size and mtime, leaking metadata past the boundary.
+        if (!_contains(realBase, _realTarget(fullPath))) {
+          return [];
+        }
         const stat = fs.statSync(fullPath);
         if (!stat.isFile()) {
           return [];

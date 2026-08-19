@@ -184,6 +184,23 @@ describe('FilesHandler', () => {
     it('listFiles rejects a bare folder name that resolves outside the base directory', () => {
       expect(() => handler.listFiles('../sibling')).toThrow(/within the allowed base directory/);
     });
+
+    it('listFiles omits symlinked files pointing outside the base directory', () => {
+      const target = path.join(outsideDir, 'secret.pdf');
+      fs.writeFileSync(target, Buffer.from('secret-content'));
+      fs.symlinkSync(target, path.join(baseDir, 'link.pdf'));
+      fs.writeFileSync(path.join(baseDir, 'own.pdf'), Buffer.from('own'));
+      const names = handler.listFiles(baseDir).map((e) => path.basename(e.filePath));
+      expect(names).toEqual(['own.pdf']);
+    });
+
+    it('listFiles includes symlinked files pointing inside the base directory', () => {
+      const target = path.join(baseDir, 'target.pdf');
+      fs.writeFileSync(target, Buffer.from('inside'));
+      fs.symlinkSync(target, path.join(baseDir, 'link.pdf'));
+      const names = handler.listFiles(baseDir).map((e) => path.basename(e.filePath));
+      expect(names.sort()).toEqual(['link.pdf', 'target.pdf']);
+    });
   });
 
   describe('listFiles', () => {
