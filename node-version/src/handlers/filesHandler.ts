@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { UserFacingError } from '../errors.js';
 import { expandUser } from '../utils.js';
@@ -10,11 +9,25 @@ export interface FileEntry {
   readonly sizeBytes: number;
 }
 
-function _resolveAndValidate(filePath: string): string {
-  const home = os.homedir();
-  const resolved = path.resolve(expandUser(filePath));
-  if (!resolved.startsWith(home + path.sep) && resolved !== home) {
-    throw new UserFacingError(`File path must be within the home directory: ${filePath}`);
+function _realpathIfExists(target: string): string {
+  try {
+    return fs.realpathSync(target);
+  } catch {
+    return target;
+  }
+}
+
+function _resolveWithinBase(rawPath: string, baseDir: string, kind: 'File' | 'Folder'): string {
+  const resolved = path.resolve(expandUser(rawPath));
+  const realBase = _realpathIfExists(baseDir);
+  // Resolve symlinks before the containment check — a symlink inside the base
+  // directory may point outside it. For a path that does not exist yet (write
+  // outputs), validate against the real location of its parent directory.
+  const real = fs.existsSync(resolved)
+    ? _realpathIfExists(resolved)
+    : path.join(_realpathIfExists(path.dirname(resolved)), path.basename(resolved));
+  if (real !== realBase && !real.startsWith(realBase + path.sep)) {
+    throw new UserFacingError(`${kind} path must be within the allowed base directory: ${rawPath}`);
   }
   return resolved;
 }
@@ -39,6 +52,54 @@ function _findAvailablePath(stem: string, extension: string, directory: string):
 }
 
 export class FilesHandler {
+  private readonly _baseDir: string;
+
+  constructor(baseDir: string) {
+    this._baseDir = path.resolve(expandUser(baseDir));
+  }
+
+  private _searchFolderInBase(name: string): string | null {
+    try {
+      const entries = fs.readdirSync(this._baseDir, { withFileTypes: true });
+      const nameLower = name.toLowerCase();
+      for (const entry of entries) {
+        if (entry.name.toLowerCase() === nameLower) {
+          const entryPath = path.join(this._baseDir, entry.name);
+          if (fs.statSync(entryPath).isDirectory()) {
+            return entryPath;
+          }
+        }
+      }
+    } catch {
+      // Ignore errors and fall back to normal path resolution below.
+    }
+    return null;
+  }
+
+  private _resolveFolder(folder: string): string {
+    if (
+      folder === '~' ||
+      folder.startsWith('~/') ||
+      folder.startsWith('~\\') ||
+      path.isAbsolute(folder)
+    ) {
+      return _resolveWithinBase(folder, this._baseDir, 'Folder');
+    }
+    const parts = path.normalize(folder).split(path.sep);
+    const firstPart = parts[0];
+    let resolved: string;
+    if (firstPart !== undefined) {
+      const found = this._searchFolderInBase(firstPart);
+      resolved =
+        found !== null
+          ? path.resolve(path.join(found, ...parts.slice(1)))
+          : path.resolve(this._baseDir, folder);
+    } else {
+      resolved = path.resolve(this._baseDir, folder);
+    }
+    return _resolveWithinBase(resolved, this._baseDir, 'Folder');
+  }
+
   read(filePath: string): Buffer {
     if (
       !path.isAbsolute(filePath) &&
@@ -55,7 +116,7 @@ export class FilesHandler {
         `inputPath must point to a file, not the home directory. Provide a full file path such as '~/Downloads/file.pdf'.`,
       );
     }
-    const resolved = _resolveAndValidate(filePath);
+    const resolved = _resolveWithinBase(filePath, this._baseDir, 'File');
     if (!fs.existsSync(resolved)) {
       throw new UserFacingError(`File does not exist: ${resolved}`);
     }
@@ -66,7 +127,7 @@ export class FilesHandler {
   }
 
   write(inputPath: string, data: Buffer, options?: { stemSuffix?: string; ext?: string }): string {
-    const resolved = _resolveAndValidate(inputPath);
+    const resolved = _resolveWithinBase(inputPath, this._baseDir, 'File');
     const directory = path.dirname(resolved);
     const parsed = path.parse(resolved);
 
@@ -81,7 +142,7 @@ export class FilesHandler {
   }
 
   listFiles(folder: string, extension?: string): FileEntry[] {
-    const resolved = path.resolve(expandUser(folder));
+    const resolved = this._resolveFolder(folder);
     let entries: string[];
     try {
       const stat = fs.statSync(resolved);

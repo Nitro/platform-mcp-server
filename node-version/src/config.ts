@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import os from 'node:os';
 import { z } from 'zod';
 import { defaultSessionFilePath } from './auth/pkceManager.js';
 import type { PkceConfig } from './auth/pkceManager.js';
@@ -90,6 +91,10 @@ class Settings {
       refreshBufferMs: refreshBufferMinutes * 60 * 1000,
       sessionFilePath: defaultSessionFilePath(),
     };
+  }
+
+  get baseDir(): string {
+    return _nonEmptyString.parse(process.env.NITRO_BASE_DIR ?? os.homedir());
   }
 
   get apiUrl(): string {

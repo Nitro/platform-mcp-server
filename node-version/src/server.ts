@@ -23,7 +23,7 @@ async function _buildContext(): Promise<AppContext> {
       clientSecret,
     );
   }
-  return { platformHandler, filesHandler: new FilesHandler() };
+  return { platformHandler, filesHandler: new FilesHandler(settings.baseDir) };
 }
 
 export async function main(): Promise<void> {
