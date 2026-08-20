@@ -7,8 +7,9 @@ name: Open Release PR
 #
 # Note: CI does not run on the release PR because it is created with the
 # built-in GITHUB_TOKEN (GitHub suppresses workflow triggers for GITHUB_TOKEN
-# events). The PR only changes the version field in manifest.json; the release
-# build happens after merge in publish.yml.
+# events). The PR only changes the version fields in manifest.json,
+# package.json and package-lock.json; the release build happens after merge
+# in publish.yml.
 
 on:
   workflow_dispatch:
@@ -58,11 +59,13 @@ jobs:
             exit 1
           fi
 
-      - name: Update manifest.json
+      - name: Update manifest.json, package.json and package-lock.json
         run: |
           VERSION="${{ steps.version.outputs.value }}"
           jq --arg v "$VERSION" '.version = $v' node-version/manifest.json > node-version/manifest.json.tmp
           mv node-version/manifest.json.tmp node-version/manifest.json
+          cd node-version
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
 
       - name: Create release PR
         env:
@@ -73,7 +76,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
-          git add node-version/manifest.json
+          git add node-version/manifest.json node-version/package.json node-version/package-lock.json
           git commit -m "Release v${VERSION}"
           # Plain --force, not --force-with-lease: this is a fresh shallow
           # checkout with no remote-tracking ref for the release branch, so
@@ -86,7 +89,7 @@ jobs:
               --head "$BRANCH" \
               --base main \
               --title "Release v${VERSION}" \
-              --body "Automated release PR. Merging it triggers the Publish Release workflow, which builds the .mcpb, tags the merge commit as v${VERSION}, and publishes the GitHub release. CI does not run on this PR (created with GITHUB_TOKEN); it only bumps the version in manifest.json."
+              --body "Automated release PR. Merging it triggers the Publish Release workflow, which builds the .mcpb, tags the merge commit as v${VERSION}, and publishes the GitHub release. CI does not run on this PR (created with GITHUB_TOKEN); it only bumps the version in manifest.json, package.json and package-lock.json."
           else
             echo "Release PR for $BRANCH already open; branch updated."
           fi

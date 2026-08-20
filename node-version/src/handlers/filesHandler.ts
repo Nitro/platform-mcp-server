@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { UserFacingError } from '../errors.js';
 import { expandUser } from '../utils.js';
@@ -10,25 +9,66 @@ export interface FileEntry {
   readonly sizeBytes: number;
 }
 
-function _resolveAndValidate(filePath: string): string {
-  const home = os.homedir();
-  const resolved = path.resolve(expandUser(filePath));
-  if (!resolved.startsWith(home + path.sep) && resolved !== home) {
-    throw new UserFacingError(`File path must be within the home directory: ${filePath}`);
+function _realpathIfExists(target: string): string {
+  try {
+    return fs.realpathSync(target);
+  } catch {
+    return target;
+  }
+}
+
+function _pathTaken(target: string): boolean {
+  try {
+    fs.lstatSync(target);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function _realTarget(resolved: string): string {
+  try {
+    return fs.realpathSync(resolved);
+  } catch {
+    // The path does not exist, or is a dangling symlink.
+  }
+  let leaf = resolved;
+  try {
+    // A dangling symlink must be judged by where it points, not where it
+    // sits — writing through it would create the file at its target.
+    leaf = path.resolve(path.dirname(resolved), fs.readlinkSync(resolved));
+  } catch {
+    // Not a symlink — a genuinely nonexistent path; validate via its parent.
+  }
+  return path.join(_realpathIfExists(path.dirname(leaf)), path.basename(leaf));
+}
+
+function _contains(realBase: string, real: string): boolean {
+  const basePrefix = realBase.endsWith(path.sep) ? realBase : realBase + path.sep;
+  return real === realBase || real.startsWith(basePrefix);
+}
+
+function _resolveWithinBase(rawPath: string, baseDir: string, kind: 'File' | 'Folder'): string {
+  const resolved = path.resolve(expandUser(rawPath));
+  if (!_contains(_realpathIfExists(baseDir), _realTarget(resolved))) {
+    throw new UserFacingError(
+      `${kind} path is outside the allowed folder '${baseDir}': ${rawPath}. ` +
+        `Use a path inside that folder, or change the allowed folder in the extension settings.`,
+    );
   }
   return resolved;
 }
 
 function _findAvailablePath(stem: string, extension: string, directory: string): string {
   const candidate = path.resolve(directory, `${stem}.${extension}`);
-  if (!fs.existsSync(candidate)) {
+  if (!_pathTaken(candidate)) {
     return candidate;
   }
 
   const maxAttempts = 1000;
   for (let counter = 1; counter <= maxAttempts; counter++) {
     const c = path.resolve(directory, `${stem}(${String(counter)}).${extension}`);
-    if (!fs.existsSync(c)) {
+    if (!_pathTaken(c)) {
       return c;
     }
   }
@@ -39,6 +79,54 @@ function _findAvailablePath(stem: string, extension: string, directory: string):
 }
 
 export class FilesHandler {
+  private readonly _baseDir: string;
+
+  constructor(baseDir: string) {
+    this._baseDir = path.resolve(expandUser(baseDir));
+  }
+
+  private _searchFolderInBase(name: string): string | null {
+    try {
+      const entries = fs.readdirSync(this._baseDir, { withFileTypes: true });
+      const nameLower = name.toLowerCase();
+      for (const entry of entries) {
+        if (entry.name.toLowerCase() === nameLower) {
+          const entryPath = path.join(this._baseDir, entry.name);
+          if (fs.statSync(entryPath).isDirectory()) {
+            return entryPath;
+          }
+        }
+      }
+    } catch {
+      // Ignore errors and fall back to normal path resolution below.
+    }
+    return null;
+  }
+
+  private _resolveFolder(folder: string): string {
+    if (
+      folder === '~' ||
+      folder.startsWith('~/') ||
+      folder.startsWith('~\\') ||
+      path.isAbsolute(folder)
+    ) {
+      return _resolveWithinBase(folder, this._baseDir, 'Folder');
+    }
+    const parts = path.normalize(folder).split(path.sep);
+    const firstPart = parts[0];
+    let resolved: string;
+    if (firstPart !== undefined) {
+      const found = this._searchFolderInBase(firstPart);
+      resolved =
+        found !== null
+          ? path.resolve(path.join(found, ...parts.slice(1)))
+          : path.resolve(this._baseDir, folder);
+    } else {
+      resolved = path.resolve(this._baseDir, folder);
+    }
+    return _resolveWithinBase(resolved, this._baseDir, 'Folder');
+  }
+
   read(filePath: string): Buffer {
     if (
       !path.isAbsolute(filePath) &&
@@ -52,10 +140,10 @@ export class FilesHandler {
     }
     if (filePath === '~') {
       throw new UserFacingError(
-        `inputPath must point to a file, not the home directory. Provide a full file path such as '~/Downloads/file.pdf'.`,
+        `inputPath must point to a file, not a directory. Provide a full file path such as '~/Downloads/file.pdf'.`,
       );
     }
-    const resolved = _resolveAndValidate(filePath);
+    const resolved = _resolveWithinBase(filePath, this._baseDir, 'File');
     if (!fs.existsSync(resolved)) {
       throw new UserFacingError(`File does not exist: ${resolved}`);
     }
@@ -66,7 +154,7 @@ export class FilesHandler {
   }
 
   write(inputPath: string, data: Buffer, options?: { stemSuffix?: string; ext?: string }): string {
-    const resolved = _resolveAndValidate(inputPath);
+    const resolved = _resolveWithinBase(inputPath, this._baseDir, 'File');
     const directory = path.dirname(resolved);
     const parsed = path.parse(resolved);
 
@@ -76,12 +164,14 @@ export class FilesHandler {
     }
     const extension = options?.ext ?? parsed.ext.replace(/^\./, '');
     const outputPath = _findAvailablePath(stem, extension, directory);
-    fs.writeFileSync(outputPath, data);
+    // 'wx' (O_CREAT|O_EXCL) refuses to follow a symlink at the output path,
+    // closing the race between the boundary check and the write.
+    fs.writeFileSync(outputPath, data, { flag: 'wx' });
     return outputPath;
   }
 
   listFiles(folder: string, extension?: string): FileEntry[] {
-    const resolved = path.resolve(expandUser(folder));
+    const resolved = this._resolveFolder(folder);
     let entries: string[];
     try {
       const stat = fs.statSync(resolved);
@@ -96,10 +186,16 @@ export class FilesHandler {
       throw new UserFacingError(`Folder does not exist or is unreadable: ${resolved}`);
     }
     const normalizedExtension = extension?.toLowerCase();
+    const realBase = _realpathIfExists(this._baseDir);
 
     return entries.flatMap((name) => {
       const fullPath = path.join(resolved, name);
       try {
+        // A symlink pointing outside the base directory would otherwise report
+        // the target's size and mtime, leaking metadata past the boundary.
+        if (!_contains(realBase, _realTarget(fullPath))) {
+          return [];
+        }
         const stat = fs.statSync(fullPath);
         if (!stat.isFile()) {
           return [];

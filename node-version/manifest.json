@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "nitro-mcp",
   "display_name": "Nitro PDF Services",
-  "version": "0.25.0",
+  "version": "0.26.0",
   "description": "Nitro PDF Services MCP server",
   "icon": "icon.png",
   "keywords": [
@@ -42,8 +42,16 @@
       ],
       "env": {
         "NITRO_TARGET_ENV": "prod",
-        "NITRO_AUTH_MODE": "pkce"
+        "NITRO_BASE_DIR": "${user_config.base_directory}"
       }
+    }
+  },
+  "user_config": {
+    "base_directory": {
+      "type": "directory",
+      "title": "Allowed folder",
+      "description": "The folder Nitro PDF Services is allowed to read files from and write files to, including its subfolders. All file operations are restricted to this folder. Leave empty to allow your home folder.",
+      "required": false
     }
   },
   "tools_generated": false,
