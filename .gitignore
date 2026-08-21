@@ -27,3 +27,7 @@ corpus
 node-version/dist/
 node-version/node_modules/
 node-version/coverage/
+
+# Claude Code: worktrees and per-user settings are machine-local
+.claude/worktrees/
+.claude/settings.local.json

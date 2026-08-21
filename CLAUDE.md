@@ -27,6 +27,7 @@ Run from the repo root using the `n:` namespace (aliased from `node-version/Task
 
 ## Rules
 
+- **Work in a git worktree** — make all changes in a dedicated worktree under `.claude/worktrees/<branch-name>/`, never in the primary checkout. Multiple agents may work concurrently, so each needs its own worktree. Ask the user before deleting a completed one.
 - **Never amend commits** — always add a new commit
 - **Never force push**
 - **Never push directly to `main`** — if the user asks to commit and no branch is checked out, ask whether to create one first
