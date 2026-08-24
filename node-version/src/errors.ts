@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { logger } from './logger.js';
 
-const _httpErrorBodySchema = z.object({ title: z.string() });
+const _httpErrorBodySchema = z.object({ title: z.string(), detail: z.string().optional() });
 
 export class UserFacingError extends Error {
   constructor(message: string) {
@@ -82,7 +82,11 @@ export async function checkHttpResponse(res: Response, sessionId?: string): Prom
   if (bodyText !== undefined && res.status < 500) {
     const result = _httpErrorBodySchema.safeParse(_parseJson(bodyText));
     if (result.success) {
-      throw new UserFacingError(appendReferenceCode(result.data.title, sessionId));
+      const message =
+        result.data.detail !== undefined && result.data.detail.length > 0
+          ? result.data.detail
+          : result.data.title;
+      throw new UserFacingError(appendReferenceCode(message, sessionId));
     }
   }
 

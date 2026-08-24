@@ -157,6 +157,33 @@ describe('PlatformApiClient', () => {
     }
   });
 
+  it('throws UserFacingError with detail when submit returns 400 with title and detail', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          type: 'TooManyFilesError',
+          title: 'Too Many Files',
+          status: 400,
+          detail: 'Too many files: file-count: 30, file-limit: 25',
+        }),
+        { status: 400 },
+      ),
+    );
+
+    const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
+
+    try {
+      await client.run('conversions', file, { method: null });
+      throw new Error('Expected client.run to throw');
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(UserFacingError);
+      expect((error as UserFacingError).message).toContain(
+        'Too many files: file-count: 30, file-limit: 25',
+      );
+      expect((error as UserFacingError).message).not.toContain('Too Many Files');
+    }
+  });
+
   it('throws GenericFailedError when submit returns 422 with no title in body', async () => {
     const fetchMock = vi
       .spyOn(globalThis, 'fetch')

@@ -122,8 +122,9 @@ export function register(server: McpServer, context: AppContext): void {
         inputPaths: z
           .array(z.string())
           .min(2)
+          .max(25)
           .describe(
-            'Full paths to PDF files to merge. Must be at least 2 files. ' +
+            'Full paths to PDF files to merge. Must be at least 2 files, and at most 25. ' +
               'All files must be in the same directory. ' +
               "Example: ['~/Downloads/a.pdf', '~/Downloads/b.pdf']",
           ),
