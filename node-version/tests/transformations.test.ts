@@ -147,6 +147,16 @@ describe('transformation tools', () => {
 
       expect(filesHandlerMock.write).not.toHaveBeenCalled();
     });
+
+    it('rejects more than 25 input files', async () => {
+      const inputPaths = Array.from({ length: 26 }, (_, i) =>
+        path.join(tmpDir, `${i.toString()}.pdf`),
+      );
+
+      await caller.call('merge_files', { inputPaths }, { expectError: true });
+
+      expect(platformHandlerMock.mergePdfs).not.toHaveBeenCalled();
+    });
   });
 
   describe('split_pdf', () => {
