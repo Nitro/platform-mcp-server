@@ -414,7 +414,7 @@ describe('PlatformHandler', () => {
       expect(runMock).toHaveBeenCalledWith(
         'conversions',
         expect.objectContaining({ kind: 'bytes', name: 'input.pdf' }),
-        { method: null, params: { to: FileFormat.DOCX } },
+        { method: 'to-docx', params: {} },
       );
     });
 
@@ -441,7 +441,28 @@ describe('PlatformHandler', () => {
       expect(runMock).toHaveBeenCalledWith(
         'conversions',
         expect.objectContaining({ kind: 'bytes', name: 'input.docx' }),
-        { method: null, params: { to: FileFormat.PDF } },
+        { method: 'to-pdf', params: {} },
+      );
+    });
+
+    it('converts pdf to pdfa with conformance and no `to` in params', async () => {
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from('pdfa-output'),
+        contentType: 'application/pdf',
+      });
+
+      const result = await handler.convertFile(
+        Buffer.from('pdf-bytes'),
+        FileFormat.PDF,
+        FileFormat.PDFA,
+        { conformance: '2b' },
+      );
+
+      expect(result).toEqual(Buffer.from('pdfa-output'));
+      expect(runMock).toHaveBeenCalledWith(
+        'conversions',
+        expect.objectContaining({ kind: 'bytes', name: 'input.pdf' }),
+        { method: 'to-pdfa', params: { conformance: '2b' } },
       );
     });
   });

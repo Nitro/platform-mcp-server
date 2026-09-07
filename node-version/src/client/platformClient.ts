@@ -94,15 +94,9 @@ function _fileToFormData(file: File, fieldName: string, form: FormData): void {
 export type ApiPath = 'conversions' | 'extractions' | 'generations' | 'transformations';
 
 export interface RunOptions {
-  readonly method: string | null;
+  readonly method: string;
   readonly params?: Record<string, unknown>;
   readonly acceptFormat?: 'bytes' | 'json';
-}
-
-function _validateRunOptions(path: ApiPath, options: RunOptions): void {
-  if (options.method === null && path !== 'conversions') {
-    throw new Error(`method is required for path '${path}'`);
-  }
 }
 
 export type TokenProvider = () => Promise<string>;
@@ -230,15 +224,9 @@ export class PlatformApiClient {
     const sessionId = crypto.randomUUID();
     const form = new FormData();
 
-    _validateRunOptions(path, options);
+    logger.info(`[PlatformApiClient] Running \`${options.method}\` with session ID: ${sessionId}`);
 
-    logger.info(
-      `[PlatformApiClient] Running \`${options.method ?? path}\` with session ID: ${sessionId}`,
-    );
-
-    if (options.method !== null) {
-      form.append('method', options.method);
-    }
+    form.append('method', options.method);
 
     if (options.params !== undefined) {
       form.append('params', JSON.stringify(options.params));
