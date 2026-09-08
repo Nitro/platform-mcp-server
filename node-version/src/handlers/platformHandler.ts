@@ -217,8 +217,8 @@ export class PlatformHandler {
     const file = createBytesFile(contentType, fileBytes, `input.${fileType}`);
 
     const { body } = await this._client.run('conversions', file, {
-      method: null,
-      params: { to, ...pdfaParams },
+      method: `to-${to}`,
+      params: pdfaParams !== undefined ? (pdfaParams as unknown as Record<string, unknown>) : {},
     });
 
     return body;
