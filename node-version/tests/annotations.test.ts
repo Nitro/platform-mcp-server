@@ -31,6 +31,13 @@ const _READ_ONLY_TOOLS = [
   { name: 'search_text_in_pdf', title: 'Search Text in PDF' },
 ];
 
+const _IDEMPOTENT_READ_ONLY_TOOLS = [
+  'list_files',
+  'get_pdf_metadata',
+  'extract_pdf_text',
+  'extract_pdf_tables',
+];
+
 const _NON_DESTRUCTIVE_TOOLS = [
   { name: 'convert_file', title: 'Convert File' },
   { name: 'merge_files', title: 'Merge PDFs' },
@@ -59,33 +66,45 @@ describe('tool annotations', () => {
     await cleanup();
   });
 
-  it('read-only tools have readOnlyHint: true, a title, and no destructiveHint', async () => {
+  it('read-only tools have readOnlyHint: true, openWorldHint: true, a title, and no destructiveHint', async () => {
     const { tools } = await client.listTools();
     for (const { name, title } of _READ_ONLY_TOOLS) {
       const tool = tools.find((t) => t.name === name);
       expect(tool?.annotations?.title, name).toBe(title);
       expect(tool?.annotations?.readOnlyHint, name).toBe(true);
+      expect(tool?.annotations?.openWorldHint, name).toBe(true);
       expect(tool?.annotations?.destructiveHint, name).toBeUndefined();
     }
   });
 
-  it('non-destructive output tools have readOnlyHint: false, destructiveHint: false, and a title', async () => {
+  it('non-destructive output tools have readOnlyHint: false, destructiveHint: false, openWorldHint: true, and a title', async () => {
     const { tools } = await client.listTools();
     for (const { name, title } of _NON_DESTRUCTIVE_TOOLS) {
       const tool = tools.find((t) => t.name === name);
       expect(tool?.annotations?.title, name).toBe(title);
       expect(tool?.annotations?.readOnlyHint, name).toBe(false);
       expect(tool?.annotations?.destructiveHint, name).toBe(false);
+      expect(tool?.annotations?.openWorldHint, name).toBe(true);
     }
   });
 
-  it('destructive tools have readOnlyHint: false, destructiveHint: true, and a title', async () => {
+  it('destructive tools have readOnlyHint: false, destructiveHint: true, openWorldHint: true, and a title', async () => {
     const { tools } = await client.listTools();
     for (const { name, title } of _DESTRUCTIVE_TOOLS) {
       const tool = tools.find((t) => t.name === name);
       expect(tool?.annotations?.title, name).toBe(title);
       expect(tool?.annotations?.readOnlyHint, name).toBe(false);
       expect(tool?.annotations?.destructiveHint, name).toBe(true);
+      expect(tool?.annotations?.openWorldHint, name).toBe(true);
+    }
+  });
+
+  it('only the read-only extraction tools have idempotentHint: true', async () => {
+    const { tools } = await client.listTools();
+    for (const { name } of _READ_ONLY_TOOLS) {
+      const tool = tools.find((t) => t.name === name);
+      const expected = _IDEMPOTENT_READ_ONLY_TOOLS.includes(name) ? true : undefined;
+      expect(tool?.annotations?.idempotentHint, name).toBe(expected);
     }
   });
 });

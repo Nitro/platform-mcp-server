@@ -217,6 +217,25 @@ describe('PII tools', () => {
       );
     });
 
+    it('redacts using manual redactions with a label', async () => {
+      filesHandlerMock.read.mockReturnValue(Buffer.from('pdf-bytes'));
+      platformHandlerMock.redactPdf.mockResolvedValue(Buffer.from('redacted-pdf'));
+      filesHandlerMock.write.mockReturnValue(path.join(tmpDir, 'doc-redacted.pdf'));
+
+      const redactions = [{ pageIndex: 0, boundingBox: [10, 20, 30, 40], label: 'label' }];
+
+      await caller.call(
+        'redact_pdf',
+        { inputPath: path.join(tmpDir, 'doc.pdf'), redactions },
+        { expectedResult: { outputFilename: 'doc-redacted.pdf', redactionCount: 1 } },
+      );
+
+      expect(platformHandlerMock.redactPdf).toHaveBeenCalledWith(
+        Buffer.from('pdf-bytes'),
+        redactions,
+      );
+    });
+
     it('redacts using piiJsonFile', async () => {
       const piiResult = {
         PIIBoxes: [

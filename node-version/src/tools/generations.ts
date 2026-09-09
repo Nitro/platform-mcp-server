@@ -46,7 +46,7 @@ export function register(server: McpServer, context: AppContext): void {
     'fill_forms',
     {
       description:
-        'Use this tool to fill in form fields in a PDF document with the provided field values. ' +
+        'Fills in form fields in a PDF document with the provided field values. ' +
         'Field values may be supplied inline or via a CSV, JSON, XFDF, or FDF data file.',
       inputSchema: {
         ...singleFileInputSchema.shape,
@@ -163,8 +163,8 @@ export function register(server: McpServer, context: AppContext): void {
     'create_fillable_forms',
     {
       description:
-        'Use this tool to generate a new PDF containing the provided form fields as real, ' +
-        'fillable AcroForm fields. The fields are typically the `formFields` returned by the ' +
+        'Generates a new PDF containing the provided form fields as real, ' +
+        'fillable AcroForm fields. The fields are typically the formFields returned by the ' +
         'smart_detect_form_fields tool.',
       inputSchema: {
         ...singleFileInputSchema.shape,

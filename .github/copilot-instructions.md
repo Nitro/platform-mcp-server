@@ -1,4 +1,4 @@
-Start by reading `CLAUDE.md` and `style-guide.md` for project context — do not flag patterns listed there as intentional choices.
+Start by reading `CLAUDE.md` for project context — do not flag patterns listed there as intentional choices.
 
 Be pragmatic: strike a good balance between code quality and utility. Follow the YAGNI principle — simple is better than complex. Do not flag things that don't matter in practice.
 

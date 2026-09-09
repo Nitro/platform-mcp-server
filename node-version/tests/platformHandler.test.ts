@@ -186,6 +186,22 @@ describe('PlatformHandler', () => {
         { method: 'redact', params: { redactions } },
       );
     });
+
+    it('passes through per-redaction labels', async () => {
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from('redacted-pdf'),
+        contentType: 'application/pdf',
+      });
+      const redactions = [{ pageIndex: 0, boundingBox: [10, 20, 30, 40], label: 'label' }];
+
+      await handler.redactPdf(Buffer.from('pdf-bytes'), redactions);
+
+      expect(runMock).toHaveBeenCalledWith(
+        'transformations',
+        expect.objectContaining({ kind: 'bytes', contentType: ContentType.PDF }),
+        { method: 'redact', params: { redactions } },
+      );
+    });
   });
 
   describe('mergePdfs', () => {
@@ -398,7 +414,7 @@ describe('PlatformHandler', () => {
       expect(runMock).toHaveBeenCalledWith(
         'conversions',
         expect.objectContaining({ kind: 'bytes', name: 'input.pdf' }),
-        { method: null, params: { to: FileFormat.DOCX } },
+        { method: 'to-docx', params: {} },
       );
     });
 
@@ -425,7 +441,28 @@ describe('PlatformHandler', () => {
       expect(runMock).toHaveBeenCalledWith(
         'conversions',
         expect.objectContaining({ kind: 'bytes', name: 'input.docx' }),
-        { method: null, params: { to: FileFormat.PDF } },
+        { method: 'to-pdf', params: {} },
+      );
+    });
+
+    it('converts pdf to pdfa with conformance and no `to` in params', async () => {
+      runMock.mockResolvedValueOnce({
+        body: Buffer.from('pdfa-output'),
+        contentType: 'application/pdf',
+      });
+
+      const result = await handler.convertFile(
+        Buffer.from('pdf-bytes'),
+        FileFormat.PDF,
+        FileFormat.PDFA,
+        { conformance: '2b' },
+      );
+
+      expect(result).toEqual(Buffer.from('pdfa-output'));
+      expect(runMock).toHaveBeenCalledWith(
+        'conversions',
+        expect.objectContaining({ kind: 'bytes', name: 'input.pdf' }),
+        { method: 'to-pdfa', params: { conformance: '2b' } },
       );
     });
   });

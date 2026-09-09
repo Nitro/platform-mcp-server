@@ -1,1 +1,0 @@
-> **Legacy / archived.** This directory contains the v0.9.0 Python (FastMCP) server and no longer applies. The active codebase is `node-version/` (Node.js bundle, v0.16.0+). See the repo-root `README.md` for installation and usage.

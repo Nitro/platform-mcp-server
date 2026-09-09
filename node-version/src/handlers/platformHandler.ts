@@ -1,10 +1,6 @@
-import { z } from 'zod';
 import { ContentType, FileFormat } from '../client/enums.js';
 import { PlatformApiClient, createBytesFile } from '../client/platformClient.js';
 import type { PkceManager } from '../auth/pkceManager.js';
-import { checkHttpResponse } from '../errors.js';
-
-const _tokenResponseSchema = z.object({ accessToken: z.string().min(1) });
 
 export const SupportedConversions = {
   fromPdfTo: new Set<FileFormat>([
@@ -185,18 +181,6 @@ function _contentTypeForFormat(format: FileFormat): ContentType {
   return FORMAT_TO_CONTENT_TYPE[format];
 }
 
-async function _getToken(baseUrl: string, clientId: string, clientSecret: string): Promise<string> {
-  const res = await fetch(`${baseUrl}/oauth/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ clientID: clientId, clientSecret }),
-    signal: AbortSignal.timeout(30_000),
-  });
-  await checkHttpResponse(res);
-  const { accessToken } = _tokenResponseSchema.parse(await res.json());
-  return accessToken;
-}
-
 export class PlatformHandler {
   static readonly supportedConversions = SupportedConversions;
 
@@ -204,19 +188,6 @@ export class PlatformHandler {
 
   constructor(client: PlatformApiClient) {
     this._client = client;
-  }
-
-  static fromAuthToken(baseUrl: string, token: string): PlatformHandler {
-    return new PlatformHandler(PlatformApiClient.fromStaticToken(baseUrl, token));
-  }
-
-  static async fromClientCredentials(
-    baseUrl: string,
-    clientId: string,
-    clientSecret: string,
-  ): Promise<PlatformHandler> {
-    const token = await _getToken(baseUrl, clientId, clientSecret);
-    return PlatformHandler.fromAuthToken(baseUrl, token);
   }
 
   static fromPkce(apiUrl: string, pkceManager: PkceManager): PlatformHandler {
@@ -246,8 +217,8 @@ export class PlatformHandler {
     const file = createBytesFile(contentType, fileBytes, `input.${fileType}`);
 
     const { body } = await this._client.run('conversions', file, {
-      method: null,
-      params: { to, ...pdfaParams },
+      method: `to-${to}`,
+      params: pdfaParams !== undefined ? (pdfaParams as unknown as Record<string, unknown>) : {},
     });
 
     return body;
@@ -437,7 +408,7 @@ export class PlatformHandler {
 
   async redactPdf(
     fileBytes: Buffer,
-    redactions: { pageIndex: number; boundingBox: number[] }[],
+    redactions: { pageIndex: number; boundingBox: number[]; label?: string | undefined }[],
   ): Promise<Buffer> {
     const file = createBytesFile(ContentType.PDF, fileBytes, 'input.pdf');
     const { body } = await this._client.run('transformations', file, {

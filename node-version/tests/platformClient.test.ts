@@ -74,7 +74,7 @@ describe('PlatformApiClient', () => {
     });
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
-    const result = await client.run('conversions', file, { method: null });
+    const result = await client.run('conversions', file, { method: 'to-docx' });
 
     expect(result.body).toEqual(resultContent);
     expect(fetchMock).toHaveBeenCalledTimes(3);
@@ -86,7 +86,7 @@ describe('PlatformApiClient', () => {
     const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
 
     try {
-      await client.run('conversions', file, { method: null });
+      await client.run('conversions', file, { method: 'to-docx' });
       throw new Error('Expected client.run to throw');
     } catch (error: unknown) {
       const sessionId = (fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>)[
@@ -103,7 +103,7 @@ describe('PlatformApiClient', () => {
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
     try {
-      await client.run('conversions', file, { method: null });
+      await client.run('conversions', file, { method: 'to-docx' });
       throw new Error('Expected client.run to throw');
     } catch (error: unknown) {
       const sessionId = (fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>)[
@@ -118,7 +118,7 @@ describe('PlatformApiClient', () => {
     _makeFailedJobFetch({ error: { message: 'message' } });
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
-    await expect(client.run('conversions', file, { method: null })).rejects.toThrow(
+    await expect(client.run('conversions', file, { method: 'to-docx' })).rejects.toThrow(
       GenericFailedError,
     );
   });
@@ -130,7 +130,7 @@ describe('PlatformApiClient', () => {
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
     try {
-      await client.run('conversions', file, { method: null });
+      await client.run('conversions', file, { method: 'to-docx' });
       throw new Error('Expected client.run to throw');
     } catch (error: unknown) {
       const sessionId = (fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>)[
@@ -149,11 +149,38 @@ describe('PlatformApiClient', () => {
     const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
 
     try {
-      await client.run('conversions', file, { method: null });
+      await client.run('conversions', file, { method: 'to-docx' });
       throw new Error('Expected client.run to throw');
     } catch (error: unknown) {
       expect(error).toBeInstanceOf(UserFacingError);
       expect((error as UserFacingError).message).toContain('title');
+    }
+  });
+
+  it('throws UserFacingError with detail when submit returns 400 with title and detail', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          type: 'TooManyFilesError',
+          title: 'Too Many Files',
+          status: 400,
+          detail: 'Too many files: file-count: 30, file-limit: 25',
+        }),
+        { status: 400 },
+      ),
+    );
+
+    const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
+
+    try {
+      await client.run('conversions', file, { method: 'to-docx' });
+      throw new Error('Expected client.run to throw');
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(UserFacingError);
+      expect((error as UserFacingError).message).toContain(
+        'Too many files: file-count: 30, file-limit: 25',
+      );
+      expect((error as UserFacingError).message).not.toContain('Too Many Files');
     }
   });
 
@@ -166,7 +193,7 @@ describe('PlatformApiClient', () => {
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
     try {
-      await client.run('conversions', file, { method: null });
+      await client.run('conversions', file, { method: 'to-docx' });
       throw new Error('Expected client.run to throw');
     } catch (error: unknown) {
       const sessionId = (fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>)[
@@ -186,7 +213,7 @@ describe('PlatformApiClient', () => {
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('pdf-bytes'));
     try {
-      await client.run('conversions', file, { method: null });
+      await client.run('conversions', file, { method: 'to-docx' });
       throw new Error('Expected client.run to throw');
     } catch (error: unknown) {
       const sessionId = (fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>)[
@@ -217,7 +244,7 @@ describe('PlatformApiClient', () => {
     const file = createBytesFile(ContentType.PDF, Buffer.from('bytes'));
 
     const fetchMock1 = _makeSuccessfulRun();
-    await client.run('conversions', file, { method: null });
+    await client.run('conversions', file, { method: 'to-docx' });
     const sessionId1 = (fetchMock1.mock.calls[0]?.[1]?.headers as Record<string, string>)[
       'X-Analytics-Session-Id'
     ];
@@ -225,7 +252,7 @@ describe('PlatformApiClient', () => {
     vi.restoreAllMocks();
 
     const fetchMock2 = _makeSuccessfulRun();
-    await client.run('conversions', file, { method: null });
+    await client.run('conversions', file, { method: 'to-docx' });
     const sessionId2 = (fetchMock2.mock.calls[0]?.[1]?.headers as Record<string, string>)[
       'X-Analytics-Session-Id'
     ];
@@ -252,7 +279,7 @@ describe('PlatformApiClient', () => {
     });
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('bytes'));
-    await client.run('conversions', file, { method: null });
+    await client.run('conversions', file, { method: 'to-docx' });
 
     const sessionIds = fetchMock.mock.calls.map((call) => {
       const headers = call[1]?.headers as Record<string, string> | undefined;
@@ -279,7 +306,7 @@ describe('PlatformApiClient', () => {
     });
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('bytes'));
-    await client.run('conversions', file, { method: null });
+    await client.run('conversions', file, { method: 'to-docx' });
 
     for (const call of fetchMock.mock.calls) {
       const headers = call[1]?.headers as Record<string, string> | undefined;
@@ -304,7 +331,7 @@ describe('PlatformApiClient', () => {
     });
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('bytes'));
-    await client.run('conversions', file, { method: null });
+    await client.run('conversions', file, { method: 'to-docx' });
 
     const sseCall = fetchMock.mock.calls.find(([url]) => {
       const urlStr = url instanceof URL ? url.href : (url as string);
@@ -329,7 +356,7 @@ describe('PlatformApiClient', () => {
     });
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('bytes'));
-    await expect(client.run('conversions', file, { method: null })).rejects.toThrow(
+    await expect(client.run('conversions', file, { method: 'to-docx' })).rejects.toThrow(
       'SSE stream closed before job finished',
     );
   });
@@ -351,7 +378,7 @@ describe('PlatformApiClient', () => {
     });
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('bytes'));
-    await client.run('conversions', file, { method: null });
+    await client.run('conversions', file, { method: 'to-docx' });
 
     for (const call of fetchMock.mock.calls) {
       const headers = call[1]?.headers as Record<string, string> | undefined;
@@ -365,7 +392,7 @@ describe('PlatformApiClient', () => {
     );
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('bytes'));
-    await expect(client.run('conversions', file, { method: null })).rejects.toThrow(
+    await expect(client.run('conversions', file, { method: 'to-docx' })).rejects.toThrow(
       new UserFacingError(
         'You have used up your current Nitro allowance. Please wait 60 seconds before trying again.',
       ),
@@ -376,7 +403,7 @@ describe('PlatformApiClient', () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 429 }));
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('bytes'));
-    await expect(client.run('conversions', file, { method: null })).rejects.toThrow(
+    await expect(client.run('conversions', file, { method: 'to-docx' })).rejects.toThrow(
       new UserFacingError('You have used up your current Nitro allowance.'),
     );
   });
@@ -393,7 +420,7 @@ describe('PlatformApiClient', () => {
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('bytes'));
     try {
-      await client.run('conversions', file, { method: null });
+      await client.run('conversions', file, { method: 'to-docx' });
       throw new Error('Expected client.run to throw');
     } catch (error: unknown) {
       const sessionId = (fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>)[
@@ -414,7 +441,7 @@ describe('PlatformApiClient', () => {
     });
 
     const file = createBytesFile(ContentType.PDF, Buffer.from('bytes'));
-    await expect(client.run('conversions', file, { method: null })).rejects.toThrow(
+    await expect(client.run('conversions', file, { method: 'to-docx' })).rejects.toThrow(
       'Failed to parse SSE event as JSON',
     );
   });
