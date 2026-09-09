@@ -56,8 +56,9 @@ tasks:
     cmds:
       - task: bundle
       - cp ../LICENSE ./LICENSE
+      - cp ../README.md ./README.md
       - npx @anthropic-ai/mcpb pack . ../build/nitro-pdf-services-node-{{.VERSION}}.mcpb
-      - rm -f ./LICENSE
+      - rm -f ./LICENSE ./README.md
 
   clean:
     desc: Clean build artifacts

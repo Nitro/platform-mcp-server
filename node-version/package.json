@@ -1,6 +1,6 @@
 {
   "name": "nitro-mcp",
-  "version": "0.8.0",
+  "version": "0.27.0",
   "type": "module",
   "description": "Nitro MCP server for PDF processing",
   "license": "MIT",
@@ -31,13 +31,14 @@
     "uuid": "^14",
     "archiver": "^8.0.0",
     "rimraf": "^6.0.0",
-    "@hono/node-server": "^2.0.12"
+    "@hono/node-server": "^2.0.12",
+    "brace-expansion": "^5.0.9"
   },
   "devDependencies": {
     "@types/node": "^22.19.21",
     "@typescript-eslint/eslint-plugin": "^8.32.0",
     "@typescript-eslint/parser": "^8.32.0",
-    "@vitest/coverage-v8": "^4.1.8",
+    "@vitest/coverage-v8": "^4.1.11",
     "esbuild": "^0.28.1",
     "eslint": "^10.8.0",
     "jiti": "^2.6.1",
@@ -45,6 +46,6 @@
     "tsx": "^4.22.4",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.32.0",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.11"
   }
 }

@@ -2,9 +2,9 @@
 
 MCP server connecting Claude Desktop to Nitro's Document Intelligence Platform API, enabling PDF processing tools (file management, transformations, conversions, PII redaction) through natural language.
 
-> **The codebase was originally Python (FastMCP) but has been fully migrated to Node.js/TypeScript. All active development happens in `node-version/`. The Python code at the root is legacy and should not be modified.**
+> The codebase was originally Python (FastMCP) and was fully migrated to Node.js/TypeScript. The legacy Python source has since been removed; `node-version/` is the codebase.
 
-## Active Codebase — `node-version/`
+## Codebase — `node-version/`
 
 - `src/server.ts` — MCP server entry point and tool registration
 - `src/context.ts` — `AppContext` dependency injection container
@@ -27,6 +27,7 @@ Run from the repo root using the `n:` namespace (aliased from `node-version/Task
 
 ## Rules
 
+- **Work in a git worktree** — make all changes in a dedicated worktree under `.claude/worktrees/<branch-name>/`, never in the primary checkout. Multiple agents may work concurrently, so each needs its own worktree. Ask the user before deleting a completed one.
 - **Never amend commits** — always add a new commit
 - **Never force push**
 - **Never push directly to `main`** — if the user asks to commit and no branch is checked out, ask whether to create one first
