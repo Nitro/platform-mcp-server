@@ -1,25 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { registerAll } from '../src/tools/index.js';
+import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { createClient } from './helpers/client.js';
 import { createAppContext } from './helpers/fixtures.js';
-
-async function _createClient(context: ReturnType<typeof createAppContext>): Promise<{
-  client: Client;
-  cleanup: () => Promise<void>;
-}> {
-  const server = new McpServer({ name: 'test', version: '0.0.0' });
-  registerAll(server, context);
-
-  const [serverTransport, clientTransport] = InMemoryTransport.createLinkedPair();
-  const client = new Client({ name: 'test-client', version: '0.0.0' });
-
-  await server.connect(serverTransport);
-  await client.connect(clientTransport);
-
-  return { client, cleanup: async () => client.close() };
-}
 
 const _READ_ONLY_TOOLS = [
   { name: 'list_files', title: 'List Files' },
@@ -59,7 +41,7 @@ describe('tool annotations', () => {
   let cleanup: () => Promise<void>;
 
   beforeEach(async () => {
-    ({ client, cleanup } = await _createClient(createAppContext()));
+    ({ client, cleanup } = await createClient(createAppContext()));
   });
 
   afterEach(async () => {
