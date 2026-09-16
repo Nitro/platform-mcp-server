@@ -235,7 +235,7 @@ export class PlatformHandler {
   async getPdfMetadata(fileBytes: Buffer): Promise<Buffer> {
     const file = createBytesFile(ContentType.PDF, fileBytes, 'document.pdf');
     const { body } = await this._client.run('extractions', file, {
-      method: 'get-properties',
+      method: 'properties',
       params: {},
       acceptFormat: 'json',
     });
@@ -248,10 +248,10 @@ export class PlatformHandler {
     params: ExtractionParams,
   ): Promise<Buffer> {
     const methodMap: Record<ExtractionDataType, string> = {
-      forms: 'extract-forms',
-      tables: 'extract-tables',
-      text: 'extract-text',
-      accessibility: 'extract-accessibility-data',
+      forms: 'forms',
+      tables: 'tables',
+      text: 'text',
+      accessibility: 'accessibility-data',
     };
 
     const file = createBytesFile(ContentType.PDF, fileBytes, 'document.pdf');
@@ -279,7 +279,7 @@ export class PlatformHandler {
     });
     const file = createBytesFile(ContentType.PDF, fileBytes, 'document.pdf');
     const { body } = await this._client.run('extractions', file, {
-      method: 'extract-text-bounding-boxes',
+      method: 'text-bounding-boxes',
       params: { queries: wireQueries },
       acceptFormat: 'json',
     });
@@ -289,7 +289,7 @@ export class PlatformHandler {
   async smartDetectFormFields(fileBytes: Buffer): Promise<Buffer> {
     const file = createBytesFile(ContentType.PDF, fileBytes, 'document.pdf');
     const { body } = await this._client.run('extractions', file, {
-      method: 'smart-detect-form-fields',
+      method: 'form-fields',
       params: {},
       acceptFormat: 'json',
     });
@@ -299,7 +299,7 @@ export class PlatformHandler {
   async extractFillableFormData(fileBytes: Buffer): Promise<Buffer> {
     const file = createBytesFile(ContentType.PDF, fileBytes, 'document.pdf');
     const { body } = await this._client.run('extractions', file, {
-      method: 'extract-fillable-form-data',
+      method: 'fillable-form-data',
       params: {},
       acceptFormat: 'json',
     });
@@ -309,7 +309,7 @@ export class PlatformHandler {
   async extractPiiBoundingBoxes(fileBytes: Buffer, language: 'en' | 'es'): Promise<Buffer> {
     const file = createBytesFile(ContentType.PDF, fileBytes, 'document.pdf');
     const { body } = await this._client.run('extractions', file, {
-      method: 'extract-pii-bounding-boxes',
+      method: 'pii-bounding-boxes',
       params: { language },
       acceptFormat: 'json',
     });
@@ -497,7 +497,7 @@ export class PlatformHandler {
   async extractExpenseData(fileBytes: Buffer): Promise<Buffer> {
     const file = createBytesFile(ContentType.PDF, fileBytes, 'document.pdf');
     const { body } = await this._client.run('extractions', file, {
-      method: 'extract-invoices',
+      method: 'invoices',
       params: {},
       acceptFormat: 'json',
     });
