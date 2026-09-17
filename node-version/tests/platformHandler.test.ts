@@ -17,7 +17,7 @@ describe('PlatformHandler', () => {
   });
 
   describe('getPdfMetadata', () => {
-    it('calls extractions with get-properties and returns extracted result', async () => {
+    it('calls extractions with properties and returns extracted result', async () => {
       const rawResponse = JSON.stringify({ result: { title: 'doc-title' } });
       runMock.mockResolvedValueOnce({
         body: Buffer.from(rawResponse),
@@ -34,17 +34,17 @@ describe('PlatformHandler', () => {
           contentType: ContentType.PDF,
           name: 'document.pdf',
         }),
-        { method: 'get-properties', params: {}, acceptFormat: 'json' },
+        { method: 'properties', params: {}, acceptFormat: 'json' },
       );
     });
   });
 
   describe('extractPdfData', () => {
     it.each([
-      ['forms', 'extract-forms'],
-      ['tables', 'extract-tables'],
-      ['text', 'extract-text'],
-      ['accessibility', 'extract-accessibility-data'],
+      ['forms', 'forms'],
+      ['tables', 'tables'],
+      ['text', 'text'],
+      ['accessibility', 'accessibility-data'],
     ] as const)('calls correct method for %s', async (dataType, expectedMethod) => {
       const rawResponse = JSON.stringify({ result: {} });
       runMock.mockResolvedValueOnce({
@@ -79,7 +79,7 @@ describe('PlatformHandler', () => {
   });
 
   describe('extractTextBoundingBoxes', () => {
-    it('calls extract-text-bounding-boxes with literal queries by default', async () => {
+    it('calls text-bounding-boxes with literal queries by default', async () => {
       const rawResponse = JSON.stringify({ result: { textBoxes: [] } });
       runMock.mockResolvedValueOnce({
         body: Buffer.from(rawResponse),
@@ -95,7 +95,7 @@ describe('PlatformHandler', () => {
         'extractions',
         expect.objectContaining({ kind: 'bytes', contentType: ContentType.PDF }),
         {
-          method: 'extract-text-bounding-boxes',
+          method: 'text-bounding-boxes',
           params: { queries: [{ text: 'hello' }, { text: 'world' }] },
           acceptFormat: 'json',
         },
@@ -117,7 +117,7 @@ describe('PlatformHandler', () => {
         'extractions',
         expect.objectContaining({ kind: 'bytes', contentType: ContentType.PDF }),
         {
-          method: 'extract-text-bounding-boxes',
+          method: 'text-bounding-boxes',
           params: { queries: [{ text: '[0-9]+', isRegex: true, regexFlags: ['ignore-case'] }] },
           acceptFormat: 'json',
         },
@@ -126,7 +126,7 @@ describe('PlatformHandler', () => {
   });
 
   describe('extractFillableFormData', () => {
-    it('calls extract-fillable-form-data and returns extracted result', async () => {
+    it('calls fillable-form-data and returns extracted result', async () => {
       const formData = {
         formFields: [{ pageIndex: 0, fieldType: 'TextBox', name: 'field-name', value: 'value' }],
       };
@@ -146,13 +146,13 @@ describe('PlatformHandler', () => {
           contentType: ContentType.PDF,
           name: 'document.pdf',
         }),
-        { method: 'extract-fillable-form-data', params: {}, acceptFormat: 'json' },
+        { method: 'fillable-form-data', params: {}, acceptFormat: 'json' },
       );
     });
   });
 
   describe('extractPiiBoundingBoxes', () => {
-    it('calls extract-pii-bounding-boxes with language param', async () => {
+    it('calls pii-bounding-boxes with language param', async () => {
       const rawResponse = JSON.stringify({ result: { PIIBoxes: [] } });
       runMock.mockResolvedValueOnce({
         body: Buffer.from(rawResponse),
@@ -164,7 +164,7 @@ describe('PlatformHandler', () => {
       expect(runMock).toHaveBeenCalledWith(
         'extractions',
         expect.objectContaining({ kind: 'bytes', contentType: ContentType.PDF }),
-        { method: 'extract-pii-bounding-boxes', params: { language: 'en' }, acceptFormat: 'json' },
+        { method: 'pii-bounding-boxes', params: { language: 'en' }, acceptFormat: 'json' },
       );
     });
   });
