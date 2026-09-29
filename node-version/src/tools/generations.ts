@@ -37,8 +37,28 @@ function _successResult(
   };
 }
 
-function _fieldsToJsonBytes(fields: Record<string, string | number | boolean>): Buffer {
-  return Buffer.from(JSON.stringify(fields), 'utf-8');
+type FormFieldMap = Record<string, string | number | boolean>;
+
+// The backend requires JSON form data as an array of {field, value} objects, not a flat
+// map. See the Platform API's FormFieldValue parsing.
+function _fieldsToJsonBytes(fields: FormFieldMap): Buffer {
+  const asFieldValueArray = Object.entries(fields).map(([field, value]) => ({ field, value }));
+  return Buffer.from(JSON.stringify(asFieldValueArray), 'utf-8');
+}
+
+function _parseJsonFieldsFile(bytes: Buffer, jsonPath: string): FormFieldMap {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(bytes.toString('utf-8'));
+  } catch {
+    throw new UserFacingError(`jsonPath file is not valid JSON: ${jsonPath}`);
+  }
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    throw new UserFacingError(
+      `jsonPath file must contain a JSON object mapping field names to values: ${jsonPath}`,
+    );
+  }
+  return parsed as FormFieldMap;
 }
 
 export function register(server: McpServer, context: AppContext): void {
@@ -132,7 +152,12 @@ export function register(server: McpServer, context: AppContext): void {
           args.csvPath !== undefined
             ? { bytes: filesHandler.read(args.csvPath), format: 'csv' }
             : args.jsonPath !== undefined
-              ? { bytes: filesHandler.read(args.jsonPath), format: 'json' }
+              ? {
+                  bytes: _fieldsToJsonBytes(
+                    _parseJsonFieldsFile(filesHandler.read(args.jsonPath), args.jsonPath),
+                  ),
+                  format: 'json',
+                }
               : args.xfdfPath !== undefined
                 ? { bytes: filesHandler.read(args.xfdfPath), format: 'xfdf' }
                 : args.fdfPath !== undefined

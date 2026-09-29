@@ -102,7 +102,10 @@ describe('generation tools', () => {
       expect(platformHandlerMock.fillForms).toHaveBeenCalledWith(
         Buffer.from('pdf-bytes'),
         Buffer.from(
-          JSON.stringify({ 'first-name': 'first-name-value', 'last-name': 'last-name-value' }),
+          JSON.stringify([
+            { field: 'first-name', value: 'first-name-value' },
+            { field: 'last-name', value: 'last-name-value' },
+          ]),
         ),
         'json',
         {},
@@ -126,7 +129,7 @@ describe('generation tools', () => {
 
       expect(platformHandlerMock.fillForms).toHaveBeenCalledWith(
         Buffer.from('pdf-bytes'),
-        Buffer.from(JSON.stringify({ Name: 'value,with,commas' })),
+        Buffer.from(JSON.stringify([{ field: 'Name', value: 'value,with,commas' }])),
         'json',
         {},
       );
@@ -144,7 +147,12 @@ describe('generation tools', () => {
 
       expect(platformHandlerMock.fillForms).toHaveBeenCalledWith(
         Buffer.from('pdf-bytes'),
-        Buffer.from(JSON.stringify({ Age: 30, AgreeToTerms: true })),
+        Buffer.from(
+          JSON.stringify([
+            { field: 'Age', value: 30 },
+            { field: 'AgreeToTerms', value: true },
+          ]),
+        ),
         'json',
         {},
       );
@@ -163,7 +171,7 @@ describe('generation tools', () => {
 
       expect(platformHandlerMock.fillForms).toHaveBeenCalledWith(
         Buffer.from('pdf-bytes'),
-        Buffer.from(JSON.stringify({ 'field-name': 'field-value' })),
+        Buffer.from(JSON.stringify([{ field: 'field-name', value: 'field-value' }])),
         'json',
         { strict: true },
       );
@@ -195,7 +203,7 @@ describe('generation tools', () => {
       );
     });
 
-    it('passes raw JSON bytes through when jsonPath is provided', async () => {
+    it('transforms the flat map read from jsonPath into field/value array bytes', async () => {
       const jsonContent = JSON.stringify({ 'first-name': 'first-name-value' });
       filesHandlerMock.read.mockImplementation((filePath: string) => {
         if (filePath === path.join(tmpDir, 'fields.json')) return Buffer.from(jsonContent);
@@ -215,10 +223,48 @@ describe('generation tools', () => {
 
       expect(platformHandlerMock.fillForms).toHaveBeenCalledWith(
         Buffer.from('pdf-bytes'),
-        Buffer.from(jsonContent),
+        Buffer.from(JSON.stringify([{ field: 'first-name', value: 'first-name-value' }])),
         'json',
         {},
       );
+    });
+
+    it('returns error when jsonPath file is not valid JSON', async () => {
+      filesHandlerMock.read.mockImplementation((filePath: string) => {
+        if (filePath === path.join(tmpDir, 'fields.json')) return Buffer.from('not json');
+        return Buffer.from('pdf-bytes');
+      });
+
+      await caller.call(
+        'fill_forms',
+        {
+          inputPath: path.join(tmpDir, 'form.pdf'),
+          jsonPath: path.join(tmpDir, 'fields.json'),
+        },
+        { expectError: true },
+      );
+
+      expect(platformHandlerMock.fillForms).not.toHaveBeenCalled();
+    });
+
+    it('returns error when jsonPath file contains a JSON array instead of a flat map', async () => {
+      filesHandlerMock.read.mockImplementation((filePath: string) => {
+        if (filePath === path.join(tmpDir, 'fields.json')) {
+          return Buffer.from(JSON.stringify([{ field: 'first-name', value: 'first-name-value' }]));
+        }
+        return Buffer.from('pdf-bytes');
+      });
+
+      await caller.call(
+        'fill_forms',
+        {
+          inputPath: path.join(tmpDir, 'form.pdf'),
+          jsonPath: path.join(tmpDir, 'fields.json'),
+        },
+        { expectError: true },
+      );
+
+      expect(platformHandlerMock.fillForms).not.toHaveBeenCalled();
     });
 
     it('passes raw XFDF bytes through when xfdfPath is provided', async () => {
